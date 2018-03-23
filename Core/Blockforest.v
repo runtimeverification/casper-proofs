@@ -295,6 +295,8 @@ Notation "A > B" := (FCR A B).
 Notation "A >= B" := (A = B \/ A > B).
 Notation "# b" := (hashB b) (at level 20).
 
+Axiom hashB_inj : injective hashB.
+
 Definition bcLast (bc : Blockchain) := last GenesisBlock bc.
 
 Definition subchain (bc1 bc2 : Blockchain) := exists p q, bc2 = p ++ bc1 ++ q.
@@ -320,3 +322,93 @@ Proof. by move=>Vh h c; rewrite findF;case: ifP=>//_ /Vh. Qed.
 (* We only add "fresh blocks" *)
 Definition btExtend (bt : Blockforest) (b : block) :=
   if #b \in dom bt then bt else #b \\-> b \+ bt.
+
+Definition tx_valid_block bc (b : block) := all [pred t | txValid t bc] (txs b).
+
+Definition next_of (bt : Blockforest) b : pred Block :=
+  [pred b' | (hashB b == prevBlockHash b') && (hashB b' \in dom bt)].
+
+(* All paths/chains should start with the GenesisBlock *)
+Fixpoint compute_chain' (bt : Blockforest) b remaining n : Blockchain :=
+  (* Preventing cycles in chains *)
+  if (hashB b) \in remaining
+  then
+    let rest := seq.rem (hashB b) remaining in
+    (* Supporting primitive inductions *)
+    if n is n'.+1 then
+      match find (prevBlockHash b) bt with
+      (* No parent *)
+      | None => [:: b]
+      (* Build chain prefix recursively *)
+      | Some prev =>
+        rcons (nosimpl (compute_chain' (free (hashB b) bt) prev rest n')) b
+      end
+    else [::]
+  else [::].
+
+(* Compute chain from the block *)
+Definition compute_chain bt b :=
+  compute_chain' bt b (keys_of bt) (size (keys_of bt)).
+
+(* Total get_block function *)
+Definition get_block (bt : Blockforest) k : Block :=
+  if find k bt is Some b then b else GenesisBlock.
+
+(* Collect all blocks *)
+Definition all_blocks (bt : Blockforest) := [seq get_block bt k | k <- keys_of bt].
+
+Definition is_block_in (bt : Blockforest) b := exists k, find k bt = Some b.
+
+(* A certificate for all_blocks *)
+Lemma all_blocksP bt b : reflect (is_block_in bt b) (b \in all_blocks bt).
+Proof.
+case B : (b \in all_blocks bt); [constructor 1|constructor 2].
+- move: B; rewrite /all_blocks; case/mapP=>k Ik->{b}.
+  rewrite keys_dom in Ik; move/gen_eta: Ik=>[b]/=[E H].
+  by exists k; rewrite /get_block E.
+case=>k F; move/negP: B=>B; apply: B.
+rewrite /all_blocks; apply/mapP.
+exists k; last by rewrite /get_block F.
+by rewrite keys_dom; move/find_some: F.
+Qed.
+
+Lemma all_blocksP' bt b : validH bt -> reflect (b ∈ bt) (b \in all_blocks bt).
+Proof.
+move=>Vh.
+case B : (b \in all_blocks bt); [constructor 1|constructor 2].
+- move: B; rewrite /all_blocks; case/mapP=>k Ik->{b}.
+  rewrite keys_dom in Ik; move/gen_eta: Ik=>[b]/=[E H].
+  rewrite/get_block E /btHasBlock; specialize (Vh _ _ E); subst k.
+  by move: (find_some E).
+case=>H; rewrite/btHasBlock; move/negP: B=>B; apply: B.
+rewrite /all_blocks; apply/mapP.
+exists (#b); first by rewrite keys_dom.
+rewrite/btHasBlock in H; rewrite/get_block.
+case X: (find _ _)=>[b'|].
+by move: (Vh _  _ X); move/hashB_inj.
+by contradict H; move: (find_none X)=>H; apply/negP.
+Qed.
+
+(* All chains from the given tree *)
+Definition good_chain (bc : Blockchain) :=
+  if bc is h :: _ then h == GenesisBlock else false.
+
+(* Transaction validity *)
+Fixpoint tx_valid_chain' (bc prefix : seq block) :=
+  if bc is b :: bc'
+  then [&& all [pred t | txValid t prefix] (txs b) &
+        tx_valid_chain' bc' (rcons prefix b)]
+  else true.
+           
+Definition tx_valid_chain bc := tx_valid_chain' bc [::].
+
+Definition all_chains bt := [seq compute_chain bt b | b <- all_blocks bt].
+
+Definition good_chains bt := [seq c <- all_chains bt | good_chain c && tx_valid_chain c].
+
+(* Get the blockchain *)
+Definition take_better_bc bc2 bc1 :=
+  if (good_chain bc2 && tx_valid_chain bc2) && (bc2 > bc1) then bc2 else bc1.
+
+Definition btChain bt : Blockchain :=
+  foldr take_better_bc [:: GenesisBlock] (all_chains bt).
