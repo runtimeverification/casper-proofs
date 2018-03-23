@@ -1,0 +1,16 @@
+-Q Heaps HTT
+-Q Core CasperToychain
+-arg "-w -notation-overridden,-local-declaration,-redundant-canonical-projection,-projection-no-head-constant"
+
+Heaps/domain.v
+Heaps/finmap.v
+Heaps/heap.v
+Heaps/idynamic.v
+Heaps/ordtype.v
+Heaps/pcm.v
+Heaps/pperm.v
+Heaps/pred.v
+Heaps/prelude.v
+Heaps/unionmap.v
+Core/Blockforest.v
+Core/Protocol.v
