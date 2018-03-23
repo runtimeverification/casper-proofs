@@ -342,12 +342,6 @@ case hP: genProof => //; case vP: (VAF _)=>//.
 case tV: (tx_valid_block _ _)=>//.
 Qed.
 
-Lemma btExtendV bt b : valid bt = valid (btExtend bt b).
-Proof.
-rewrite /btExtend; case: ifP=>//N.
-by rewrite gen_validPtUn/= N andbC.
-Qed.
-
 Lemma procMsg_valid :
    forall (s1 : State) from (m : Message) (ts : Timestamp),
     valid (blockTree s1) -> valid (blockTree (procMsg s1 from  m ts).1).
@@ -370,16 +364,6 @@ case: (genProof _); last done.
 move=>Pf; case: (VAF _ _ _); last done.
 case tV: (tx_valid_block _ _)=>//.
 by rewrite/blockTree/=; apply btExtendV.
-Qed.
-
-Lemma btExtendH bt b : valid bt -> validH bt -> validH (btExtend bt b).
-Proof.
-move=>V H z c; rewrite /btExtend.
-case: ifP=>X; first by move/H.
-rewrite findUnL ?gen_validPtUn ?V ?X//.
-case: ifP=>Y; last by move/H.
-rewrite um_domPt inE in Y; move/eqP: Y=>Y; subst z.
-by rewrite um_findPt; case=>->.
 Qed.
 
 Lemma procMsg_validH :
@@ -406,18 +390,6 @@ case: (genProof _); last done.
 move=>Pf; case: (VAF _ _ _); last done.
 case tV: (tx_valid_block _ _)=>//.
 by rewrite/blockTree/=; apply btExtendH.
-Qed.
-
-Lemma btExtendIB bt b :
-  valid bt -> validH bt -> has_init_block bt ->
-  has_init_block (btExtend bt b).
-Proof.
-move=>V H; rewrite /btExtend/has_init_block=>Ib.
-case: ifP=>X; first done.
-rewrite findUnL ?gen_validPtUn ?V ?X//.
-case: ifP=>Y; last done.
-rewrite um_domPt inE in Y; move/eqP: Y=>Y.
-by specialize (hashB_inj Y)=><-; rewrite Y um_findPt.
 Qed.
 
 Lemma procMsg_has_init_block:
