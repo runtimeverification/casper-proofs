@@ -1,7 +1,8 @@
 Casper Toychain
 ===============
 
-Minimal set of definitions for a blockchain protocol extracted from Toychain.
+Minimalistic set of definitions for a blockchain protocol,
+extracted from [Toychain](https://github.com/certichain/toychain).
 
 Requirements
 ------------
