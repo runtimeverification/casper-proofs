@@ -102,11 +102,8 @@ Record State :=
     txPool : TxPool;
   }.
 
-Definition Init (n : Address) : State :=
-  Node n [:: n] (#GenesisBlock \\-> GenesisBlock) [::].
-
-Lemma peers_uniq_init (n : Address) : uniq [::n].
-Proof. by []. Qed.
+Definition Init (n : Address) (peers : seq Address) : State :=
+  Node n peers (#GenesisBlock \\-> GenesisBlock) [::].
 
 Definition procMsg (st: State) (from : Address) (msg: Message) (ts: Timestamp) :=
     let: Node n prs bt pool := st in
@@ -176,11 +173,11 @@ Canonical Address_ordType := Eval hnf in OrdType Address Address_ordMixin.
 
 Definition StateMap := union_map [ordType of Address] State.
 
-Definition initState' s : StateMap := foldr (fun a m => (a \\-> Init a) \+ m) Unit s.
+Definition initState' s ps : StateMap := foldr (fun a m => (a \\-> Init a (ps a)) \+ m) Unit s.
 
 (* Master-lemma, proving a conjunction of two mutually-necessary facts *)
-Lemma initStateValidDom s :
-  uniq s -> dom (initState' s) =i s /\ valid (initState' s).
+Lemma initStateValidDom s ps :
+  uniq s -> dom (initState' s ps) =i s /\ valid (initState' s ps).
 Proof.
 elim: s => /=[|a s']; first by rewrite valid_unit dom0.
 move => IH.
@@ -205,17 +202,17 @@ split; last first.
     by rewrite eq_sym.
 Qed.
 
-Lemma valid_initState' s : uniq s -> valid (initState' s).
-Proof. by move => H_u; case: (initStateValidDom H_u). Qed.
+Lemma valid_initState' s ps : uniq s -> valid (initState' s ps).
+Proof. by move => H_u; case: (initStateValidDom ps H_u). Qed.
 
-Lemma dom_initState' s : uniq s -> dom (initState' s) =i s.
-Proof. by move => H_u; case: (initStateValidDom H_u). Qed.
+Lemma dom_initState' s ps : uniq s -> dom (initState' s ps) =i s.
+Proof. by move => H_u; case: (initStateValidDom ps H_u). Qed.
 
 (* ------------------*)
 (* TRANSITION SYSTEM *)
 (* ------------------*)
 
-Definition initState := initState' (enum Address).
+Definition initState ps := initState' (enum Address) ps.
 
 Definition PacketSoup := seq Packet.
 
@@ -277,7 +274,7 @@ Fixpoint reachable' (s : Schedule) (w w' : World) : Prop :=
 Definition reachable (w w' : World) :=
   exists s, reachable' s w w'.
 
-Definition initWorld := mkW initState [::] [::].
+Definition initWorld := mkW (initState (fun _ => enum Address)) [::] [::].
 
 Ltac Coh_step_case n d H F :=
   case B: (n == d);
@@ -285,20 +282,20 @@ Ltac Coh_step_case n d H F :=
     case: ifP; last done
   ]; move=>_ [] <-.
 
-Lemma holds_Init_state : forall (P : State -> Prop) n, P (Init n) ->
-  holds n {| localState := initState; inFlightMsgs := [::]; consumedMsgs := [::] |} (fun st : State => P st).
+Lemma holds_Init_state : forall (P : State -> Prop) n ps, P (Init n (ps n)) ->
+  holds n {| localState := initState ps; inFlightMsgs := [::]; consumedMsgs := [::] |} (fun st : State => P st).
 Proof.
-move => P n H_P; rewrite /initState.
+move => P n ps H_P; rewrite /initState.
 have H_in: n \in enum Address by rewrite mem_enum.
 have H_un: uniq (enum Address) by apply enum_uniq.
-move: H_in H_un; elim: (enum Address) => //=.
-move => a s IH; rewrite inE; move/orP; case.
+move: H_P H_in H_un; elim: (enum Address) => //=.
+move => a s IH H_P; rewrite inE; move/orP; case.
 * move/eqP => H_eq /=.
   rewrite H_eq; move/andP => [H_in H_u].
   rewrite /holds /= => st; rewrite gen_findPtUn; first by case => H_i; rewrite -H_i -H_eq.
   by case: validUn; rewrite ?um_validPt ?valid_initState'//;
    move=>k; rewrite um_domPt !inE=>/eqP <-;
-   rewrite dom_initState' //; move/negP: H_in.
+  rewrite dom_initState' //; move/negP: H_in.
 * move => H_in; move/andP => [H_ni H_u].
   have H_neq: n <> a by move => H_eq; rewrite -H_eq in H_ni; move/negP: H_ni.
   move: H_in; move/IH {IH} => IH.
@@ -325,7 +322,8 @@ rewrite /initWorld/localState/=; split.
   by move: (um_findPt_inv H); elim=>->->.
 - move => n; apply: holds_Init_state.
   by rewrite/has_init_block/blockTree um_findPt.
-- move => n; exact: holds_Init_state.
+- move => n; apply: holds_Init_state.
+  exact: enum_uniq.
 Qed.
 
 Lemma procMsg_id_constant (s1 : State) from (m : Message) (ts : Timestamp) :
