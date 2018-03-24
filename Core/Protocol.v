@@ -168,9 +168,6 @@ Definition procInt (st : State) (tr : InternalTransition) (ts : Timestamp) :=
       end
     end.
 
-Definition Address_ordMixin := fin_ordMixin Address.
-Canonical Address_ordType := Eval hnf in OrdType Address Address_ordMixin.
-
 Definition StateMap := union_map [ordType of Address] State.
 
 Definition initState' s ps : StateMap := foldr (fun a m => (a \\-> Init a (ps a)) \+ m) Unit s.
