@@ -267,16 +267,165 @@ Qed.
 
 Parameter Timestamp : Type.
 Parameter Hash : ordType.
-
 Parameter VProof : eqType.
+
+Parameter Account : finType.
 Parameter Address : finType.
 
-Definition Address_ordMixin := fin_ordMixin Address.
-Canonical Address_ordType := Eval hnf in OrdType Address Address_ordMixin.
+Parameter Epoch : ordType.
+Parameter Dynasty : ordType.
+Parameter Signature : eqType.
 
-Parameter Transaction : eqType.
+Record Vote :=
+  mkVote {
+    v_validator : Account;
+    v_target_hash : Hash;
+    v_target_epoch : Epoch;
+    v_source_epoch : Epoch;
+    v_sig : Signature
+  }.
 
-Definition block := @Block Hash Transaction VProof.
+Definition eq_Vote (v v' : Vote) :=
+  match v, v' with
+  | mkVote v1 th1 te1 se1 sg1, mkVote v2 th2 te2 se2 sg2 =>
+    [&& v1 == v2, th1 == th2, te1 == te2, se1 == se2 & sg1 == sg2]
+  end.
+
+Lemma eq_VoteP : Equality.axiom eq_Vote.
+Proof.
+case => v1 th1 te1 se1 sg1; case => v2 th2 te2 se2 sg2; rewrite /eq_Vote/=.
+case H2: (v1 == v2); [move/eqP: H2=>?; subst v2| constructor 2];
+  last by case=>?; subst v2;rewrite eqxx in H2.
+case H3: (th1 == th2); [move/eqP: H3=>?; subst th2| constructor 2];
+  last by case=>?; subst th2;rewrite eqxx in H3.
+case H4: (te1 == te2); [move/eqP: H4=>?; subst te2| constructor 2];
+  last by case=>?; subst te2;rewrite eqxx in H4.
+case H5: (se1 == se2); [move/eqP: H5=>?; subst se2| constructor 2];
+  last by case=>?; subst se2;rewrite eqxx in H5.
+case H6: (sg1 == sg2); [move/eqP: H6=>?; subst sg2| constructor 2];
+  last by case=>?; subst sg2;rewrite eqxx in H6.
+by constructor 1.
+Qed.
+
+Definition Vote_eqMixin :=
+  Eval hnf in EqMixin eq_VoteP.
+Canonical Vote_eqType :=
+  Eval hnf in EqType Vote Vote_eqMixin.
+
+Record Deposit :=
+  mkDeposit {
+   d_acct : Account;
+   d_amount : nat
+  }.
+
+Definition eq_Deposit (d d' : Deposit) :=
+  match d, d' with
+  | mkDeposit ac1 am1, mkDeposit ac2 am2 =>
+    [&& ac1 == ac2 & am1 == am2]
+  end.
+
+Lemma eq_DepositP : Equality.axiom eq_Deposit.
+Proof.
+case => ac1 am1; case => ac2 am2; rewrite /eq_Deposit/=.
+case H2: (ac1 == ac2); [move/eqP: H2=>?; subst ac2| constructor 2];
+  last by case=>?; subst ac2;rewrite eqxx in H2.
+case H3: (am1 == am2); [move/eqP: H3=>?; subst am2| constructor 2];
+  last by case=>?; subst am2;rewrite eqxx in H3.
+by constructor 1.
+Qed.
+
+Definition Deposit_eqMixin :=
+  Eval hnf in EqMixin eq_DepositP.
+Canonical Deposit_eqType :=
+  Eval hnf in EqType Deposit Deposit_eqMixin.
+
+Record Logout :=
+  mkLogout {
+    l_acct : Account;
+    l_epoch : Epoch;
+    l_sig : Signature
+  }.
+
+Definition eq_Logout (l l' : Logout) :=
+match l, l' with
+| mkLogout la1 le1 ls1, mkLogout la2 le2 ls2 =>
+  [&& la1 == la2, le1 == le2 & ls1 == ls2]
+end.
+
+Lemma eq_LogoutP : Equality.axiom eq_Logout.
+Proof.
+case => la1 le1 ls1; case => la2 le2 ls2; rewrite /eq_Logout/=.
+case H2: (la1 == la2); [move/eqP: H2=>?; subst la2| constructor 2];
+  last by case=>?; subst la2;rewrite eqxx in H2.
+case H3: (le1 == le2); [move/eqP: H3=>?; subst le2| constructor 2];
+  last by case=>?; subst le2;rewrite eqxx in H3.
+case H4: (ls1 == ls2); [move/eqP: H4=>?; subst ls2| constructor 2];
+  last by case=>?; subst ls2;rewrite eqxx in H4.
+by constructor 1.
+Qed.
+
+Definition Logout_eqMixin :=
+  Eval hnf in EqMixin eq_LogoutP.
+Canonical Logout_eqType :=
+  Eval hnf in EqType Logout Logout_eqMixin.
+
+Inductive Transaction :=
+| VoteTx of Vote
+| SlashTx of Vote & Vote
+| InitEpochTx of Epoch
+| DepositTx of Deposit
+| LogoutTx of Logout
+| WithdrawTx of Account.
+
+Definition eq_Transaction t1 t2 :=
+ match t1, t2 with
+  | VoteTx v1, VoteTx v2 => (v1 == v2)
+  | VoteTx _, _ => false
+  | SlashTx v11 v12, SlashTx v21 v22 => [&& v11 == v21 & v12 == v22]
+  | SlashTx _ _, _ => false
+  | InitEpochTx e1, InitEpochTx e2 => (e1 == e2)
+  | InitEpochTx _, _ => false
+  | DepositTx d1, DepositTx d2 => (d1 == d2)
+  | DepositTx _, _ => false
+  | LogoutTx l1, LogoutTx l2 => (l1 == l2)
+  | LogoutTx _, _ => false
+  | WithdrawTx a1, WithdrawTx a2 => (a1 == a2)
+  | WithdrawTx _, _ => false
+ end.
+
+Lemma eq_TransactionP : Equality.axiom eq_Transaction.
+Proof.
+move=> t1 t2. rewrite/eq_Transaction.
+case: t1=>[v1|v11 v12|e1|d1|l1|a1].
+- case:t2=>////[v2|v21 v22|e2|d2|l2|a2]; do? [by constructor 2].
+  case B: (v1 == v2); [by case/eqP:B=><-; constructor 1|constructor 2].
+  by case=>Z; subst v2; rewrite eqxx in B.
+- case:t2=>////[v2|v21 v22|e2|d2|l2|a2]; do? [by constructor 2].
+  case B1: (v11 == v21); case B2: (v12 == v22); [|constructor 2|constructor 2|constructor 2].
+  * by case/eqP: B1=><-; case/eqP: B2=><-; constructor 1.
+  * by case => H_eq H_eq'; subst v22; rewrite eqxx in B2.
+  * by case => H_eq H_eq'; subst v21; rewrite eqxx in B1.
+  * by case => H_eq H_eq'; subst v22; rewrite eqxx in B2.
+- case:t2=>////[v2|v21 v22|e2|d2|l2|a2]; do? [by constructor 2].
+  case B: (e1 == e2); [by case/eqP:B=><-; constructor 1|constructor 2].
+  by case=>Z; subst e2; rewrite eqxx in B.
+- case:t2=>////[v2|v21 v22|e2|d2|l2|a2]; do? [by constructor 2].
+  case B: (d1 == d2); [by case/eqP:B=><-; constructor 1|constructor 2].
+  by case=>Z; subst d2; rewrite eqxx in B.
+- case:t2=>////[v2|v21 v22|e2|d2|l2|a2]; do? [by constructor 2].
+  case B: (l1 == l2); [by case/eqP:B=><-; constructor 1|constructor 2].
+  by case=>Z; subst l2; rewrite eqxx in B.
+- case:t2=>////[v2|v21 v22|e2|d2|l2|a2]; do? [by constructor 2].
+  case B: (a1 == a2); [by case/eqP:B=><-; constructor 1|constructor 2].
+  by case=>Z; subst a2; rewrite eqxx in B.
+Qed.
+
+Definition Transaction_eqMixin :=
+  Eval hnf in EqMixin eq_TransactionP.
+Canonical Transaction_eqType :=
+  Eval hnf in EqType Transaction Transaction_eqMixin.
+
+Definition block := @Block Hash [eqType of Transaction] VProof.
 
 Parameter GenesisBlock : block.
 

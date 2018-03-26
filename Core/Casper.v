@@ -11,8 +11,8 @@ Require Import Blockforest.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-Parameter Epoch : ordType.
-Parameter Dynasty : ordType.
+Definition Account_ordMixin := fin_ordMixin Account.
+Canonical Account_ordType : ordType := Eval hnf in OrdType Account Account_ordMixin.
 
 Record ValidatorData :=
   mkValidator {
@@ -82,7 +82,7 @@ Canonical VotesData_eqType :=
 
 Record CasperData :=
   mkCasper {
-    tr_validators : union_map [ordType of Address] ValidatorData;
+    tr_validators : union_map [ordType of Account] ValidatorData;
     tr_checkpoint_hashes : union_map Epoch Hash;
     tr_dynasty : Dynasty;
     tr_next_dynasty_wei : nat;

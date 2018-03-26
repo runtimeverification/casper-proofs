@@ -11,6 +11,9 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
+Definition Address_ordMixin := fin_ordMixin Address.
+Canonical Address_ordType := Eval hnf in OrdType Address Address_ordMixin.
+
 (* ------------------*)
 (* PROTOCOL MESSAGES *)
 (* ------------------*)
