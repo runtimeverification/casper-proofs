@@ -240,7 +240,6 @@ Definition Coh (w : World) :=
 
 Record Qualifier := Q { ts: Timestamp; allowed: Address; }.
 
-(* Don't you worry about uniqueness of the messages? *)
 Inductive system_step (w w' : World) (q : Qualifier) : Prop :=
 | Idle of Coh w /\ w = w'
 
