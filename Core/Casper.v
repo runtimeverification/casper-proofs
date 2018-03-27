@@ -12,7 +12,7 @@ Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
 Definition Account_ordMixin := fin_ordMixin Account.
-Canonical Account_ordType : ordType := Eval hnf in OrdType Account Account_ordMixin.
+Canonical Account_ordType := Eval hnf in OrdType Account Account_ordMixin.
 
 Record ValidatorData :=
   mkValidator {
