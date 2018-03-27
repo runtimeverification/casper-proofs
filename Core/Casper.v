@@ -16,7 +16,7 @@ Canonical Account_ordType : ordType := Eval hnf in OrdType Account Account_ordMi
 
 Record ValidatorData :=
   mkValidator {
-    va_deposit : nat;
+    va_deposit : Wei;
     va_start_dynasty : Dynasty;
     va_end_dynasty : Dynasty
   }.
@@ -46,8 +46,8 @@ Canonical ValidatorData_eqType :=
 
 Record VotesData :=
   mkVotes {
-    vo_cur_dyn_votes : union_map Epoch nat;
-    vo_prev_dyn_votes : union_map Epoch nat;
+    vo_cur_dyn_votes : union_map [ordType of Epoch] Wei;
+    vo_prev_dyn_votes : union_map [ordType of Epoch] Wei;
     vo_vote_map : union_map Hash {set Account};
     vo_is_justified : bool;
     vo_is_finalized : bool
@@ -83,29 +83,31 @@ Canonical VotesData_eqType :=
 Record CasperData :=
   mkCasper {
     tr_validators : union_map [ordType of Account] ValidatorData;
-    tr_checkpoint_hashes : union_map Epoch Hash;
+    tr_checkpoint_hashes : union_map [ordType of Epoch] Hash;
     tr_dynasty : Dynasty;
-    tr_next_dynasty_wei_delta : nat;
-    tr_second_next_dynasty_wei_delta : nat;
-    tr_total_curdyn_deposits: nat;
-    tr_total_prevdyn_deposits: nat;
-    tr_dynasty_start_epoch : union_map Dynasty Epoch;
-    tr_dynasty_in_epoch : union_map Epoch Dynasty;
+    tr_next_dynasty_wei_delta : Wei;
+    tr_second_next_dynasty_wei_delta : Wei;
+    tr_total_curdyn_deposits: Wei;
+    tr_total_prevdyn_deposits: Wei;
+    tr_dynasty_start_epoch : union_map [ordType of Dynasty] Epoch;
+    tr_dynasty_in_epoch : union_map [ordType of Epoch] Dynasty;
     tr_epoch_length : nat;
     tr_withdrawal_delay : nat;
     tr_current_epoch : Epoch;
     tr_last_finalized_epoch : Epoch;
     tr_last_justified_epoch : Epoch;
     tr_expected_source_epoch : Epoch;
-    tr_votes : union_map Epoch VotesData;
+    tr_votes : union_map [ordType of Epoch] VotesData;
     tr_main_hash_justified : bool
   }.
 
 Definition eq_CasperData (c c' : CasperData) :=
   match c, c' with
   | mkCasper va1 ch1 d1 ndw1 sndw1 tcd1 tpd1 dse1 die1 el1 wd1 ce1 lfe1 lje1 ese1 vo1 mhj1,
-   mkCasper va2 ch2 d2 ndw2 sndw2 tcd2 tpd2 dse2 die2 el2 wd2 ce2 lfe2 lje2 ese2 vo2 mhj2 =>
-    [&& va1 == va2, ch1 == ch2, d1 == d2, ndw1 == ndw2, sndw1 == sndw2, tcd1 == tcd2, tpd1 == tpd2, dse1 == dse2, die1 == die2, el1 == el2, wd1 == wd2, ce1 == ce2, lfe1 == lfe2, lje1 == lje2, ese1 == ese2, vo1 == vo2 & mhj1 == mhj2]
+    mkCasper va2 ch2 d2 ndw2 sndw2 tcd2 tpd2 dse2 die2 el2 wd2 ce2 lfe2 lje2 ese2 vo2 mhj2 =>
+    [&& va1 == va2, ch1 == ch2, d1 == d2, ndw1 == ndw2, sndw1 == sndw2, tcd1 == tcd2, tpd1 == tpd2,
+     dse1 == dse2, die1 == die2, el1 == el2, wd1 == wd2, ce1 == ce2, lfe1 == lfe2, lje1 == lje2,
+     ese1 == ese2, vo1 == vo2 & mhj1 == mhj2]
   end.
 
 Lemma eq_CasperDataP : Equality.axiom eq_CasperData.
@@ -154,3 +156,23 @@ Definition CasperData_eqMixin :=
   Eval hnf in EqMixin eq_CasperDataP.
 Canonical CasperData_eqType :=
   Eval hnf in EqType CasperData CasperData_eqMixin.
+
+Definition InitCasperData (epoch_length : nat) (withdrawal_delay : nat) :=
+ {| tr_validators := Unit;
+    tr_checkpoint_hashes := Unit;
+    tr_dynasty := 0;
+    tr_next_dynasty_wei_delta := 0;
+    tr_second_next_dynasty_wei_delta := 0;
+    tr_total_curdyn_deposits := 0;
+    tr_total_prevdyn_deposits := 0;
+    tr_dynasty_start_epoch := Unit;
+    tr_dynasty_in_epoch := Unit;
+    tr_epoch_length := epoch_length;
+    tr_withdrawal_delay := withdrawal_delay;
+    tr_current_epoch := 0;
+    tr_last_finalized_epoch := 0;
+    tr_last_justified_epoch := 0;
+    tr_expected_source_epoch := 0;
+    tr_votes := Unit;
+    tr_main_hash_justified := false
+ |}.

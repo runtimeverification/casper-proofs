@@ -272,8 +272,10 @@ Parameter VProof : eqType.
 Parameter Account : finType.
 Parameter Address : finType.
 
-Parameter Epoch : ordType.
-Parameter Dynasty : ordType.
+Definition Wei := nat.
+Definition Epoch := nat.
+Definition Dynasty := nat.
+
 Parameter Signature : eqType.
 
 Record Vote :=
@@ -315,7 +317,7 @@ Canonical Vote_eqType :=
 Record Deposit :=
   mkDeposit {
    d_acct : Account;
-   d_amount : nat
+   d_amount : Wei
   }.
 
 Definition eq_Deposit (d d' : Deposit) :=
@@ -370,27 +372,27 @@ Canonical Logout_eqType :=
   Eval hnf in EqType Logout Logout_eqMixin.
 
 Inductive Transaction :=
-| VoteTx of Vote
-| SlashTx of Vote & Vote
-| InitEpochTx of Epoch
-| DepositTx of Deposit
-| LogoutTx of Logout
-| WithdrawTx of Account.
+| TxVote of Vote
+| TxSlash of Vote & Vote
+| TxInitEpoch of Epoch
+| TxDeposit of Deposit
+| TxLogout of Logout
+| TxWithdraw of Account.
 
 Definition eq_Transaction t1 t2 :=
  match t1, t2 with
-  | VoteTx v1, VoteTx v2 => (v1 == v2)
-  | VoteTx _, _ => false
-  | SlashTx v11 v12, SlashTx v21 v22 => [&& v11 == v21 & v12 == v22]
-  | SlashTx _ _, _ => false
-  | InitEpochTx e1, InitEpochTx e2 => (e1 == e2)
-  | InitEpochTx _, _ => false
-  | DepositTx d1, DepositTx d2 => (d1 == d2)
-  | DepositTx _, _ => false
-  | LogoutTx l1, LogoutTx l2 => (l1 == l2)
-  | LogoutTx _, _ => false
-  | WithdrawTx a1, WithdrawTx a2 => (a1 == a2)
-  | WithdrawTx _, _ => false
+  | TxVote v1, TxVote v2 => (v1 == v2)
+  | TxVote _, _ => false
+  | TxSlash v11 v12, TxSlash v21 v22 => [&& v11 == v21 & v12 == v22]
+  | TxSlash _ _, _ => false
+  | TxInitEpoch e1, TxInitEpoch e2 => (e1 == e2)
+  | TxInitEpoch _, _ => false
+  | TxDeposit d1, TxDeposit d2 => (d1 == d2)
+  | TxDeposit _, _ => false
+  | TxLogout l1, TxLogout l2 => (l1 == l2)
+  | TxLogout _, _ => false
+  | TxWithdraw a1, TxWithdraw a2 => (a1 == a2)
+  | TxWithdraw _, _ => false
  end.
 
 Lemma eq_TransactionP : Equality.axiom eq_Transaction.
