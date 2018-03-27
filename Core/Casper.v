@@ -46,9 +46,9 @@ Canonical ValidatorData_eqType :=
 
 Record VotesData :=
   mkVotes {
-    vo_cur_dyn_votes : nat;
-    vo_prev_dyn_votes : nat;
-    vo_vote_map : union_map Hash {set Address};
+    vo_cur_dyn_votes : union_map Epoch nat;
+    vo_prev_dyn_votes : union_map Epoch nat;
+    vo_vote_map : union_map Hash {set Account};
     vo_is_justified : bool;
     vo_is_finalized : bool
   }.
@@ -85,25 +85,34 @@ Record CasperData :=
     tr_validators : union_map [ordType of Account] ValidatorData;
     tr_checkpoint_hashes : union_map Epoch Hash;
     tr_dynasty : Dynasty;
-    tr_next_dynasty_wei : nat;
-    tr_second_next_dynasty_wei : nat;
+    tr_next_dynasty_wei_delta : nat;
+    tr_second_next_dynasty_wei_delta : nat;
     tr_total_curdyn_deposits: nat;
     tr_total_prevdyn_deposits: nat;
     tr_dynasty_start_epoch : union_map Dynasty Epoch;
     tr_dynasty_in_epoch : union_map Epoch Dynasty;
+    tr_epoch_length : nat;
+    tr_withdrawal_delay : nat;
+    tr_current_epoch : Epoch;
+    tr_last_finalized_epoch : Epoch;
+    tr_last_justified_epoch : Epoch;
+    tr_expected_source_epoch : Epoch;
     tr_votes : union_map Epoch VotesData;
     tr_main_hash_justified : bool
   }.
 
 Definition eq_CasperData (c c' : CasperData) :=
   match c, c' with
-  | mkCasper va1 ch1 d1 ndw1 sndw1 tcd1 tpd1 dse1 die1 vo1 mh1, mkCasper va2 ch2 d2 ndw2 sndw2 tcd2 tpd2 dse2 die2 vo2 mh2 =>
-    [&& va1 == va2, ch1 == ch2, d1 == d2, ndw1 == ndw2, sndw1 == sndw2, tcd1 == tcd2, tpd1 == tpd2, dse1 == dse2, die1 == die2, vo1 == vo2 & mh1 == mh2]
+  | mkCasper va1 ch1 d1 ndw1 sndw1 tcd1 tpd1 dse1 die1 el1 wd1 ce1 lfe1 lje1 ese1 vo1 mhj1,
+   mkCasper va2 ch2 d2 ndw2 sndw2 tcd2 tpd2 dse2 die2 el2 wd2 ce2 lfe2 lje2 ese2 vo2 mhj2 =>
+    [&& va1 == va2, ch1 == ch2, d1 == d2, ndw1 == ndw2, sndw1 == sndw2, tcd1 == tcd2, tpd1 == tpd2, dse1 == dse2, die1 == die2, el1 == el2, wd1 == wd2, ce1 == ce2, lfe1 == lfe2, lje1 == lje2, ese1 == ese2, vo1 == vo2 & mhj1 == mhj2]
   end.
 
 Lemma eq_CasperDataP : Equality.axiom eq_CasperData.
 Proof.
-case => va1 ch1 d1 ndw1 sndw1 tcd1 tpd1 dse1 die1 vo1 mh1; case => va2 ch2 d2 ndw2 sndw2 tcd2 tpd2 dse2 die2 vo2 mh2; rewrite /eq_CasperData/=.
+case => va1 ch1 d1 ndw1 sndw1 tcd1 tpd1 dse1 die1 el1 wd1 ce1 lfe1 lje1 ese1 vo1 mhj1;
+case => va2 ch2 d2 ndw2 sndw2 tcd2 tpd2 dse2 die2 el2 wd2 ce2 lfe2 lje2 ese2 vo2 mhj2.
+rewrite /eq_CasperData/=.
 case H2: (va1 == va2); [move/eqP: H2=>?; subst va2| constructor 2];
   last by case=>?; subst va2;rewrite eqxx in H2.
 case H3: (ch1 == ch2); [move/eqP: H3=>?; subst ch2| constructor 2];
@@ -122,10 +131,22 @@ case H9: (dse1 == dse2); [move/eqP: H9=>?; subst dse2| constructor 2];
   last by case=>?; subst dse2;rewrite eqxx in H9.
 case H10: (die1 == die2); [move/eqP: H10=>?; subst die2| constructor 2];
   last by case=>?; subst die2;rewrite eqxx in H10.
-case H11: (vo1 == vo2); [move/eqP: H11=>?; subst vo2| constructor 2];
-  last by case=>?; subst vo2;rewrite eqxx in H11.
-case H12: (mh1 == mh2); [move/eqP: H12=>?; subst mh2| constructor 2];
-  last by case=>?; subst mh2;rewrite eqxx in H12.
+case H11: (el1 == el2); [move/eqP: H11=>?; subst el2| constructor 2];
+  last by case=>?; subst el2;rewrite eqxx in H11.
+case H12: (wd1 == wd2); [move/eqP: H12=>?; subst wd2| constructor 2];
+  last by case=>?; subst wd2;rewrite eqxx in H12.
+case H13: (ce1 == ce2); [move/eqP: H13=>?; subst ce2| constructor 2];
+  last by case=>?; subst ce2;rewrite eqxx in H13.
+case H14: (lfe1 == lfe2); [move/eqP: H14=>?; subst lfe2| constructor 2];
+  last by case=>?; subst lfe2;rewrite eqxx in H14.
+case H15: (lje1 == lje2); [move/eqP: H15=>?; subst lje2| constructor 2];
+  last by case=>?; subst lje2;rewrite eqxx in H15.
+case H16: (ese1 == ese2); [move/eqP: H16=>?; subst ese2| constructor 2];
+  last by case=>?; subst ese2;rewrite eqxx in H16.
+case H17: (vo1 == vo2); [move/eqP: H17=>?; subst vo2| constructor 2];
+  last by case=>?; subst vo2;rewrite eqxx in H17.
+case H18: (mhj1 == mhj2); [move/eqP: H18=>?; subst mhj2| constructor 2];
+  last by case=>?; subst mhj2;rewrite eqxx in H18.
 by constructor 1.
 Qed.
 
