@@ -11,7 +11,7 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-Definition StateMap := union_map [ordType of Address] State.
+Definition StateMap := union_map [ordType of NodeId] State.
 
 Definition initState' s ps : StateMap := foldr (fun a m => (a \\-> Init a (ps a)) \+ m) Unit s.
 
@@ -52,7 +52,7 @@ Proof. by move => H_u; case: (initStateValidDom ps H_u). Qed.
 (* TRANSITION SYSTEM *)
 (* ------------------*)
 
-Definition initState ps := initState' (enum Address) ps.
+Definition initState ps := initState' (enum NodeId) ps.
 
 Definition PacketSoup := seq Packet.
 
@@ -63,25 +63,25 @@ Record World :=
     consumedMsgs : PacketSoup;
   }.
 
-Definition holds (n : Address) (w : World) (cond : State -> Prop) :=
+Definition holds (n : NodeId) (w : World) (cond : State -> Prop) :=
   forall (st : State),
     find n (localState w) = Some st -> cond st.
 
 Definition Coh (w : World) :=
   [/\ valid (localState w),
-     forall (n : Address),
+     forall (n : NodeId),
        holds n w (fun st => id st == n),
-     forall (n : Address),
+     forall (n : NodeId),
        holds n w (fun st => valid (blockTree st)),
-     forall (n : Address),
+     forall (n : NodeId),
        holds n w (fun st => validH (blockTree st)),
-     forall (n : Address),
+     forall (n : NodeId),
        holds n w (fun st => has_init_block (blockTree st)) &
-     forall (n : Address),
+     forall (n : NodeId),
        holds n w (fun st => uniq (peers st))
   ].
 
-Record Qualifier := Q { ts: Timestamp; allowed: Address; }.
+Record Qualifier := Q { ts: Timestamp; allowed: NodeId; }.
 
 Inductive system_step (w w' : World) (q : Qualifier) : Prop :=
 | Idle of Coh w /\ w = w'
@@ -95,7 +95,7 @@ Inductive system_step (w w' : World) (q : Qualifier) : Prop :=
                (seq.rem p (inFlightMsgs w) ++ ms)
                (rcons (consumedMsgs w) p)
 
-| Intern (proc : Address) (t : InternalTransition) (st : State) of
+| Intern (proc : NodeId) (t : InternalTransition) (st : State) of
       Coh w & proc = allowed q &
       find proc (localState w) = Some st &
       let: (st', ms) := (procInt st t (ts q)) in
@@ -113,7 +113,7 @@ Fixpoint reachable' (s : Schedule) (w w' : World) : Prop :=
 Definition reachable (w w' : World) :=
   exists s, reachable' s w w'.
 
-Definition initWorld := mkW (initState (fun _ => enum Address)) [::] [::].
+Definition initWorld := mkW (initState (fun _ => enum NodeId)) [::] [::].
 
 Ltac Coh_step_case n d H F :=
   case B: (n == d);
@@ -125,9 +125,9 @@ Lemma holds_Init_state : forall (P : State -> Prop) n ps, P (Init n (ps n)) ->
   holds n {| localState := initState ps; inFlightMsgs := [::]; consumedMsgs := [::] |} (fun st : State => P st).
 Proof.
 move => P n ps H_P; rewrite /initState.
-have H_in: n \in enum Address by rewrite mem_enum.
-have H_un: uniq (enum Address) by apply enum_uniq.
-move: H_P H_in H_un; elim: (enum Address) => //=.
+have H_in: n \in enum NodeId by rewrite mem_enum.
+have H_un: uniq (enum NodeId) by apply enum_uniq.
+move: H_P H_in H_un; elim: (enum NodeId) => //=.
 move => a s IH H_P; rewrite inE; move/orP; case.
 * move/eqP => H_eq /=.
   rewrite H_eq; move/andP => [H_in H_u].
@@ -361,7 +361,7 @@ Inductive local_step (s1 s2 : State) : Prop :=
 | IntTStep t ts of (s2 = (procInt s1 t ts).1).
 
 Lemma system_step_local_step w w' q:
-  forall (n : Address) (st st' : State),
+  forall (n : NodeId) (st st' : State),
     system_step w w' q ->
     find n (localState w) = Some st ->
     find n (localState w') = Some st' ->
@@ -401,7 +401,7 @@ case.
         by constructor 3 with t (ts q); rewrite P.
 Qed.
 
-Lemma no_change_still_holds (w w' : World) (n : Address) q st cond:
+Lemma no_change_still_holds (w w' : World) (n : NodeId) q st cond:
   find n (localState w) = Some st ->
   holds n w cond ->
   system_step w w' q ->
@@ -412,7 +412,7 @@ move=>f h S sF st' s'F; rewrite s'F in sF; case: sF=>->.
 by move: (h st f).
 Qed.
 
-Lemma no_change_has_held (w w' : World) (n : Address) q st cond:
+Lemma no_change_has_held (w w' : World) (n : NodeId) q st cond:
   find n (localState w) = Some st ->
   system_step w w' q->
   holds n w' cond ->

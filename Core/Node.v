@@ -6,19 +6,19 @@ Require Import Eqdep Relations.
 From HTT
 Require Import pred prelude idynamic ordtype pcm finmap unionmap heap.
 From CasperToychain
-Require Import Blockforest.
+Require Import Blockforest Casper.
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-Definition Address_ordMixin := fin_ordMixin Address.
-Canonical Address_ordType := Eval hnf in OrdType Address Address_ordMixin.
+Definition NodeId_ordMixin := fin_ordMixin NodeId.
+Canonical NodeId_ordType := Eval hnf in OrdType NodeId NodeId_ordMixin.
 
 (* ------------------*)
 (* PROTOCOL MESSAGES *)
 (* ------------------*)
 
-Definition peers_t := seq Address.
+Definition peers_t := seq NodeId.
 
 Inductive Message :=
 | BlockMsg of block
@@ -68,7 +68,7 @@ Qed.
 Canonical Msg_eqMixin := Eval hnf in EqMixin eq_msgP.
 Canonical Msg_eqType := Eval hnf in EqType Message Msg_eqMixin.
 
-Record Packet := mkP {src: Address; dst: Address; msg: Message}.
+Record Packet := mkP {src: NodeId; dst: NodeId; msg: Message}.
 
 Definition eq_pkt a b :=
   ((src a) == (src b)) && ((dst a) == (dst b)) && ((msg a) == (msg b)).
@@ -90,7 +90,7 @@ Definition emitZero : ToSend := [::].
 Definition emitOne (packet : Packet) : ToSend := [:: packet].
 Definition emitMany (packets : ToSend) := packets.
 
-Definition emitBroadcast (from : Address) (dst : seq Address) (msg : Message) :=
+Definition emitBroadcast (from : NodeId) (dst : seq NodeId) (msg : Message) :=
   [seq (mkP from to msg) | to <- dst].
 
 (* ------------------*)
@@ -99,16 +99,16 @@ Definition emitBroadcast (from : Address) (dst : seq Address) (msg : Message) :=
 
 Record State :=
   Node {
-    id : Address;
+    id : NodeId;
     peers : peers_t;
     blockTree : Blockforest;
     txPool : TxPool;
   }.
 
-Definition Init (n : Address) (peers : seq Address) : State :=
+Definition Init (n : NodeId) (peers : seq NodeId) : State :=
   Node n peers (#GenesisBlock \\-> GenesisBlock) [::].
 
-Definition procMsg (st: State) (from : Address) (msg: Message) (ts: Timestamp) :=
+Definition procMsg (st: State) (from : NodeId) (msg: Message) (ts: Timestamp) :=
     let: Node n prs bt pool := st in
     match msg with
     | BlockMsg b =>
@@ -170,3 +170,7 @@ Definition procInt (st : State) (tr : InternalTransition) (ts : Timestamp) :=
       | None => pair st emitZero
       end
     end.
+
+(* -----------------*)
+(* CASPER FUNCTIONS *)
+(* -----------------*)

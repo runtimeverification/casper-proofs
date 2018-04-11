@@ -503,7 +503,7 @@ Definition TxPool := seq Transaction.
 
 Parameter hashT : Transaction -> Hash.
 Parameter hashB : block -> Hash.
-Parameter genProof : Address -> Blockchain -> TxPool -> Timestamp -> option VProof.
+Parameter genProof : NodeId -> Blockchain -> TxPool -> Timestamp -> option VProof.
 Parameter VAF : VProof -> Timestamp -> Blockchain -> TxPool -> bool.
 Parameter FCR : Blockchain -> Blockchain -> bool.
 Parameter blockNumber : block -> nat.
