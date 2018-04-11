@@ -11,25 +11,80 @@ Require Import Blockforest.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-Definition Account_ordMixin := fin_ordMixin Account.
-Canonical Account_ordType := Eval hnf in OrdType Account Account_ordMixin.
-
-Record ValidatorData :=
-  mkValidator {
-    va_deposit : Wei;
-    va_start_dynasty : Dynasty;
-    va_end_dynasty : Dynasty
+Record EpochData :=
+  mkEpochData {
+    epoch_target_hash : Hash;
+    epoch_voted : seq ValidatorIndex;
+    epoch_curr_dyn_votes : union_map [ordType of Epoch] Wei;
+    epoch_prev_dyn_votes : union_map [ordType of Epoch] Wei;
+    epoch_is_justified : bool;
+    epoch_is_finalized : bool
   }.
 
-Definition eq_ValidatorData (v v' : ValidatorData) :=
-  match v, v' with
-  | mkValidator d1 sd1 ed1, mkValidator d2 sd2 ed2 =>
-    [&& d1 == d2, sd1 == sd2 & ed1 == ed2]
+Record ValidatorData :=
+  mkValidatorData {
+    validator_addr : Address;    
+    validator_deposit : union_map [ordType of Epoch] Wei;
+    validator_start_dynasty : Dynasty;
+    validator_end_dynasty : Dynasty
+  }.
+
+Record CasperData :=
+  mkCasperData {
+    casper_epochs : union_map [ordType of Epoch] EpochData;
+    casper_validators : union_map [ordType of ValidatorIndex] ValidatorData;
+    casper_current_dynasty: Dynasty;
+    casper_current_epoch : Epoch;
+    casper_expected_target_hash : Hash;
+    casper_expected_source_epoch : Epoch;
+    casper_last_justified_epoch : Epoch;
+    casper_last_finalized_epoch : Epoch;
+    casper_dynasty_start_epoch : union_map [ordType of Dynasty] Epoch;
+    casper_total_curr_dyn_deposits : Wei;
+    casper_total_prev_dyn_deposits : Wei;
+    casper_next_validator_index : ValidatorIndex
+  }.
+
+Definition eq_EpochData (e e' : EpochData) :=
+  match e, e' with
+  | mkEpochData h1 v1 cv1 pv1 j1 f1, mkEpochData h2 v2 cv2 pv2 j2 f2 =>
+    [&& h1 == h2, v1 == v2, cv1 == cv2, pv1 == pv2, j1 == j2 & f1 == f2]
   end.
+
+Lemma eq_EpochDataP : Equality.axiom eq_EpochData.
+Proof.
+case => h1 v1 cv1 pv1 j1 f1; case => h2 v2 cv2 pv2 j2 f2; rewrite /eq_EpochData /=.
+case H2: (h1 == h2); [move/eqP: H2=>?; subst h2| constructor 2];
+  last by case=>?; subst h2;rewrite eqxx in H2.
+case H3: (v1 == v2); [move/eqP: H3=>?; subst v2| constructor 2];
+  last by case=>?; subst v2;rewrite eqxx in H3.
+case H4: (cv1 == cv2); [move/eqP: H4=>?; subst cv2| constructor 2];
+  last by case=>?; subst cv2;rewrite eqxx in H4.
+case H5: (pv1 == pv2); [move/eqP: H5=>?; subst pv2| constructor 2];
+  last by case=>?; subst pv2;rewrite eqxx in H5.
+case H6: (j1 == j2); [move/eqP: H6=>?; subst j2| constructor 2];
+  last by case=>?; subst j2;rewrite eqxx in H6.
+case H7: (f1 == f2); [move/eqP: H7=>?; subst f2| constructor 2];
+  last by case=>?; subst f2;rewrite eqxx in H7.
+by constructor 1.
+Qed.
+
+Definition EpochData_eqMixin :=
+  Eval hnf in EqMixin eq_EpochDataP.
+Canonical EpochData_eqType :=
+  Eval hnf in EqType EpochData EpochData_eqMixin.
+
+Definition eq_ValidatorData (v v' : ValidatorData) :=
+match v, v' with
+| mkValidatorData a1 d1 sd1 ed1, mkValidatorData a2 d2 sd2 ed2 =>
+  [&& a1 == a2, d1 == d2, sd1 == sd2 & ed1 == ed2]
+end.
 
 Lemma eq_ValidatorDataP : Equality.axiom eq_ValidatorData.
 Proof.
-case => d1 sd1 ed1; case => d2 sd2 ed2; rewrite /eq_ValidatorData/=.
+case => a1 d1 sd1 ed1; case => a2 d2 sd2 ed2; rewrite /eq_ValidatorData/=.
+case H1: (a1 == a2); [move/eqP: H1=>?; subst a1| constructor 2];
+  last by case=>?; subst a2;rewrite eqxx in H1.
 case H2: (d1 == d2); [move/eqP: H2=>?; subst d2| constructor 2];
   last by case=>?; subst d2;rewrite eqxx in H2.
 case H3: (sd1 == sd2); [move/eqP: H3=>?; subst sd2| constructor 2];
@@ -44,111 +99,43 @@ Definition ValidatorData_eqMixin :=
 Canonical ValidatorData_eqType :=
   Eval hnf in EqType ValidatorData ValidatorData_eqMixin.
 
-Record VotesData :=
-  mkVotes {
-    vo_cur_dyn_votes : union_map [ordType of Epoch] Wei;
-    vo_prev_dyn_votes : union_map [ordType of Epoch] Wei;
-    vo_vote_map : union_map Hash {set Account};
-    vo_is_justified : bool;
-    vo_is_finalized : bool
-  }.
-
-Definition eq_VotesData (v v' : VotesData) :=
-  match v, v' with
-  | mkVotes cdv1 pdv1 vm1 ij1 if1, mkVotes cdv2 pdv2 vm2 ij2 if2 =>
-    [&& cdv1 == cdv2, pdv1 == pdv2, vm1 == vm2, ij1 == ij2 & if1 == if2]
-  end.
-
-Lemma eq_VotesDataP : Equality.axiom eq_VotesData.
-Proof.
-case => cdv1 pdv1 vm1 ij1 if1; case => cdv2 pdv2 vm2 ij2 if2; rewrite /eq_VotesData/=.
-case H2: (cdv1 == cdv2); [move/eqP: H2=>?; subst cdv2| constructor 2];
-  last by case=>?; subst cdv2;rewrite eqxx in H2.
-case H3: (pdv1 == pdv2); [move/eqP: H3=>?; subst pdv2| constructor 2];
-  last by case=>?; subst pdv2;rewrite eqxx in H3.
-case H4: (vm1 == vm2); [move/eqP: H4=>?; subst vm2| constructor 2];
-  last by case=>?; subst vm2;rewrite eqxx in H4.
-case H5: (ij1 == ij2); [move/eqP: H5=>?; subst ij2| constructor 2];
-  last by case=>?; subst ij2;rewrite eqxx in H5.
-case H6: (if1 == if2); [move/eqP: H6=>?; subst if2| constructor 2];
-  last by case=>?; subst if2;rewrite eqxx in H6.
-by constructor 1.
-Qed.
-
-Definition VotesData_eqMixin :=
-  Eval hnf in EqMixin eq_VotesDataP.
-Canonical VotesData_eqType :=
-  Eval hnf in EqType VotesData VotesData_eqMixin.
-
-Record CasperData :=
-  mkCasper {
-    tr_validators : union_map [ordType of Account] ValidatorData;
-    tr_checkpoint_hashes : union_map [ordType of Epoch] Hash;
-    tr_dynasty : Dynasty;
-    tr_next_dynasty_wei_delta : Wei;
-    tr_second_next_dynasty_wei_delta : Wei;
-    tr_total_curdyn_deposits: Wei;
-    tr_total_prevdyn_deposits: Wei;
-    tr_dynasty_start_epoch : union_map [ordType of Dynasty] Epoch;
-    tr_dynasty_in_epoch : union_map [ordType of Epoch] Dynasty;
-    tr_epoch_length : nat;
-    tr_withdrawal_delay : nat;
-    tr_current_epoch : Epoch;
-    tr_last_finalized_epoch : Epoch;
-    tr_last_justified_epoch : Epoch;
-    tr_expected_source_epoch : Epoch;
-    tr_votes : union_map [ordType of Epoch] VotesData;
-    tr_main_hash_justified : bool
-  }.
-
 Definition eq_CasperData (c c' : CasperData) :=
-  match c, c' with
-  | mkCasper va1 ch1 d1 ndw1 sndw1 tcd1 tpd1 dse1 die1 el1 wd1 ce1 lfe1 lje1 ese1 vo1 mhj1,
-    mkCasper va2 ch2 d2 ndw2 sndw2 tcd2 tpd2 dse2 die2 el2 wd2 ce2 lfe2 lje2 ese2 vo2 mhj2 =>
-    [&& va1 == va2, ch1 == ch2, d1 == d2, ndw1 == ndw2, sndw1 == sndw2, tcd1 == tcd2, tpd1 == tpd2,
-     dse1 == dse2, die1 == die2, el1 == el2, wd1 == wd2, ce1 == ce2, lfe1 == lfe2, lje1 == lje2,
-     ese1 == ese2, vo1 == vo2 & mhj1 == mhj2]
-  end.
+match c, c' with
+| mkCasperData e1 v1 cd1 ce1 eth1 ese1 lje1 lfe1 dse1 tcdd1 tpdd1 nvi1,
+  mkCasperData e2 v2 cd2 ce2 eth2 ese2 lje2 lfe2 dse2 tcdd2 tpdd2 nvi2 =>
+  [&& e1 == e2, v1 == v2, cd1 == cd2, ce1 == ce2, eth1 == eth2, ese1 == ese2,
+   lje1 == lje2, lfe1 == lfe2, dse1 == dse2, tcdd1 == tcdd2, tpdd1 == tpdd2 & nvi1 == nvi2]
+end.
 
 Lemma eq_CasperDataP : Equality.axiom eq_CasperData.
 Proof.
-case => va1 ch1 d1 ndw1 sndw1 tcd1 tpd1 dse1 die1 el1 wd1 ce1 lfe1 lje1 ese1 vo1 mhj1;
-case => va2 ch2 d2 ndw2 sndw2 tcd2 tpd2 dse2 die2 el2 wd2 ce2 lfe2 lje2 ese2 vo2 mhj2.
+case => e1 v1 cd1 ce1 eth1 ese1 lje1 lfe1 dse1 tcdd1 tpdd1 nvi1.
+case => e2 v2 cd2 ce2 eth2 ese2 lje2 lfe2 dse2 tcdd2 tpdd2 nvi2.
 rewrite /eq_CasperData/=.
-case H2: (va1 == va2); [move/eqP: H2=>?; subst va2| constructor 2];
-  last by case=>?; subst va2;rewrite eqxx in H2.
-case H3: (ch1 == ch2); [move/eqP: H3=>?; subst ch2| constructor 2];
-  last by case=>?; subst ch2;rewrite eqxx in H3.
-case H4: (d1 == d2); [move/eqP: H4=>?; subst d2| constructor 2];
-  last by case=>?; subst d2;rewrite eqxx in H4.
-case H5: (ndw1 == ndw2); [move/eqP: H5=>?; subst ndw2| constructor 2];
-  last by case=>?; subst ndw2;rewrite eqxx in H5.
-case H6: (sndw1 == sndw2); [move/eqP: H6=>?; subst sndw2| constructor 2];
-  last by case=>?; subst sndw2;rewrite eqxx in H6.
-case H7: (tcd1 == tcd2); [move/eqP: H7=>?; subst tcd2| constructor 2];
-  last by case=>?; subst tcd2;rewrite eqxx in H7.
-case H8: (tpd1 == tpd2); [move/eqP: H8=>?; subst tpd2| constructor 2];
-  last by case=>?; subst tpd2;rewrite eqxx in H8.
-case H9: (dse1 == dse2); [move/eqP: H9=>?; subst dse2| constructor 2];
-  last by case=>?; subst dse2;rewrite eqxx in H9.
-case H10: (die1 == die2); [move/eqP: H10=>?; subst die2| constructor 2];
-  last by case=>?; subst die2;rewrite eqxx in H10.
-case H11: (el1 == el2); [move/eqP: H11=>?; subst el2| constructor 2];
-  last by case=>?; subst el2;rewrite eqxx in H11.
-case H12: (wd1 == wd2); [move/eqP: H12=>?; subst wd2| constructor 2];
-  last by case=>?; subst wd2;rewrite eqxx in H12.
-case H13: (ce1 == ce2); [move/eqP: H13=>?; subst ce2| constructor 2];
-  last by case=>?; subst ce2;rewrite eqxx in H13.
-case H14: (lfe1 == lfe2); [move/eqP: H14=>?; subst lfe2| constructor 2];
-  last by case=>?; subst lfe2;rewrite eqxx in H14.
-case H15: (lje1 == lje2); [move/eqP: H15=>?; subst lje2| constructor 2];
-  last by case=>?; subst lje2;rewrite eqxx in H15.
-case H16: (ese1 == ese2); [move/eqP: H16=>?; subst ese2| constructor 2];
-  last by case=>?; subst ese2;rewrite eqxx in H16.
-case H17: (vo1 == vo2); [move/eqP: H17=>?; subst vo2| constructor 2];
-  last by case=>?; subst vo2;rewrite eqxx in H17.
-case H18: (mhj1 == mhj2); [move/eqP: H18=>?; subst mhj2| constructor 2];
-  last by case=>?; subst mhj2;rewrite eqxx in H18.
+case H2: (e1 == e2); [move/eqP: H2=>?; subst e2| constructor 2];
+  last by case=>?; subst e2;rewrite eqxx in H2.
+case H3: (v1 == v2); [move/eqP: H3=>?; subst v2| constructor 2];
+  last by case=>?; subst v2;rewrite eqxx in H3.
+case H4: (cd1 == cd2); [move/eqP: H4=>?; subst cd2| constructor 2];
+  last by case=>?; subst cd2;rewrite eqxx in H4.
+case H5: (ce1 == ce2); [move/eqP: H5=>?; subst ce2| constructor 2];
+  last by case=>?; subst ce2;rewrite eqxx in H5.
+case H6: (eth1 == eth2); [move/eqP: H6=>?; subst eth2| constructor 2];
+  last by case=>?; subst eth2;rewrite eqxx in H6.
+case H7: (ese1 == ese2); [move/eqP: H7=>?; subst ese1| constructor 2];
+  last by case=>?; subst ese2;rewrite eqxx in H7.
+case H8: (lje1 == lje2); [move/eqP: H8=>?; subst lje2| constructor 2];
+  last by case=>?; subst lje2;rewrite eqxx in H8.
+case H9: (lfe1 == lfe2); [move/eqP: H9=>?; subst lfe2| constructor 2];
+  last by case=>?; subst lfe2;rewrite eqxx in H9.
+case H10: (dse1 == dse2); [move/eqP: H10=>?; subst dse2| constructor 2];
+  last by case=>?; subst dse2;rewrite eqxx in H10.
+case H11: (tcdd1 == tcdd2); [move/eqP: H11=>?; subst tcdd2| constructor 2];
+  last by case=>?; subst tcdd2;rewrite eqxx in H11.
+case H12: (tpdd1 == tpdd2); [move/eqP: H12=>?; subst tpdd2| constructor 2];
+  last by case=>?; subst tpdd2;rewrite eqxx in H12.
+case H13: (nvi1 == nvi2); [move/eqP: H13=>?; subst nvi2| constructor 2];
+  last by case=>?; subst nvi2;rewrite eqxx in H13.
 by constructor 1.
 Qed.
 
@@ -157,22 +144,17 @@ Definition CasperData_eqMixin :=
 Canonical CasperData_eqType :=
   Eval hnf in EqType CasperData CasperData_eqMixin.
 
-Definition InitCasperData (epoch_length : nat) (withdrawal_delay : nat) :=
- {| tr_validators := Unit;
-    tr_checkpoint_hashes := Unit;
-    tr_dynasty := 0;
-    tr_next_dynasty_wei_delta := 0;
-    tr_second_next_dynasty_wei_delta := 0;
-    tr_total_curdyn_deposits := 0;
-    tr_total_prevdyn_deposits := 0;
-    tr_dynasty_start_epoch := Unit;
-    tr_dynasty_in_epoch := Unit;
-    tr_epoch_length := epoch_length;
-    tr_withdrawal_delay := withdrawal_delay;
-    tr_current_epoch := 0;
-    tr_last_finalized_epoch := 0;
-    tr_last_justified_epoch := 0;
-    tr_expected_source_epoch := 0;
-    tr_votes := Unit;
-    tr_main_hash_justified := false
- |}.
+Definition InitCasperData :=
+  {| casper_epochs := Unit;
+     casper_validators := Unit;
+     casper_current_dynasty := 0;
+     casper_current_epoch := 0;
+     casper_expected_target_hash := #GenesisBlock;
+     casper_expected_source_epoch := 0;
+     casper_last_justified_epoch := 0;
+     casper_last_finalized_epoch := 0;
+     casper_dynasty_start_epoch := Unit;
+     casper_total_curr_dyn_deposits := 0;
+     casper_total_prev_dyn_deposits := 0;
+     casper_next_validator_index := 0
+  |}.

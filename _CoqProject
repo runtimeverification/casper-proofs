@@ -13,5 +13,7 @@ Heaps/pred.v
 Heaps/prelude.v
 Heaps/unionmap.v
 Core/Blockforest.v
-Core/Protocol.v
 Core/Casper.v
+Core/Node.v
+Core/Protocol.v
+

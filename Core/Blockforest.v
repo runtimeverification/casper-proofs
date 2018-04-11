@@ -17,7 +17,7 @@ Record Block {Hash : ordType} {Transaction VProof : eqType} :=
   mkB {
     prevBlockHash : Hash;
     txs : seq Transaction;
-    proof : VProof;
+    proof : VProof
   }.
 
 Definition eq_block {H : ordType} {T P : eqType} (b b' : @Block H T P) :=
@@ -271,8 +271,8 @@ Parameter VProof : eqType.
 
 Parameter NodeId : finType.
 Parameter Address : finType.
-Parameter ValidatorIndex : ordType.
 
+Definition ValidatorIndex := nat.
 Definition Wei := nat.
 Definition Epoch := nat.
 Definition Dynasty := nat.
@@ -506,6 +506,7 @@ Parameter hashB : block -> Hash.
 Parameter genProof : Address -> Blockchain -> TxPool -> Timestamp -> option VProof.
 Parameter VAF : VProof -> Timestamp -> Blockchain -> TxPool -> bool.
 Parameter FCR : Blockchain -> Blockchain -> bool.
+Parameter blockNumber : block -> nat.
 
 Parameter txValid : Transaction -> Blockchain -> bool.
 Parameter tpExtend : TxPool -> Blockforest -> Transaction -> TxPool.
