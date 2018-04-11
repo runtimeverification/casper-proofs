@@ -185,7 +185,7 @@ Definition processContractCall (st : CasperData) (t : Transaction) : CasperData 
     let: validation_addr := deposit_validation_addr d in
     let: withdrawal_addr := deposit_withdrawal_addr d in
     let: current_epoch := casper_current_epoch st in
-    let: start_dynasty := (casper_current_dynasty st).+2 in
+    let: start_dynasty := (casper_current_epoch st).+2 in
     let: end_dynasty := casper_default_end_dynasty in
     let: validator_data := mkValidatorData validation_addr withdrawal_addr deposit start_dynasty end_dynasty in
     let: new_validators := validator_index \\-> validator_data \+ validators in
