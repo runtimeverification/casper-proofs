@@ -511,6 +511,9 @@ Parameter blockNumber : block -> nat.
 Parameter txValid : Transaction -> Blockchain -> bool.
 Parameter tpExtend : TxPool -> Blockforest -> Transaction -> TxPool.
 
+Parameter sigValid_epoch : Address -> ValidatorIndex -> Epoch -> Signature -> bool.
+Parameter sigValid_epochs : Address -> ValidatorIndex -> Hash -> Epoch -> Epoch -> Signature -> bool.
+
 Notation "A > B" := (FCR A B).
 Notation "A >= B" := (A = B \/ A > B).
 Notation "# b" := (hashB b) (at level 20).

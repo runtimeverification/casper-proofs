@@ -1,5 +1,5 @@
 From mathcomp.ssreflect
-Require Import ssreflect ssrbool ssrnat eqtype ssrfun seq fintype.
+Require Import ssreflect ssrbool ssrnat eqtype ssrfun seq fintype div.
 From mathcomp
 Require Import path.
 Require Import Eqdep Relations.
@@ -175,33 +175,25 @@ Definition procInt (st : State) (tr : InternalTransition) (ts : Timestamp) :=
 (* CASPER FUNCTIONS *)
 (* -----------------*)
 
-Definition processContractCall (st : CasperData) (t : Transaction) : CasperData :=
-  let: validators := casper_validators st in
+Definition processContractCall (st : CasperData) (block_number : nat) (t : Transaction) : CasperData :=
+  let: validators := st.(casper_validators) in
+  let: current_epoch := st.(casper_current_epoch) in
+  let: current_epoch := st.(casper_current_epoch) in
+  let: validator_index := st.(casper_next_validator_index) in
   match tx_call t with
   | DepositCall d =>
-    let: amount := deposit_amount d in
-    let: deposit := (casper_current_dynasty st) \\-> amount in
-    let: validator_index := casper_next_validator_index st in
-    let: validation_addr := deposit_validation_addr d in
-    let: withdrawal_addr := deposit_withdrawal_addr d in
-    let: current_epoch := casper_current_epoch st in
-    let: start_dynasty := (casper_current_epoch st).+2 in
-    let: end_dynasty := casper_default_end_dynasty in
-    let: validator_data := mkValidatorData validation_addr withdrawal_addr deposit start_dynasty end_dynasty in
-    let: new_validators := validator_index \\-> validator_data \+ validators in
-    mkCasperData
-      (casper_epochs st)
-      new_validators
-      (casper_current_dynasty st)
-      (casper_current_epoch st)
-      (casper_expected_target_hash st)
-      (casper_expected_source_epoch st)
-      (casper_last_justified_epoch st)
-      (casper_last_finalized_epoch st)
-      (casper_dynasty_start_epoch st)
-      (casper_total_curr_dyn_deposits st)
-      (casper_total_prev_dyn_deposits st)
-      (casper_next_validator_index st).+1
+    let: amount := d.(deposit_amount) in
+    if [&& current_epoch == block_number %/ casper_epoch_length & casper_min_deposit_size <= amount] then
+      let: deposit_map := st.(casper_current_dynasty) \\-> amount in
+      let: validation_addr := d.(deposit_validation_addr) in
+      let: withdrawal_addr := d.(deposit_withdrawal_addr) in
+      let: start_dynasty := st.(casper_current_epoch).+2 in
+      let: validator_data := mkValidatorData validation_addr withdrawal_addr deposit_map start_dynasty casper_default_end_dynasty in
+      let: new_validators := validator_index \\-> validator_data \+ validators in
+      let: st' := {[ st with casper_validators := new_validators ]} in
+      let: st'' := {[ st' with casper_next_validator_index := st.(casper_next_validator_index).+1 ]} in
+      st''
+    else st
   | VoteCall v => st
   | LogoutCall l => st
   | WithdrawCall vi => st
