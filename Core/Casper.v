@@ -23,7 +23,8 @@ Record EpochData :=
 
 Record ValidatorData :=
   mkValidatorData {
-    validator_addr : Address;    
+    validator_addr : Address;
+    validator_withdrawal_addr : Address;
     validator_deposit : union_map [ordType of Epoch] Wei;
     validator_start_dynasty : Dynasty;
     validator_end_dynasty : Dynasty
@@ -76,21 +77,23 @@ Canonical EpochData_eqType :=
 
 Definition eq_ValidatorData (v v' : ValidatorData) :=
 match v, v' with
-| mkValidatorData a1 d1 sd1 ed1, mkValidatorData a2 d2 sd2 ed2 =>
-  [&& a1 == a2, d1 == d2, sd1 == sd2 & ed1 == ed2]
+| mkValidatorData a1 aw1 d1 sd1 ed1, mkValidatorData a2 aw2 d2 sd2 ed2 =>
+  [&& a1 == a2, aw1 == aw2, d1 == d2, sd1 == sd2 & ed1 == ed2]
 end.
 
 Lemma eq_ValidatorDataP : Equality.axiom eq_ValidatorData.
 Proof.
-case => a1 d1 sd1 ed1; case => a2 d2 sd2 ed2; rewrite /eq_ValidatorData/=.
+case => a1 aw1 d1 sd1 ed1; case => a2 aw2 d2 sd2 ed2; rewrite /eq_ValidatorData/=.
 case H1: (a1 == a2); [move/eqP: H1=>?; subst a1| constructor 2];
   last by case=>?; subst a2;rewrite eqxx in H1.
-case H2: (d1 == d2); [move/eqP: H2=>?; subst d2| constructor 2];
-  last by case=>?; subst d2;rewrite eqxx in H2.
-case H3: (sd1 == sd2); [move/eqP: H3=>?; subst sd2| constructor 2];
-  last by case=>?; subst sd2;rewrite eqxx in H3.
-case H4: (ed1 == ed2); [move/eqP: H4=>?; subst ed2| constructor 2];
-  last by case=>?; subst ed2;rewrite eqxx in H4.
+case H2: (aw1 == aw2); [move/eqP: H2=>?; subst aw2| constructor 2];
+  last by case=>?; subst aw2;rewrite eqxx in H2.
+case H3: (d1 == d2); [move/eqP: H3=>?; subst d2| constructor 2];
+  last by case=>?; subst d2;rewrite eqxx in H3.
+case H4: (sd1 == sd2); [move/eqP: H4=>?; subst sd2| constructor 2];
+  last by case=>?; subst sd2;rewrite eqxx in H4.
+case H5: (ed1 == ed2); [move/eqP: H5=>?; subst ed2| constructor 2];
+  last by case=>?; subst ed2;rewrite eqxx in H5.
 by constructor 1.
 Qed.
 
@@ -158,3 +161,6 @@ Definition InitCasperData :=
      casper_total_prev_dyn_deposits := 0;
      casper_next_validator_index := 0
   |}.
+
+Parameter casper_min_deposit_size : Wei.
+Parameter casper_default_end_dynasty : Dynasty.
