@@ -18,7 +18,7 @@ Canonical NodeId_ordType := Eval hnf in OrdType NodeId NodeId_ordMixin.
 (* CASPER FUNCTIONS *)
 (* -----------------*)
 
-Definition processContractCall (st : CasperData) (block_number : nat) (t : Transaction) : CasperData :=
+Definition procContractCallTx (block_number : nat) (t : Transaction) (st : CasperData) : CasperData :=
   let: validators := st.(casper_validators) in
   let: current_epoch := st.(casper_current_epoch) in
   let: current_dynasty := st.(casper_current_dynasty) in
@@ -114,6 +114,12 @@ Definition processContractCall (st : CasperData) (block_number : nat) (t : Trans
       st
 
   end.
+
+Definition procContractCallBlock (b : block) (st : CasperData) : CasperData :=
+  foldr (procContractCallTx (blockNumber b)) st b.(txs).
+
+Definition casper_state_bc (init : CasperData) (bc : Blockchain) : CasperData :=
+  foldr procContractCallBlock init bc.
 
 (* ------------------*)
 (* PROTOCOL MESSAGES *)
