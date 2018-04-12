@@ -83,9 +83,36 @@ Definition processContractCall (st : CasperData) (block_number : nat) (t : Trans
         st
     else
       st
+
   | InitializeEpochCall e => st
 
-  | SlashCall v1 v2 => st
+  | SlashCall v1 v2 =>
+    let: validator_index_1 := v1.(vote_validator_index) in
+    let: validator_index_2 := v2.(vote_validator_index) in
+    let: target_hash_1 := v1.(vote_target_hash) in
+    let: target_hash_2 := v2.(vote_target_hash) in
+    let: target_epoch_1 := v1.(vote_target_epoch) in
+    let: target_epoch_2 := v2.(vote_target_epoch) in
+    let: source_epoch_1 := v1.(vote_source_epoch) in
+    let: source_epoch_2 := v2.(vote_source_epoch) in
+    let: sig_1 := v1.(vote_sig) in
+    let: sig_2 := v1.(vote_sig) in
+    if find validator_index_1 validators is Some validator then
+      let: addr := validator.(validator_addr) in
+      let: valid_sig_1 := sigValid_epochs addr validator_index_1 target_hash_1 target_epoch_1 source_epoch_1 sig_1  in
+      let: valid_sig_2 := sigValid_epochs addr validator_index_2 target_hash_2 target_epoch_2 source_epoch_2 sig_2  in
+      let: valid_indexes := validator_index_1 == validator_index_2 in
+      let: valid_hashes_epochs := ~~[&& target_hash_1 == target_hash_1, target_epoch_1 == target_epoch_2 & source_epoch_1 == source_epoch_2] in
+      let: epoch_cond_1 := [&& target_epoch_2 < target_epoch_1 & source_epoch_1 < source_epoch_2] in
+      let: epoch_cond_2 := [&& target_epoch_1 < target_epoch_2 & source_epoch_2 < source_epoch_1] in
+      let: valid_targets := [|| target_epoch_1 == target_epoch_2, epoch_cond_1 | epoch_cond_2] in
+      if [&& valid_sig_1, valid_sig_2, valid_indexes, valid_hashes_epochs & valid_targets] then
+        st
+      else
+        st
+    else
+      st
+
   end.
 
 (* ------------------*)
