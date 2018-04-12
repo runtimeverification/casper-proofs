@@ -23,6 +23,7 @@ Definition processContractCall (st : CasperData) (block_number : nat) (t : Trans
   let: current_epoch := st.(casper_current_epoch) in
   let: current_dynasty := st.(casper_current_dynasty) in
   let: next_validator_index := st.(casper_next_validator_index) in
+  let: dynasty_start_epoch := st.(casper_dynasty_start_epoch) in
   match tx_call t with
   | DepositCall d =>
     let: amount := d.(deposit_amount) in
@@ -65,8 +66,23 @@ Definition processContractCall (st : CasperData) (block_number : nat) (t : Trans
     else
       st
 
-  | WithdrawCall vi => st
-
+  | WithdrawCall validator_index =>
+    if find validator_index validators is Some validator then
+      let: validator_end_dynasty := validator.(validator_end_dynasty) in
+      if find validator_end_dynasty.+1 dynasty_start_epoch is Some end_epoch then
+        let: valid_dynasty := validator_end_dynasty.+1 <= current_dynasty in
+        let: valid_epoch := end_epoch + casper_withdrawal_delay <= current_epoch in
+        if valid_dynasty && valid_epoch then
+          let: validators' := free validator_index validators in
+          let: st0 := {[ st with casper_validators := validators' ]} in
+          (* TODO: capture account balance changes? *)
+          st0
+        else
+          st
+      else
+        st
+    else
+      st
   | InitializeEpochCall e => st
 
   | SlashCall v1 v2 => st

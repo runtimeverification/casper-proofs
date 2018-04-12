@@ -166,6 +166,7 @@ Parameter casper_min_deposit_size : Wei.
 Parameter casper_default_end_dynasty : Dynasty.
 Parameter casper_epoch_length : nat.
 Parameter casper_dynasty_logout_delay : nat.
+Parameter casper_withdrawal_delay : nat.
 
 Definition set_casper_data_casper_epochs a v := mkCasperData v (casper_validators a) (casper_current_dynasty a) (casper_current_epoch a) (casper_expected_target_hash a) (casper_expected_source_epoch a) (casper_last_justified_epoch a) (casper_last_finalized_epoch a) (casper_dynasty_start_epoch a) (casper_total_curr_dyn_deposits a) (casper_total_prev_dyn_deposits a) (casper_next_validator_index a).
 
