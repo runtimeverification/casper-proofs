@@ -121,6 +121,9 @@ Definition procContractCallBlock (b : block) (st : CasperData) : CasperData :=
 Definition casper_state_bc (init : CasperData) (bc : Blockchain) : CasperData :=
   foldr procContractCallBlock init bc.
 
+Definition casper_state_bc_init (bc : Blockchain) : CasperData :=
+  casper_state_bc InitCasperData bc.
+
 (* ------------------*)
 (* PROTOCOL MESSAGES *)
 (* ------------------*)
