@@ -14,6 +14,64 @@ Unset Printing Implicit Defensive.
 Definition NodeId_ordMixin := fin_ordMixin NodeId.
 Canonical NodeId_ordType := Eval hnf in OrdType NodeId NodeId_ordMixin.
 
+(* -----------------*)
+(* CASPER FUNCTIONS *)
+(* -----------------*)
+
+Definition processContractCall (st : CasperData) (block_number : nat) (t : Transaction) : CasperData :=
+  let: validators := st.(casper_validators) in
+  let: current_epoch := st.(casper_current_epoch) in
+  let: current_dynasty := st.(casper_current_dynasty) in
+  let: next_validator_index := st.(casper_next_validator_index) in
+  match tx_call t with
+  | DepositCall d =>
+    let: amount := d.(deposit_amount) in
+    let: valid_block_epoch := current_epoch == block_number %/ casper_epoch_length in
+    let: valid_amount := casper_min_deposit_size <= amount in
+    if valid_block_epoch && valid_amount then
+      let: deposit_map := st.(casper_current_dynasty) \\-> amount in
+      let: validation_addr := d.(deposit_validation_addr) in
+      let: withdrawal_addr := d.(deposit_withdrawal_addr) in
+      let: start_dynasty := st.(casper_current_epoch).+2 in
+      let: validator_data := mkValidatorData validation_addr withdrawal_addr deposit_map start_dynasty casper_default_end_dynasty in
+      let: validators' := next_validator_index \\-> validator_data \+ validators in
+      let: st0 := {[ st with casper_validators := validators' ]} in
+      let: st1 := {[ st0 with casper_next_validator_index := next_validator_index.+1 ]} in
+      st1
+    else st
+
+  | VoteCall v => st
+
+  | LogoutCall l =>
+    let: validator_index := l.(logout_validator_index) in
+    let: epoch := l.(logout_epoch) in
+    let: sig := l.(logout_sig) in
+    if find validator_index validators is Some validator then
+      let: addr := validator.(validator_addr) in
+      let: end_dynasty := current_dynasty + casper_dynasty_logout_delay in
+      let: validator_end_dynasty := validator.(validator_end_dynasty) in
+      let: valid_block_epoch := current_epoch == block_number %/ casper_epoch_length in
+      let: valid_epoch := epoch <= current_epoch in
+      let: valid_sig := sigValid_epoch addr validator_index epoch sig in
+      let: valid_dynasty := end_dynasty < validator_end_dynasty in
+      if [&& valid_block_epoch, valid_epoch, valid_sig & valid_dynasty] then
+        let validator' := {[ validator with validator_end_dynasty := end_dynasty ]} in
+        (* TODO: update dynasty_wei_delta *)
+        let validators' := validator_index \\-> validator' \+ validators in
+        let: st0 := {[ st with casper_validators := validators' ]} in
+        st0
+      else
+        st
+    else
+      st
+
+  | WithdrawCall vi => st
+
+  | InitializeEpochCall e => st
+
+  | SlashCall v1 v2 => st
+  end.
+
 (* ------------------*)
 (* PROTOCOL MESSAGES *)
 (* ------------------*)
@@ -170,33 +228,3 @@ Definition procInt (st : State) (tr : InternalTransition) (ts : Timestamp) :=
       | None => pair st emitZero
       end
     end.
-
-(* -----------------*)
-(* CASPER FUNCTIONS *)
-(* -----------------*)
-
-Definition processContractCall (st : CasperData) (block_number : nat) (t : Transaction) : CasperData :=
-  let: validators := st.(casper_validators) in
-  let: current_epoch := st.(casper_current_epoch) in
-  let: current_epoch := st.(casper_current_epoch) in
-  let: validator_index := st.(casper_next_validator_index) in
-  match tx_call t with
-  | DepositCall d =>
-    let: amount := d.(deposit_amount) in
-    if [&& current_epoch == block_number %/ casper_epoch_length & casper_min_deposit_size <= amount] then
-      let: deposit_map := st.(casper_current_dynasty) \\-> amount in
-      let: validation_addr := d.(deposit_validation_addr) in
-      let: withdrawal_addr := d.(deposit_withdrawal_addr) in
-      let: start_dynasty := st.(casper_current_epoch).+2 in
-      let: validator_data := mkValidatorData validation_addr withdrawal_addr deposit_map start_dynasty casper_default_end_dynasty in
-      let: new_validators := validator_index \\-> validator_data \+ validators in
-      let: st' := {[ st with casper_validators := new_validators ]} in
-      let: st'' := {[ st' with casper_next_validator_index := st.(casper_next_validator_index).+1 ]} in
-      st''
-    else st
-  | VoteCall v => st
-  | LogoutCall l => st
-  | WithdrawCall vi => st
-  | InitializeEpochCall e => st
-  | SlashCall v1 v2 => st
-  end.

@@ -165,6 +165,7 @@ Definition InitCasperData :=
 Parameter casper_min_deposit_size : Wei.
 Parameter casper_default_end_dynasty : Dynasty.
 Parameter casper_epoch_length : nat.
+Parameter casper_dynasty_logout_delay : nat.
 
 Definition set_casper_data_casper_epochs a v := mkCasperData v (casper_validators a) (casper_current_dynasty a) (casper_current_epoch a) (casper_expected_target_hash a) (casper_expected_source_epoch a) (casper_last_justified_epoch a) (casper_last_finalized_epoch a) (casper_dynasty_start_epoch a) (casper_total_curr_dyn_deposits a) (casper_total_prev_dyn_deposits a) (casper_next_validator_index a).
 
@@ -215,3 +216,42 @@ Arguments set_casper_data_casper_dynasty_start_epoch  _ _/.
 Arguments set_casper_data_casper_total_curr_dyn_deposits  _ _/.
 Arguments set_casper_data_casper_total_prev_dyn_deposits  _ _/.
 Arguments set_casper_data_casper_next_validator_index  _ _/.
+
+Definition set_validator_data_validator_addr a v := mkValidatorData v (validator_withdrawal_addr a) (validator_deposit a) (validator_start_dynasty a) (validator_end_dynasty a).
+Definition set_validator_data_validator_withdrawal_addr a v := mkValidatorData (validator_addr a) v (validator_deposit a) (validator_start_dynasty a) (validator_end_dynasty a).
+Definition set_validator_data_validator_deposit a v := mkValidatorData (validator_addr a) (validator_withdrawal_addr a) v (validator_start_dynasty a) (validator_end_dynasty a).
+Definition set_validator_data_validator_start_dynasty a v := mkValidatorData (validator_addr a) (validator_withdrawal_addr a) (validator_deposit a) v (validator_end_dynasty a).
+Definition set_validator_data_validator_end_dynasty a v := mkValidatorData (validator_addr a) (validator_withdrawal_addr a) (validator_deposit a) (validator_start_dynasty a) v.
+
+Notation "{[ a 'with' 'validator_addr' := v ]}" := (set_validator_data_validator_addr  a v).
+Notation "{[ a 'with' 'validator_withdrawal_addr' := v ]}" := (set_validator_data_validator_withdrawal_addr  a v).
+Notation "{[ a 'with' 'validator_deposit' := v ]}" := (set_validator_data_validator_deposit  a v).
+Notation "{[ a 'with' 'validator_start_dynasty' := v ]}" := (set_validator_data_validator_start_dynasty  a v).
+Notation "{[ a 'with' 'validator_end_dynasty' := v ]}" := (set_validator_data_validator_end_dynasty  a v).
+
+Arguments set_validator_data_validator_addr  _ _/.
+Arguments set_validator_data_validator_withdrawal_addr  _ _/.
+Arguments set_validator_data_validator_deposit  _ _/.
+Arguments set_validator_data_validator_start_dynasty  _ _/.
+Arguments set_validator_data_validator_end_dynasty  _ _/.
+
+Definition set_epoch_data_epoch_target_hash a v := mkEpochData v (epoch_voted a) (epoch_curr_dyn_votes a) (epoch_prev_dyn_votes a) (epoch_is_justified a) (epoch_is_finalized a).
+Definition set_epoch_data_epoch_voted a v := mkEpochData (epoch_target_hash a) v (epoch_curr_dyn_votes a) (epoch_prev_dyn_votes a) (epoch_is_justified a) (epoch_is_finalized a).
+Definition set_epoch_data_epoch_curr_dyn_votes a v := mkEpochData (epoch_target_hash a) (epoch_voted a) v (epoch_prev_dyn_votes a) (epoch_is_justified a) (epoch_is_finalized a).
+Definition set_epoch_data_epoch_prev_dyn_votes a v := mkEpochData (epoch_target_hash a) (epoch_voted a) (epoch_curr_dyn_votes a) v (epoch_is_justified a) (epoch_is_finalized a).
+Definition set_epoch_data_epoch_is_justified a v := mkEpochData (epoch_target_hash a) (epoch_voted a) (epoch_curr_dyn_votes a) (epoch_prev_dyn_votes a) v (epoch_is_finalized a).
+Definition set_epoch_data_epoch_is_finalized a v := mkEpochData (epoch_target_hash a) (epoch_voted a) (epoch_curr_dyn_votes a) (epoch_prev_dyn_votes a) (epoch_is_justified a) v.
+
+Notation "{[ a 'with' 'epoch_target_hash' := v ]}" := (set_epoch_data_epoch_target_hash  a v).
+Notation "{[ a 'with' 'epoch_voted' := v ]}" := (set_epoch_data_epoch_voted  a v).
+Notation "{[ a 'with' 'epoch_curr_dyn_votes' := v ]}" := (set_epoch_data_epoch_curr_dyn_votes  a v).
+Notation "{[ a 'with' 'epoch_prev_dyn_votes' := v ]}" := (set_epoch_data_epoch_prev_dyn_votes  a v).
+Notation "{[ a 'with' 'epoch_is_justified' := v ]}" := (set_epoch_data_epoch_is_justified  a v).
+Notation "{[ a 'with' 'epoch_is_finalized' := v ]}" := (set_epoch_data_epoch_is_finalized  a v).
+
+Arguments set_epoch_data_epoch_target_hash  _ _/.
+Arguments set_epoch_data_epoch_voted  _ _/.
+Arguments set_epoch_data_epoch_curr_dyn_votes  _ _/.
+Arguments set_epoch_data_epoch_prev_dyn_votes  _ _/.
+Arguments set_epoch_data_epoch_is_justified  _ _/.
+Arguments set_epoch_data_epoch_is_finalized  _ _/.
