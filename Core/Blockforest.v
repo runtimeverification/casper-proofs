@@ -261,9 +261,9 @@ do? by [
 - by contradict F; rewrite/fork Eq S12 S21.
 Qed.
 
-(* ------- *)
-(* FORESTS *)
-(* ------- *)
+(* -----------*)
+(* BLOCK DATA *)
+(* -----------*)
 
 Parameter Timestamp : Type.
 Parameter Hash : ordType.
@@ -325,6 +325,12 @@ Record Transaction :=
  mkTx {
    tx_sender : Sender;
    tx_call : ContractCall
+ }.
+
+Record SendAccount :=
+ mkSA {
+   send_account_addr : Address;
+   send_account_wei : Wei
  }.
 
 Definition eq_Deposit (d d' : Deposit) :=
@@ -491,6 +497,28 @@ Definition Transaction_eqMixin :=
 Canonical Transaction_eqType :=
   Eval hnf in EqType Transaction Transaction_eqMixin.
 
+Definition eq_SendAccount s1 s2 :=
+  [&& send_account_addr s1 == send_account_addr s2 & send_account_wei s1 == send_account_wei s2].
+
+Lemma eq_SendAccountP : Equality.axiom eq_SendAccount.
+Proof.
+case => a1 w1; case => a2 w2; rewrite /eq_SendAccount /=.
+case B1: (a1 == a2); case B2: (w1 == w2); [|constructor 2|constructor 2|constructor 2].
+- by case/eqP: B1=><-; case/eqP: B2=><-; constructor 1.
+- by case => H_eq H_eq'; subst w2; rewrite eqxx in B2.
+- by case => H_eq H_eq'; subst a2; rewrite eqxx in B1.
+- by case => H_eq H_eq'; subst w2; rewrite eqxx in B2.
+Qed.
+
+Definition SendAccount_eqMixin :=
+  Eval hnf in EqMixin eq_SendAccountP.
+Canonical SendAccount_eqType :=
+  Eval hnf in EqType SendAccount SendAccount_eqMixin.
+
+(* --------------*)
+(* BLOCK FORESTS *)
+(* --------------*)
+
 Definition block := @Block Hash [eqType of Transaction] VProof.
 
 Parameter GenesisBlock : block.
@@ -524,37 +552,37 @@ Definition bcLast (bc : Blockchain) := last GenesisBlock bc.
 
 Definition subchain (bc1 bc2 : Blockchain) := exists p q, bc2 = p ++ bc1 ++ q.
 
-Definition btHasBlock (bt : Blockforest) (b : block) := #b \in dom bt.
+Definition bfHasBlock (bf : Blockforest) (b : block) := #b \in dom bf.
 
-Notation "b ∈ bt" := (btHasBlock bt b) (at level 70).
-Notation "b ∉ bt" := (~~ btHasBlock bt b) (at level 70).
+Notation "b ∈ bf" := (bfHasBlock bf b) (at level 70).
+Notation "b ∉ bf" := (~~ bfHasBlock bf b) (at level 70).
 
 Definition valid_block b : bool :=
   prevBlockHash b != #b.
 
-Definition has_init_block (bt : Blockforest) :=
-  find (# GenesisBlock) bt = Some GenesisBlock.
+Definition has_init_block (bf : Blockforest) :=
+  find (# GenesisBlock) bf = Some GenesisBlock.
 
-Definition validH (bt : Blockforest) :=
-  forall h b, find h bt = Some b -> h = hashB b.
+Definition validH (bf : Blockforest) :=
+  forall h b, find h bf = Some b -> h = hashB b.
 
-Lemma validH_free bt (b : block) :
-  validH bt -> validH (free (# b) bt).
+Lemma validH_free bf (b : block) :
+  validH bf -> validH (free (# b) bf).
 Proof. by move=>Vh h c; rewrite findF;case: ifP=>//_ /Vh. Qed.
 
 (* We only add "fresh blocks" *)
-Definition btExtend (bt : Blockforest) (b : block) :=
-  if #b \in dom bt then bt else #b \\-> b \+ bt.
+Definition bfExtend (bf : Blockforest) (b : block) :=
+  if #b \in dom bf then bf else #b \\-> b \+ bf.
 
-Lemma btExtendV bt b : valid bt = valid (btExtend bt b).
+Lemma bfExtendV bf b : valid bf = valid (bfExtend bf b).
 Proof.
-rewrite /btExtend; case: ifP=>//N.
+rewrite /bfExtend; case: ifP=>//N.
 by rewrite gen_validPtUn/= N andbC.
 Qed.
 
-Lemma btExtendH bt b : valid bt -> validH bt -> validH (btExtend bt b).
+Lemma bfExtendH bf b : valid bf -> validH bf -> validH (bfExtend bf b).
 Proof.
-move=>V H z c; rewrite /btExtend.
+move=>V H z c; rewrite /bfExtend.
 case: ifP=>X; first by move/H.
 rewrite findUnL ?gen_validPtUn ?V ?X//.
 case: ifP=>Y; last by move/H.
@@ -562,11 +590,11 @@ rewrite um_domPt inE in Y; move/eqP: Y=>Y; subst z.
 by rewrite um_findPt; case=>->.
 Qed.
 
-Lemma btExtendIB bt b :
-  valid bt -> validH bt -> has_init_block bt ->
-  has_init_block (btExtend bt b).
+Lemma bfExtendIB bf b :
+  valid bf -> validH bf -> has_init_block bf ->
+  has_init_block (bfExtend bf b).
 Proof.
-move=>V H; rewrite /btExtend/has_init_block=>Ib.
+move=>V H; rewrite /bfExtend/has_init_block=>Ib.
 case: ifP=>X; first done.
 rewrite findUnL ?gen_validPtUn ?V ?X//.
 case: ifP=>Y; last done.
@@ -577,40 +605,40 @@ Qed.
 Definition tx_valid_block bc (b : block) := all [pred t | txValid t bc] (txs b).
 
 (* All paths/chains should start with the GenesisBlock *)
-Fixpoint compute_chain' (bt : Blockforest) b remaining n : Blockchain :=
+Fixpoint compute_chain' (bf : Blockforest) b remaining n : Blockchain :=
   (* Preventing cycles in chains *)
   if (hashB b) \in remaining
   then
     let rest := seq.rem (hashB b) remaining in
     (* Supporting primitive inductions *)
     if n is n'.+1 then
-      match find (prevBlockHash b) bt with
+      match find (prevBlockHash b) bf with
       (* No parent *)
       | None => [:: b]
       (* Build chain prefix recursively *)
       | Some prev =>
-        rcons (nosimpl (compute_chain' (free (hashB b) bt) prev rest n')) b
+        rcons (nosimpl (compute_chain' (free (hashB b) bf) prev rest n')) b
       end
     else [::]
   else [::].
 
 (* Compute chain from the block *)
-Definition compute_chain bt b :=
-  compute_chain' bt b (keys_of bt) (size (keys_of bt)).
+Definition compute_chain bf b :=
+  compute_chain' bf b (keys_of bf) (size (keys_of bf)).
 
 (* Total get_block function *)
-Definition get_block (bt : Blockforest) k : Block :=
-  if find k bt is Some b then b else GenesisBlock.
+Definition get_block (bf : Blockforest) k : Block :=
+  if find k bf is Some b then b else GenesisBlock.
 
 (* Collect all blocks *)
-Definition all_blocks (bt : Blockforest) := [seq get_block bt k | k <- keys_of bt].
+Definition all_blocks (bf : Blockforest) := [seq get_block bf k | k <- keys_of bf].
 
-Definition is_block_in (bt : Blockforest) b := exists k, find k bt = Some b.
+Definition is_block_in (bf : Blockforest) b := exists k, find k bf = Some b.
 
 (* A certificate for all_blocks *)
-Lemma all_blocksP bt b : reflect (is_block_in bt b) (b \in all_blocks bt).
+Lemma all_blocksP bf b : reflect (is_block_in bf b) (b \in all_blocks bf).
 Proof.
-case B : (b \in all_blocks bt); [constructor 1|constructor 2].
+case B : (b \in all_blocks bf); [constructor 1|constructor 2].
 - move: B; rewrite /all_blocks; case/mapP=>k Ik->{b}.
   rewrite keys_dom in Ik; move/gen_eta: Ik=>[b]/=[E H].
   by exists k; rewrite /get_block E.
@@ -620,18 +648,18 @@ exists k; last by rewrite /get_block F.
 by rewrite keys_dom; move/find_some: F.
 Qed.
 
-Lemma all_blocksP' bt b : validH bt -> reflect (b ∈ bt) (b \in all_blocks bt).
+Lemma all_blocksP' bf b : validH bf -> reflect (b ∈ bf) (b \in all_blocks bf).
 Proof.
 move=>Vh.
-case B : (b \in all_blocks bt); [constructor 1|constructor 2].
+case B : (b \in all_blocks bf); [constructor 1|constructor 2].
 - move: B; rewrite /all_blocks; case/mapP=>k Ik->{b}.
   rewrite keys_dom in Ik; move/gen_eta: Ik=>[b]/=[E H].
-  rewrite/get_block E /btHasBlock; specialize (Vh _ _ E); subst k.
+  rewrite/get_block E /bfHasBlock; specialize (Vh _ _ E); subst k.
   by move: (find_some E).
-case=>H; rewrite/btHasBlock; move/negP: B=>B; apply: B.
+case=>H; rewrite/bfHasBlock; move/negP: B=>B; apply: B.
 rewrite /all_blocks; apply/mapP.
 exists (#b); first by rewrite keys_dom.
-rewrite/btHasBlock in H; rewrite/get_block.
+rewrite/bfHasBlock in H; rewrite/get_block.
 case X: (find _ _)=>[b'|].
 by move: (Vh _  _ X); move/hashB_inj.
 by contradict H; move: (find_none X)=>H; apply/negP.
@@ -650,13 +678,13 @@ Fixpoint tx_valid_chain' (bc prefix : seq block) :=
 
 Definition tx_valid_chain bc := tx_valid_chain' bc [::].
 
-Definition all_chains bt := [seq compute_chain bt b | b <- all_blocks bt].
+Definition all_chains bf := [seq compute_chain bf b | b <- all_blocks bf].
 
-Definition good_chains bt := [seq c <- all_chains bt | good_chain c && tx_valid_chain c].
+Definition good_chains bf := [seq c <- all_chains bf | good_chain c && tx_valid_chain c].
 
 (* Get the blockchain *)
 Definition take_better_bc bc2 bc1 :=
   if (good_chain bc2 && tx_valid_chain bc2) && (bc2 > bc1) then bc2 else bc1.
 
-Definition btChain bt : Blockchain :=
-  foldr take_better_bc [:: GenesisBlock] (all_chains bt).
+Definition bfChain bf : Blockchain :=
+  foldr take_better_bc [:: GenesisBlock] (all_chains bf).

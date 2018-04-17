@@ -187,7 +187,7 @@ Lemma procMsg_valid :
 Proof.
 move=> s1 from  m ts.
 case Msg: m=>[b|||];
-destruct s1; rewrite/procMsg/=; do?by [|move: (btExtendV blocks b)=><-].
+destruct s1; rewrite/procMsg/=; do?by [|move: (bfExtendV blocks b)=><-].
 case:ifP => //=.
 move/eqP => H_neq; case: ifP; move/eqP => //= H_eq H_v.
 by case ohead.
@@ -202,7 +202,7 @@ case Int: t; destruct s1; rewrite/procInt/=; first by [].
 case: (genProof _); last done.
 move=>Pf; case: (VAF _ _ _); last done.
 case tV: (tx_valid_block _ _)=>//.
-by rewrite/Node.blocks/=; apply btExtendV.
+by rewrite/Node.blocks/=; apply bfExtendV.
 Qed.
 
 Lemma procMsg_validH :
@@ -213,7 +213,7 @@ Proof.
 move=> s1 from  m ts.
 case Msg: m=>[b|||];
 destruct s1; rewrite/procMsg/=; do? by []; do? by case: ifP => //=.
-- by move=>v vh; apply btExtendH.
+- by move=>v vh; apply bfExtendH.
 - move=>v vh; case: ifP => //=; move/eqP => H_neq; case: ifP; move/eqP => //= H_eq.
   by case ohead.
 Qed.
@@ -228,7 +228,7 @@ case Int: t; destruct s1; rewrite/procInt/=; first by [].
 case: (genProof _); last done.
 move=>Pf; case: (VAF _ _ _); last done.
 case tV: (tx_valid_block _ _)=>//.
-by rewrite/Node.blocks/=; apply btExtendH.
+by rewrite/Node.blocks/=; apply bfExtendH.
 Qed.
 
 Lemma procMsg_has_init_block:
@@ -240,7 +240,7 @@ Proof.
 move=> s1 from  m ts.
 case Msg: m=>[b|||];
 destruct s1; rewrite/procMsg/=; do? by []; do? by case:ifP.
-- by apply btExtendIB.
+- by apply bfExtendIB.
 - move=>v vh; case: ifP => //=; move/eqP => H_neq; case: ifP; move/eqP => //= H_eq.
   by case ohead.
 Qed.
@@ -256,7 +256,7 @@ case Int: t; destruct s1; rewrite/procInt/=; first by [].
 case: (genProof _); last done.
 move=>Pf; case: (VAF _ _ _); last done.
 case tV: (tx_valid_block _ _)=>//.
-by apply btExtendIB.
+by apply bfExtendIB.
 Qed.
 
 Lemma procMsg_peers_uniq :
