@@ -43,6 +43,7 @@ Record CasperData :=
     casper_dynasty_start_epoch : union_map [ordType of Dynasty] Epoch;
     casper_total_curr_dyn_deposits : Wei;
     casper_total_prev_dyn_deposits : Wei;
+    casper_block_number : nat;
     casper_next_validator_index : ValidatorIndex
   }.
 
@@ -104,16 +105,17 @@ Canonical ValidatorData_eqType :=
 
 Definition eq_CasperData (c c' : CasperData) :=
 match c, c' with
-| mkCasperData e1 v1 cd1 ce1 eth1 ese1 lje1 lfe1 dse1 tcdd1 tpdd1 nvi1,
-  mkCasperData e2 v2 cd2 ce2 eth2 ese2 lje2 lfe2 dse2 tcdd2 tpdd2 nvi2 =>
+| mkCasperData e1 v1 cd1 ce1 eth1 ese1 lje1 lfe1 dse1 tcdd1 tpdd1 bn1 nvi1,
+  mkCasperData e2 v2 cd2 ce2 eth2 ese2 lje2 lfe2 dse2 tcdd2 tpdd2 bn2 nvi2 =>
   [&& e1 == e2, v1 == v2, cd1 == cd2, ce1 == ce2, eth1 == eth2, ese1 == ese2,
-   lje1 == lje2, lfe1 == lfe2, dse1 == dse2, tcdd1 == tcdd2, tpdd1 == tpdd2 & nvi1 == nvi2]
+   lje1 == lje2, lfe1 == lfe2, dse1 == dse2, tcdd1 == tcdd2, tpdd1 == tpdd2,
+   bn1 == bn2 & nvi1 == nvi2]
 end.
 
 Lemma eq_CasperDataP : Equality.axiom eq_CasperData.
 Proof.
-case => e1 v1 cd1 ce1 eth1 ese1 lje1 lfe1 dse1 tcdd1 tpdd1 nvi1.
-case => e2 v2 cd2 ce2 eth2 ese2 lje2 lfe2 dse2 tcdd2 tpdd2 nvi2.
+case => e1 v1 cd1 ce1 eth1 ese1 lje1 lfe1 dse1 tcdd1 tpdd1 bn1 nvi1.
+case => e2 v2 cd2 ce2 eth2 ese2 lje2 lfe2 dse2 tcdd2 tpdd2 bn2 nvi2.
 rewrite /eq_CasperData/=.
 case H2: (e1 == e2); [move/eqP: H2=>?; subst e2| constructor 2];
   last by case=>?; subst e2;rewrite eqxx in H2.
@@ -137,8 +139,10 @@ case H11: (tcdd1 == tcdd2); [move/eqP: H11=>?; subst tcdd2| constructor 2];
   last by case=>?; subst tcdd2;rewrite eqxx in H11.
 case H12: (tpdd1 == tpdd2); [move/eqP: H12=>?; subst tpdd2| constructor 2];
   last by case=>?; subst tpdd2;rewrite eqxx in H12.
-case H13: (nvi1 == nvi2); [move/eqP: H13=>?; subst nvi2| constructor 2];
-  last by case=>?; subst nvi2;rewrite eqxx in H13.
+case H13: (bn1 == bn2); [move/eqP: H13=>?; subst bn2| constructor 2];
+  last by case=>?; subst bn2;rewrite eqxx in H13.
+case H14: (nvi1 == nvi2); [move/eqP: H14=>?; subst nvi2| constructor 2];
+  last by case=>?; subst nvi2;rewrite eqxx in H14.
 by constructor 1.
 Qed.
 
@@ -147,7 +151,7 @@ Definition CasperData_eqMixin :=
 Canonical CasperData_eqType :=
   Eval hnf in EqType CasperData CasperData_eqMixin.
 
-Definition InitCasperData :=
+Definition InitCasperData : CasperData :=
   {| casper_epochs := Unit;
      casper_validators := Unit;
      casper_current_dynasty := 0;
@@ -159,27 +163,29 @@ Definition InitCasperData :=
      casper_dynasty_start_epoch := Unit;
      casper_total_curr_dyn_deposits := 0;
      casper_total_prev_dyn_deposits := 0;
+     casper_block_number := 0;
      casper_next_validator_index := 0
   |}.
 
-Parameter casper_min_deposit_size : Wei.
-Parameter casper_default_end_dynasty : Dynasty.
 Parameter casper_epoch_length : nat.
+Parameter casper_default_end_dynasty : Dynasty.
+Parameter casper_min_deposit_size : Wei.
 Parameter casper_dynasty_logout_delay : nat.
 Parameter casper_withdrawal_delay : nat.
 
-Definition set_casper_data_casper_epochs a v := mkCasperData v (casper_validators a) (casper_current_dynasty a) (casper_current_epoch a) (casper_expected_target_hash a) (casper_expected_source_epoch a) (casper_last_justified_epoch a) (casper_last_finalized_epoch a) (casper_dynasty_start_epoch a) (casper_total_curr_dyn_deposits a) (casper_total_prev_dyn_deposits a) (casper_next_validator_index a).
-Definition set_casper_data_casper_validators a v := mkCasperData (casper_epochs a) v (casper_current_dynasty a) (casper_current_epoch a) (casper_expected_target_hash a) (casper_expected_source_epoch a) (casper_last_justified_epoch a) (casper_last_finalized_epoch a) (casper_dynasty_start_epoch a) (casper_total_curr_dyn_deposits a) (casper_total_prev_dyn_deposits a) (casper_next_validator_index a).
-Definition set_casper_data_casper_current_dynasty a v := mkCasperData (casper_epochs a) (casper_validators a) v (casper_current_epoch a) (casper_expected_target_hash a) (casper_expected_source_epoch a) (casper_last_justified_epoch a) (casper_last_finalized_epoch a) (casper_dynasty_start_epoch a) (casper_total_curr_dyn_deposits a) (casper_total_prev_dyn_deposits a) (casper_next_validator_index a).
-Definition set_casper_data_casper_current_epoch a v := mkCasperData (casper_epochs a) (casper_validators a) (casper_current_dynasty a) v (casper_expected_target_hash a) (casper_expected_source_epoch a) (casper_last_justified_epoch a) (casper_last_finalized_epoch a) (casper_dynasty_start_epoch a) (casper_total_curr_dyn_deposits a) (casper_total_prev_dyn_deposits a) (casper_next_validator_index a).
-Definition set_casper_data_casper_expected_target_hash a v := mkCasperData (casper_epochs a) (casper_validators a) (casper_current_dynasty a) (casper_current_epoch a) v (casper_expected_source_epoch a) (casper_last_justified_epoch a) (casper_last_finalized_epoch a) (casper_dynasty_start_epoch a) (casper_total_curr_dyn_deposits a) (casper_total_prev_dyn_deposits a) (casper_next_validator_index a).
-Definition set_casper_data_casper_expected_source_epoch a v := mkCasperData (casper_epochs a) (casper_validators a) (casper_current_dynasty a) (casper_current_epoch a) (casper_expected_target_hash a) v (casper_last_justified_epoch a) (casper_last_finalized_epoch a) (casper_dynasty_start_epoch a) (casper_total_curr_dyn_deposits a) (casper_total_prev_dyn_deposits a) (casper_next_validator_index a).
-Definition set_casper_data_casper_last_justified_epoch a v := mkCasperData (casper_epochs a) (casper_validators a) (casper_current_dynasty a) (casper_current_epoch a) (casper_expected_target_hash a) (casper_expected_source_epoch a) v (casper_last_finalized_epoch a) (casper_dynasty_start_epoch a) (casper_total_curr_dyn_deposits a) (casper_total_prev_dyn_deposits a) (casper_next_validator_index a).
-Definition set_casper_data_casper_last_finalized_epoch a v := mkCasperData (casper_epochs a) (casper_validators a) (casper_current_dynasty a) (casper_current_epoch a) (casper_expected_target_hash a) (casper_expected_source_epoch a) (casper_last_justified_epoch a) v (casper_dynasty_start_epoch a) (casper_total_curr_dyn_deposits a) (casper_total_prev_dyn_deposits a) (casper_next_validator_index a).
-Definition set_casper_data_casper_dynasty_start_epoch a v := mkCasperData (casper_epochs a) (casper_validators a) (casper_current_dynasty a) (casper_current_epoch a) (casper_expected_target_hash a) (casper_expected_source_epoch a) (casper_last_justified_epoch a) (casper_last_finalized_epoch a) v (casper_total_curr_dyn_deposits a) (casper_total_prev_dyn_deposits a) (casper_next_validator_index a).
-Definition set_casper_data_casper_total_curr_dyn_deposits a v := mkCasperData (casper_epochs a) (casper_validators a) (casper_current_dynasty a) (casper_current_epoch a) (casper_expected_target_hash a) (casper_expected_source_epoch a) (casper_last_justified_epoch a) (casper_last_finalized_epoch a) (casper_dynasty_start_epoch a) v (casper_total_prev_dyn_deposits a) (casper_next_validator_index a).
-Definition set_casper_data_casper_total_prev_dyn_deposits a v := mkCasperData (casper_epochs a) (casper_validators a) (casper_current_dynasty a) (casper_current_epoch a) (casper_expected_target_hash a) (casper_expected_source_epoch a) (casper_last_justified_epoch a) (casper_last_finalized_epoch a) (casper_dynasty_start_epoch a) (casper_total_curr_dyn_deposits a) v (casper_next_validator_index a).
-Definition set_casper_data_casper_next_validator_index a v := mkCasperData (casper_epochs a) (casper_validators a) (casper_current_dynasty a) (casper_current_epoch a) (casper_expected_target_hash a) (casper_expected_source_epoch a) (casper_last_justified_epoch a) (casper_last_finalized_epoch a) (casper_dynasty_start_epoch a) (casper_total_curr_dyn_deposits a) (casper_total_prev_dyn_deposits a) v.
+Definition set_casper_data_casper_epochs a v := mkCasperData v (casper_validators a) (casper_current_dynasty a) (casper_current_epoch a) (casper_expected_target_hash a) (casper_expected_source_epoch a) (casper_last_justified_epoch a) (casper_last_finalized_epoch a) (casper_dynasty_start_epoch a) (casper_total_curr_dyn_deposits a) (casper_total_prev_dyn_deposits a) (casper_block_number a) (casper_next_validator_index a).
+Definition set_casper_data_casper_validators a v := mkCasperData (casper_epochs a) v (casper_current_dynasty a) (casper_current_epoch a) (casper_expected_target_hash a) (casper_expected_source_epoch a) (casper_last_justified_epoch a) (casper_last_finalized_epoch a) (casper_dynasty_start_epoch a) (casper_total_curr_dyn_deposits a) (casper_total_prev_dyn_deposits a) (casper_block_number a) (casper_next_validator_index a).
+Definition set_casper_data_casper_current_dynasty a v := mkCasperData (casper_epochs a) (casper_validators a) v (casper_current_epoch a) (casper_expected_target_hash a) (casper_expected_source_epoch a) (casper_last_justified_epoch a) (casper_last_finalized_epoch a) (casper_dynasty_start_epoch a) (casper_total_curr_dyn_deposits a) (casper_total_prev_dyn_deposits a) (casper_block_number a) (casper_next_validator_index a).
+Definition set_casper_data_casper_current_epoch a v := mkCasperData (casper_epochs a) (casper_validators a) (casper_current_dynasty a) v (casper_expected_target_hash a) (casper_expected_source_epoch a) (casper_last_justified_epoch a) (casper_last_finalized_epoch a) (casper_dynasty_start_epoch a) (casper_total_curr_dyn_deposits a) (casper_total_prev_dyn_deposits a) (casper_block_number a) (casper_next_validator_index a).
+Definition set_casper_data_casper_expected_target_hash a v := mkCasperData (casper_epochs a) (casper_validators a) (casper_current_dynasty a) (casper_current_epoch a) v (casper_expected_source_epoch a) (casper_last_justified_epoch a) (casper_last_finalized_epoch a) (casper_dynasty_start_epoch a) (casper_total_curr_dyn_deposits a) (casper_total_prev_dyn_deposits a) (casper_block_number a) (casper_next_validator_index a).
+Definition set_casper_data_casper_expected_source_epoch a v := mkCasperData (casper_epochs a) (casper_validators a) (casper_current_dynasty a) (casper_current_epoch a) (casper_expected_target_hash a) v (casper_last_justified_epoch a) (casper_last_finalized_epoch a) (casper_dynasty_start_epoch a) (casper_total_curr_dyn_deposits a) (casper_total_prev_dyn_deposits a) (casper_block_number a) (casper_next_validator_index a).
+Definition set_casper_data_casper_last_justified_epoch a v := mkCasperData (casper_epochs a) (casper_validators a) (casper_current_dynasty a) (casper_current_epoch a) (casper_expected_target_hash a) (casper_expected_source_epoch a) v (casper_last_finalized_epoch a) (casper_dynasty_start_epoch a) (casper_total_curr_dyn_deposits a) (casper_total_prev_dyn_deposits a) (casper_block_number a) (casper_next_validator_index a).
+Definition set_casper_data_casper_last_finalized_epoch a v := mkCasperData (casper_epochs a) (casper_validators a) (casper_current_dynasty a) (casper_current_epoch a) (casper_expected_target_hash a) (casper_expected_source_epoch a) (casper_last_justified_epoch a) v (casper_dynasty_start_epoch a) (casper_total_curr_dyn_deposits a) (casper_total_prev_dyn_deposits a) (casper_block_number a) (casper_next_validator_index a).
+Definition set_casper_data_casper_dynasty_start_epoch a v := mkCasperData (casper_epochs a) (casper_validators a) (casper_current_dynasty a) (casper_current_epoch a) (casper_expected_target_hash a) (casper_expected_source_epoch a) (casper_last_justified_epoch a) (casper_last_finalized_epoch a) v (casper_total_curr_dyn_deposits a) (casper_total_prev_dyn_deposits a) (casper_block_number a) (casper_next_validator_index a).
+Definition set_casper_data_casper_total_curr_dyn_deposits a v := mkCasperData (casper_epochs a) (casper_validators a) (casper_current_dynasty a) (casper_current_epoch a) (casper_expected_target_hash a) (casper_expected_source_epoch a) (casper_last_justified_epoch a) (casper_last_finalized_epoch a) (casper_dynasty_start_epoch a) v (casper_total_prev_dyn_deposits a) (casper_block_number a) (casper_next_validator_index a).
+Definition set_casper_data_casper_total_prev_dyn_deposits a v := mkCasperData (casper_epochs a) (casper_validators a) (casper_current_dynasty a) (casper_current_epoch a) (casper_expected_target_hash a) (casper_expected_source_epoch a) (casper_last_justified_epoch a) (casper_last_finalized_epoch a) (casper_dynasty_start_epoch a) (casper_total_curr_dyn_deposits a) v (casper_block_number a) (casper_next_validator_index a).
+Definition set_casper_data_casper_block_number a v := mkCasperData (casper_epochs a) (casper_validators a) (casper_current_dynasty a) (casper_current_epoch a) (casper_expected_target_hash a) (casper_expected_source_epoch a) (casper_last_justified_epoch a) (casper_last_finalized_epoch a) (casper_dynasty_start_epoch a) (casper_total_curr_dyn_deposits a) (casper_total_prev_dyn_deposits a) v (casper_next_validator_index a).
+Definition set_casper_data_casper_next_validator_index a v := mkCasperData (casper_epochs a) (casper_validators a) (casper_current_dynasty a) (casper_current_epoch a) (casper_expected_target_hash a) (casper_expected_source_epoch a) (casper_last_justified_epoch a) (casper_last_finalized_epoch a) (casper_dynasty_start_epoch a) (casper_total_curr_dyn_deposits a) (casper_total_prev_dyn_deposits a) (casper_block_number a) v.
 
 Notation "{[ a 'with' 'casper_epochs' := v ]}" := (set_casper_data_casper_epochs  a v).
 Notation "{[ a 'with' 'casper_validators' := v ]}" := (set_casper_data_casper_validators  a v).
@@ -192,6 +198,7 @@ Notation "{[ a 'with' 'casper_last_finalized_epoch' := v ]}" := (set_casper_data
 Notation "{[ a 'with' 'casper_dynasty_start_epoch' := v ]}" := (set_casper_data_casper_dynasty_start_epoch  a v).
 Notation "{[ a 'with' 'casper_total_curr_dyn_deposits' := v ]}" := (set_casper_data_casper_total_curr_dyn_deposits  a v).
 Notation "{[ a 'with' 'casper_total_prev_dyn_deposits' := v ]}" := (set_casper_data_casper_total_prev_dyn_deposits  a v).
+Notation "{[ a 'with' 'casper_block_number' := v ]}" := (set_casper_data_casper_block_number  a v).
 Notation "{[ a 'with' 'casper_next_validator_index' := v ]}" := (set_casper_data_casper_next_validator_index  a v).
 
 Arguments set_casper_data_casper_epochs  _ _/.
@@ -205,6 +212,7 @@ Arguments set_casper_data_casper_last_finalized_epoch  _ _/.
 Arguments set_casper_data_casper_dynasty_start_epoch  _ _/.
 Arguments set_casper_data_casper_total_curr_dyn_deposits  _ _/.
 Arguments set_casper_data_casper_total_prev_dyn_deposits  _ _/.
+Arguments set_casper_data_casper_block_number  _ _/.
 Arguments set_casper_data_casper_next_validator_index  _ _/.
 
 Definition set_validator_data_validator_addr a v := mkValidatorData v (validator_withdrawal_addr a) (validator_deposit a) (validator_start_dynasty a) (validator_end_dynasty a).

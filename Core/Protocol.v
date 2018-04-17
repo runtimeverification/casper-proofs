@@ -72,11 +72,11 @@ Definition Coh (w : World) :=
      forall (n : NodeId),
        holds n w (fun st => id st == n),
      forall (n : NodeId),
-       holds n w (fun st => valid (blockTree st)),
+       holds n w (fun st => valid (blocks st)),
      forall (n : NodeId),
-       holds n w (fun st => validH (blockTree st)),
+       holds n w (fun st => validH (blocks st)),
      forall (n : NodeId),
-       holds n w (fun st => has_init_block (blockTree st)) &
+       holds n w (fun st => has_init_block (blocks st)) &
      forall (n : NodeId),
        holds n w (fun st => uniq (peers st))
   ].
@@ -155,12 +155,12 @@ rewrite /initWorld/localState/=; split.
   exact: enum_uniq.
 - by move => n; exact: holds_Init_state.
 - move => n; apply: holds_Init_state.
-  by rewrite /blockTree /= um_validPt.
+  by rewrite /blocks /= um_validPt.
 - move => n; apply: holds_Init_state.
-  rewrite/validH/blockTree /= => h b H.
+  rewrite/validH/blocks /= => h b H.
   by move: (um_findPt_inv H); elim=>->->.
 - move => n; apply: holds_Init_state.
-  by rewrite/has_init_block/blockTree um_findPt.
+  by rewrite/has_init_block/blocks um_findPt.
 - move => n; apply: holds_Init_state.
   exact: enum_uniq.
 Qed.
@@ -183,11 +183,11 @@ Qed.
 
 Lemma procMsg_valid :
    forall (s1 : State) from (m : Message) (ts : Timestamp),
-    valid (blockTree s1) -> valid (blockTree (procMsg s1 from  m ts).1).
+    valid (blocks s1) -> valid (blocks (procMsg s1 from  m ts).1).
 Proof.
 move=> s1 from  m ts.
 case Msg: m=>[b|||];
-destruct s1; rewrite/procMsg/=; do?by [|move: (btExtendV blockTree b)=><-].
+destruct s1; rewrite/procMsg/=; do?by [|move: (btExtendV blocks b)=><-].
 case:ifP => //=.
 move/eqP => H_neq; case: ifP; move/eqP => //= H_eq H_v.
 by case ohead.
@@ -195,20 +195,20 @@ Qed.
 
 Lemma procInt_valid :
   forall (s1 : State) (t : InternalTransition) (ts : Timestamp),
-    valid (blockTree s1) = valid (blockTree (procInt s1 t ts).1).
+    valid (blocks s1) = valid (blocks (procInt s1 t ts).1).
 Proof.
 move=>s1 t ts.
 case Int: t; destruct s1; rewrite/procInt/=; first by [].
 case: (genProof _); last done.
 move=>Pf; case: (VAF _ _ _); last done.
 case tV: (tx_valid_block _ _)=>//.
-by rewrite/Node.blockTree/=; apply btExtendV.
+by rewrite/Node.blocks/=; apply btExtendV.
 Qed.
 
 Lemma procMsg_validH :
    forall (s1 : State) from  (m : Message) (ts : Timestamp),
-     valid (blockTree s1) -> validH (blockTree s1) ->
-     validH (blockTree (procMsg s1 from  m ts).1).
+     valid (blocks s1) -> validH (blocks s1) ->
+     validH (blocks (procMsg s1 from  m ts).1).
 Proof.
 move=> s1 from  m ts.
 case Msg: m=>[b|||];
@@ -220,22 +220,22 @@ Qed.
 
 Lemma procInt_validH :
    forall (s1 : State) (t : InternalTransition) (ts : Timestamp),
-     valid (blockTree s1) -> validH (blockTree s1) ->
-     validH (blockTree (procInt s1 t ts).1).
+     valid (blocks s1) -> validH (blocks s1) ->
+     validH (blocks (procInt s1 t ts).1).
 Proof.
 move=>s1 t ts v vh.
 case Int: t; destruct s1; rewrite/procInt/=; first by [].
 case: (genProof _); last done.
 move=>Pf; case: (VAF _ _ _); last done.
 case tV: (tx_valid_block _ _)=>//.
-by rewrite/Node.blockTree/=; apply btExtendH.
+by rewrite/Node.blocks/=; apply btExtendH.
 Qed.
 
 Lemma procMsg_has_init_block:
    forall (s1 : State) from (m : Message) (ts : Timestamp),
-     valid (blockTree s1) -> validH (blockTree s1) ->
-     has_init_block (blockTree s1) ->
-     has_init_block (blockTree (procMsg s1 from m ts).1).
+     valid (blocks s1) -> validH (blocks s1) ->
+     has_init_block (blocks s1) ->
+     has_init_block (blocks (procMsg s1 from m ts).1).
 Proof.
 move=> s1 from  m ts.
 case Msg: m=>[b|||];
@@ -247,9 +247,9 @@ Qed.
 
 Lemma procInt_has_init_block :
    forall (s1 : State) (t : InternalTransition) (ts : Timestamp),
-     valid (blockTree s1) -> validH (blockTree s1) ->
-     has_init_block (blockTree s1) ->
-     has_init_block (blockTree (procInt s1 t ts).1).
+     valid (blocks s1) -> validH (blocks s1) ->
+     has_init_block (blocks s1) ->
+     has_init_block (blocks (procInt s1 t ts).1).
 Proof.
 move=>s1 t ts v vh.
 case Int: t; destruct s1; rewrite/procInt/=; first by [].

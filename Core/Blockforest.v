@@ -637,7 +637,7 @@ by move: (Vh _  _ X); move/hashB_inj.
 by contradict H; move: (find_none X)=>H; apply/negP.
 Qed.
 
-(* All chains from the given tree *)
+(* All chains from the given forest *)
 Definition good_chain (bc : Blockchain) :=
   if bc is h :: _ then h == GenesisBlock else false.
 
@@ -647,7 +647,7 @@ Fixpoint tx_valid_chain' (bc prefix : seq block) :=
   then [&& all [pred t | txValid t prefix] (txs b) &
         tx_valid_chain' bc' (rcons prefix b)]
   else true.
-           
+
 Definition tx_valid_chain bc := tx_valid_chain' bc [::].
 
 Definition all_chains bt := [seq compute_chain bt b | b <- all_blocks bt].

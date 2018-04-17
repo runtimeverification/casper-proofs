@@ -36,10 +36,11 @@ Definition procContractCallTx (block_number : nat) (t : Transaction) (st : Caspe
       let: start_dynasty := st.(casper_current_epoch).+2 in
       let: validator_data := mkValidatorData validation_addr withdrawal_addr deposit_map start_dynasty casper_default_end_dynasty in
       let: validators' := next_validator_index \\-> validator_data \+ validators in
-      let: st0 := {[ st with casper_validators := validators' ]} in
-      let: st1 := {[ st0 with casper_next_validator_index := next_validator_index.+1 ]} in
-      st1
-    else st
+      let: st'0 := {[ st with casper_validators := validators' ]} in
+      let: st'1 := {[ st'0 with casper_next_validator_index := next_validator_index.+1 ]} in
+      st'1
+    else
+      st
 
   | VoteCall v => st
 
@@ -57,10 +58,10 @@ Definition procContractCallTx (block_number : nat) (t : Transaction) (st : Caspe
       let: valid_dynasty := end_dynasty < validator_end_dynasty in
       if [&& valid_block_epoch, valid_epoch, valid_sig & valid_dynasty] then
         let validator' := {[ validator with validator_end_dynasty := end_dynasty ]} in
-        (* TODO: update dynasty_wei_delta *)
         let validators' := validator_index \\-> validator' \+ validators in
-        let: st0 := {[ st with casper_validators := validators' ]} in
-        st0
+        let: st'0 := {[ st with casper_validators := validators' ]} in
+        (* TODO: update dynasty_wei_delta *)
+        st'0
       else
         st
     else
@@ -211,7 +212,7 @@ Record State :=
   Node {
     id : NodeId;
     peers : peers_t;
-    blockTree : Blockforest;
+    blocks : Blockforest;
     txPool : TxPool;
   }.
 
