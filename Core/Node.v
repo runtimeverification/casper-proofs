@@ -57,16 +57,25 @@ Definition procContractCallTx (block_number : nat) (t : Transaction) (st : Caspe
       (st, [::])
 
   | VoteCall v =>
+    let: validator_index := v.(vote_validator_index) in
+    let: target_hash := v.(vote_target_hash) in
     let: target_epoch := v.(vote_target_epoch) in
-    if find target_epoch epochs is Some epoch_data then
-      let: validator_index := v.(vote_validator_index) in
-      let: voted := epoch_data.(epoch_voted) in
-      if validator_index \notin voted then
-        let: voted' := rcons voted validator_index in
-        let: epoch_data' := {[ epoch_data with epoch_voted := voted' ]} in
-        let: epochs' := upd target_epoch epoch_data' epochs in
-        let: st' := {[ st with casper_epochs := epochs' ]} in
-        (st', [::])
+    let: source_epoch := v.(vote_source_epoch) in
+    let: sig := v.(vote_sig) in
+    (* look up validator *)
+    if find validator_index validators is Some validator then
+      let: validation_addr := validator.(validator_addr) in
+      (* look up epoch *)
+      if find target_epoch epochs is Some epoch_data then
+        let: voted := epoch_data.(epoch_voted) in
+        if validator_index \notin voted then
+          let: voted' := rcons voted validator_index in
+          let: epoch_data' := {[ epoch_data with epoch_voted := voted' ]} in
+          let: epochs' := upd target_epoch epoch_data' epochs in
+          let: st' := {[ st with casper_epochs := epochs' ]} in
+          (st', [::])
+        else
+          (st, [::])
       else
         (st, [::])
     else
