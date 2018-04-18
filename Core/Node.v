@@ -18,111 +18,156 @@ Canonical NodeId_ordType := Eval hnf in OrdType NodeId NodeId_ordMixin.
 (* CASPER FUNCTIONS *)
 (* -----------------*)
 
-Definition procContractCallTx (block_number : nat) (t : Transaction) (st : CasperData) : CasperData :=
+Definition deleteValidator (validator_index : ValidatorIndex) (validators : union_map [ordType of ValidatorIndex] ValidatorData) :=
+  free validator_index validators.
+
+Definition procContractCallTx (block_number : nat) (t : Transaction) (st : CasperData) : CasperData * seq SendAccount :=
+  let: sender := t.(tx_sender) in
   let: validators := st.(casper_validators) in
   let: current_epoch := st.(casper_current_epoch) in
   let: current_dynasty := st.(casper_current_dynasty) in
   let: next_validator_index := st.(casper_next_validator_index) in
   let: dynasty_start_epoch := st.(casper_dynasty_start_epoch) in
-  match tx_call t with
+  match t.(tx_call) with
   | DepositCall d =>
-    let: amount := d.(deposit_amount) in
-    let: valid_block_epoch := current_epoch == block_number %/ casper_epoch_length in
-    let: valid_amount := casper_min_deposit_size <= amount in
-    if valid_block_epoch && valid_amount then
-      let: deposit_map := st.(casper_current_dynasty) \\-> amount in
-      let: validation_addr := d.(deposit_validation_addr) in
-      let: withdrawal_addr := d.(deposit_withdrawal_addr) in
-      let: start_dynasty := st.(casper_current_epoch).+2 in
-      let: validator_data := mkValidatorData validation_addr withdrawal_addr deposit_map start_dynasty casper_default_end_dynasty in
-      let: validators' := next_validator_index \\-> validator_data \+ validators in
-      let: st'0 := {[ st with casper_validators := validators' ]} in
-      let: st'1 := {[ st'0 with casper_next_validator_index := next_validator_index.+1 ]} in
-      st'1
+    (* check non-null sender *)
+    if sender is AddrSender sender_addr then
+      let: amount := d.(deposit_amount) in
+      let: valid_block_epoch := current_epoch == block_number %/ casper_epoch_length in
+      let: valid_amount := casper_min_deposit_size <= amount in
+      if [&& valid_block_epoch & valid_amount] then
+        let: deposits := st.(casper_current_dynasty) \\-> amount in
+        let: validation_addr := d.(deposit_validation_addr) in
+        let: withdrawal_addr := d.(deposit_withdrawal_addr) in
+        let: start_dynasty := st.(casper_current_epoch).+2 in
+        let: validator_data := mkValidatorData validation_addr withdrawal_addr deposits start_dynasty casper_default_end_dynasty in
+        let: validators' := next_validator_index \\-> validator_data \+ validators in
+        let: st'0 := {[ st with casper_validators := validators' ]} in
+        let: st'1 := {[ st'0 with casper_next_validator_index := next_validator_index.+1 ]} in
+        (st'1, [::])
+      else
+        (st, [::])
     else
-      st
+      (st, [::])
 
-  | VoteCall v => st
+  | VoteCall v => (st, [::])
 
   | LogoutCall l =>
-    let: validator_index := l.(logout_validator_index) in
-    let: epoch := l.(logout_epoch) in
-    let: sig := l.(logout_sig) in
-    if find validator_index validators is Some validator then
-      let: addr := validator.(validator_addr) in
-      let: end_dynasty := current_dynasty + casper_dynasty_logout_delay in
-      let: validator_end_dynasty := validator.(validator_end_dynasty) in
-      let: valid_block_epoch := current_epoch == block_number %/ casper_epoch_length in
-      let: valid_epoch := epoch <= current_epoch in
-      let: valid_sig := sigValid_epoch addr validator_index epoch sig in
-      let: valid_dynasty := end_dynasty < validator_end_dynasty in
-      if [&& valid_block_epoch, valid_epoch, valid_sig & valid_dynasty] then
-        let validator' := {[ validator with validator_end_dynasty := end_dynasty ]} in
-        let validators' := validator_index \\-> validator' \+ validators in
-        let: st'0 := {[ st with casper_validators := validators' ]} in
-        (* TODO: update dynasty_wei_delta *)
-        st'0
+    (* check non-null sender *)
+    if sender is AddrSender sender_addr then
+      let: validator_index := l.(logout_validator_index) in
+      let: epoch := l.(logout_epoch) in
+      let: sig := l.(logout_sig) in
+      (* look up validator *)
+      if find validator_index validators is Some validator then
+        let: addr := validator.(validator_addr) in
+        let: end_dynasty := current_dynasty + casper_dynasty_logout_delay in
+        let: validator_end_dynasty := validator.(validator_end_dynasty) in
+        let: valid_block_epoch := current_epoch == block_number %/ casper_epoch_length in
+        let: valid_epoch := epoch <= current_epoch in
+        let: valid_sig := sigValid_epoch addr validator_index epoch sig in
+        let: valid_dynasty := end_dynasty < validator_end_dynasty in
+        if [&& valid_block_epoch, valid_epoch, valid_sig & valid_dynasty] then
+          let validator' := {[ validator with validator_end_dynasty := end_dynasty ]} in
+          let validators' := validator_index \\-> validator' \+ validators in
+          let: st' := {[ st with casper_validators := validators' ]} in
+          (* TODO: update dynasty_wei_delta *)
+          (st', [::])
+        else
+          (st, [::])
       else
-        st
+        (st, [::])
     else
-      st
+      (st, [::])
 
   | WithdrawCall validator_index =>
-    if find validator_index validators is Some validator then
-      let: validator_end_dynasty := validator.(validator_end_dynasty) in
-      if find validator_end_dynasty.+1 dynasty_start_epoch is Some end_epoch then
-        let: valid_dynasty := validator_end_dynasty.+1 <= current_dynasty in
-        let: valid_epoch := end_epoch + casper_withdrawal_delay <= current_epoch in
-        if valid_dynasty && valid_epoch then
-          let: validators' := free validator_index validators in
-          let: st0 := {[ st with casper_validators := validators' ]} in
-          (* TODO: capture account balance changes? *)
-          st0
+    (* check non-null sender *)
+    if sender is AddrSender sender_addr then
+      (* look up validator *)
+      if find validator_index validators is Some validator then
+        let: validator_deposit := validator.(validator_deposit) in
+        let: validator_withdrawal_addr := validator.(validator_withdrawal_addr) in
+        let: validator_end_dynasty := validator.(validator_end_dynasty) in
+        (* look up end epoch of validator *)
+        if find validator_end_dynasty.+1 dynasty_start_epoch is Some end_epoch then
+          (* look up validator deposit for end epoch *)
+          if find end_epoch validator_deposit is Some deposit then
+            let: valid_dynasty := validator_end_dynasty.+1 <= current_dynasty in
+            let: valid_epoch := end_epoch + casper_withdrawal_delay <= current_epoch in
+            if [&& valid_dynasty & valid_epoch] then
+              (* delete validator information *)
+              let: validators' := deleteValidator validator_index validators in
+              (* return deposit *)
+              let: st' := {[ st with casper_validators := validators' ]} in
+              let: sa' := [:: mkSA validator_withdrawal_addr deposit] in
+              (st', sa')
+            else
+              (st, [::])
+          else
+            (st, [::])
         else
-          st
+          (st, [::])
       else
-        st
+        (st, [::])
     else
-      st
+      (st, [::])
 
-  | InitializeEpochCall e => st
+  | InitializeEpochCall e =>
+    (st, [::])
 
   | SlashCall v1 v2 =>
-    let: validator_index_1 := v1.(vote_validator_index) in
-    let: validator_index_2 := v2.(vote_validator_index) in
-    let: target_hash_1 := v1.(vote_target_hash) in
-    let: target_hash_2 := v2.(vote_target_hash) in
-    let: target_epoch_1 := v1.(vote_target_epoch) in
-    let: target_epoch_2 := v2.(vote_target_epoch) in
-    let: source_epoch_1 := v1.(vote_source_epoch) in
-    let: source_epoch_2 := v2.(vote_source_epoch) in
-    let: sig_1 := v1.(vote_sig) in
-    let: sig_2 := v1.(vote_sig) in
-    if find validator_index_1 validators is Some validator then
-      let: addr := validator.(validator_addr) in
-      let: valid_sig_1 := sigValid_epochs addr validator_index_1 target_hash_1 target_epoch_1 source_epoch_1 sig_1  in
-      let: valid_sig_2 := sigValid_epochs addr validator_index_2 target_hash_2 target_epoch_2 source_epoch_2 sig_2  in
-      let: valid_indexes := validator_index_1 == validator_index_2 in
-      let: valid_hashes_epochs := ~~[&& target_hash_1 == target_hash_1, target_epoch_1 == target_epoch_2 & source_epoch_1 == source_epoch_2] in
-      let: epoch_cond_1 := [&& target_epoch_2 < target_epoch_1 & source_epoch_1 < source_epoch_2] in
-      let: epoch_cond_2 := [&& target_epoch_1 < target_epoch_2 & source_epoch_2 < source_epoch_1] in
-      let: valid_targets := [|| target_epoch_1 == target_epoch_2, epoch_cond_1 | epoch_cond_2] in
-      if [&& valid_sig_1, valid_sig_2, valid_indexes, valid_hashes_epochs & valid_targets] then
-        st
+    (* check non-null sender *)
+    if sender is AddrSender sender_addr then
+      let: validator_index_1 := v1.(vote_validator_index) in
+      let: validator_index_2 := v2.(vote_validator_index) in
+      let: target_hash_1 := v1.(vote_target_hash) in
+      let: target_hash_2 := v2.(vote_target_hash) in
+      let: target_epoch_1 := v1.(vote_target_epoch) in
+      let: target_epoch_2 := v2.(vote_target_epoch) in
+      let: source_epoch_1 := v1.(vote_source_epoch) in
+      let: source_epoch_2 := v2.(vote_source_epoch) in
+      let: sig_1 := v1.(vote_sig) in
+      let: sig_2 := v1.(vote_sig) in
+      (* look up validator *)
+      if find validator_index_1 validators is Some validator then
+        let: validator_deposit := validator.(validator_deposit) in
+        let: validator_addr := validator.(validator_addr) in
+        (* look up deposit for validator in current epoch *)
+        if find current_epoch validator_deposit is Some deposit then
+          let: valid_sig_1 := sigValid_epochs validator_addr validator_index_1 target_hash_1 target_epoch_1 source_epoch_1 sig_1  in
+          let: valid_sig_2 := sigValid_epochs validator_addr validator_index_2 target_hash_2 target_epoch_2 source_epoch_2 sig_2  in
+          let: valid_indexes := validator_index_1 == validator_index_2 in
+          let: valid_hashes_epochs := ~~[&& target_hash_1 == target_hash_1, target_epoch_1 == target_epoch_2 & source_epoch_1 == source_epoch_2] in
+          let: epoch_cond_1 := [&& target_epoch_2 < target_epoch_1 & source_epoch_1 < source_epoch_2] in
+          let: epoch_cond_2 := [&& target_epoch_1 < target_epoch_2 & source_epoch_2 < source_epoch_1] in
+          let: valid_targets := [|| target_epoch_1 == target_epoch_2, epoch_cond_1 | epoch_cond_2] in
+          if [&& valid_sig_1, valid_sig_2, valid_indexes, valid_hashes_epochs & valid_targets] then
+            let: validators' := deleteValidator validator_index_1 validators in
+            let: st' := {[ st with casper_validators := validators' ]} in
+            let: sa' := [:: mkSA sender_addr deposit] in (* FIXME: scale factor? *)
+            (st', sa')
+          else
+            (st, [::])
+        else
+          (st, [::])
       else
-        st
+        (st, [::])
     else
-      st
+      (st, [::])
 
   end.
 
-Definition procContractCallBlock (b : block) (st : CasperData) : CasperData :=
-  foldr (procContractCallTx (blockNumber b)) st b.(txs).
+Definition procContractCallBlock_aux (block_number : nat) (t: Transaction) (ps : CasperData * seq SendAccount) : CasperData * seq SendAccount :=
+  let: ps' := procContractCallTx block_number t ps.1 in
+  (ps'.1, ps.2 ++ ps'.2).
 
-Definition casper_state_bc (init : CasperData) (bc : Blockchain) : CasperData :=
-  foldr procContractCallBlock init bc.
+Definition procContractCallBlock (b : block) (ps : CasperData * seq SendAccount) : CasperData * seq SendAccount :=
+  foldr (procContractCallBlock_aux (blockNumber b)) ps b.(txs).
 
-Definition casper_state_bc_init (bc : Blockchain) : CasperData :=
+Definition casper_state_bc (init : CasperData) (bc : Blockchain) : CasperData * seq SendAccount :=
+  foldr procContractCallBlock (init, [::]) bc.
+
+Definition casper_state_bc_init (bc : Blockchain) : CasperData * seq SendAccount :=
   casper_state_bc InitCasperData bc.
 
 (* ------------------*)
