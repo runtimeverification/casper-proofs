@@ -18,12 +18,18 @@ Canonical NodeId_ordType := Eval hnf in OrdType NodeId NodeId_ordMixin.
 (* CASPER FUNCTIONS *)
 (* -----------------*)
 
+(* FIXME: nullize instead of removing *)
 Definition deleteValidator (validator_index : ValidatorIndex) (validators : union_map [ordType of ValidatorIndex] ValidatorData) :=
   free validator_index validators.
+
+(* FIXME: implement *)
+Definition updateDeposit (validators : union_map [ordType of ValidatorIndex] ValidatorData) (current_epoch : Epoch) (addition : Wei) :=
+validators.
 
 Definition procContractCallTx (block_number : nat) (t : Transaction) (st : CasperData) : CasperData * seq SendAccount :=
   let: sender := t.(tx_sender) in
   let: validators := st.(casper_validators) in
+  let: epochs := st.(casper_epochs) in
   let: current_epoch := st.(casper_current_epoch) in
   let: current_dynasty := st.(casper_current_dynasty) in
   let: next_validator_index := st.(casper_next_validator_index) in
@@ -50,7 +56,21 @@ Definition procContractCallTx (block_number : nat) (t : Transaction) (st : Caspe
     else
       (st, [::])
 
-  | VoteCall v => (st, [::])
+  | VoteCall v =>
+    let: target_epoch := v.(vote_target_epoch) in
+    if find target_epoch epochs is Some epoch_data then
+      let: validator_index := v.(vote_validator_index) in
+      let: voted := epoch_data.(epoch_voted) in
+      if validator_index \notin voted then
+        let: voted' := rcons voted validator_index in
+        let: epoch_data' := {[ epoch_data with epoch_voted := voted' ]} in
+        let: epochs' := upd target_epoch epoch_data' epochs in
+        let: st' := {[ st with casper_epochs := epochs' ]} in
+        (st', [::])
+      else
+        (st, [::])
+    else
+      (st, [::])
 
   | LogoutCall l =>
     (* check non-null sender *)
@@ -134,8 +154,8 @@ Definition procContractCallTx (block_number : nat) (t : Transaction) (st : Caspe
         let: validator_addr := validator.(validator_addr) in
         (* look up deposit for validator in current epoch *)
         if find current_epoch validator_deposit is Some deposit then
-          let: valid_sig_1 := sigValid_epochs validator_addr validator_index_1 target_hash_1 target_epoch_1 source_epoch_1 sig_1  in
-          let: valid_sig_2 := sigValid_epochs validator_addr validator_index_2 target_hash_2 target_epoch_2 source_epoch_2 sig_2  in
+          let: valid_sig_1 := sigValid_epochs validator_addr validator_index_1 target_hash_1 target_epoch_1 source_epoch_1 sig_1 in
+          let: valid_sig_2 := sigValid_epochs validator_addr validator_index_2 target_hash_2 target_epoch_2 source_epoch_2 sig_2 in
           let: valid_indexes := validator_index_1 == validator_index_2 in
           let: valid_hashes_epochs := ~~[&& target_hash_1 == target_hash_1, target_epoch_1 == target_epoch_2 & source_epoch_1 == source_epoch_2] in
           let: epoch_cond_1 := [&& target_epoch_2 < target_epoch_1 & source_epoch_1 < source_epoch_2] in
