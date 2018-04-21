@@ -271,7 +271,7 @@ Lemma procInt_peers_uniq :
   forall (s1 : State) (t : InternalTransition) ts, let: s2 := (procInt s1 t ts).1 in
     uniq (peers s1) -> uniq (peers s2).
 Proof.
-move=>s1 t ts; case: s1=>n prs bt txp; rewrite /peers/procInt=>Up.
+move=>s1 t ts; case: s1=>n prs bf txp; rewrite /peers/procInt=>Up.
 case: t=>//; case hP: (genProof _)=>//; case vP: (VAF _)=>//.
 case tV: (tx_valid_block _ _)=>//.
 Qed.

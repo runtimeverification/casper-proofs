@@ -292,21 +292,21 @@ Definition Init (n : NodeId) (peers : seq NodeId) : State :=
   Node n peers (#GenesisBlock \\-> GenesisBlock) [::].
 
 Definition procMsg (st: State) (from : NodeId) (msg: Message) (ts: Timestamp) :=
-    let: Node n prs bt pool := st in
+    let: Node n prs bf pool := st in
     match msg with
     | BlockMsg b =>
-      let: newBt := bfExtend bt b in
-      let: newPool := [seq t <- pool | txValid t (bfChain newBt)] in
-      let: ownHashes := dom newBt ++ [seq hashT t | t <- newPool] in
-      pair (Node n prs newBt newPool) (emitBroadcast n prs (InvMsg ownHashes))
+      let: newBf := bfExtend bf b in
+      let: newPool := [seq t <- pool | txValid t (bfChain newBf)] in
+      let: ownHashes := dom newBf ++ [seq hashT t | t <- newPool] in
+      pair (Node n prs newBf newPool) (emitBroadcast n prs (InvMsg ownHashes))
 
     | TxMsg tx =>
-      let: newPool := tpExtend pool bt tx in
-      let: ownHashes := dom bt ++ [seq hashT t | t <- newPool] in
-      pair (Node n prs bt newPool) (emitBroadcast n prs (InvMsg ownHashes))
+      let: newPool := tpExtend pool bf tx in
+      let: ownHashes := dom bf ++ [seq hashT t | t <- newPool] in
+      pair (Node n prs bf newPool) (emitBroadcast n prs (InvMsg ownHashes))
 
     | InvMsg peerHashes =>
-      let: ownHashes := dom bt ++ [seq hashT t | t <- pool] in
+      let: ownHashes := dom bf ++ [seq hashT t | t <- pool] in
       let: newH := [seq h <- peerHashes | h \notin ownHashes] in
       let: gets := [seq mkP n from (GetDataMsg h) | h <- newH] in
       pair st (emitMany gets)
@@ -314,27 +314,27 @@ Definition procMsg (st: State) (from : NodeId) (msg: Message) (ts: Timestamp) :=
     | GetDataMsg h =>
       (* Do not respond to yourself *)
       if from == n then pair st emitZero else
-      let: matchingBlocks := [seq b <- [:: get_block bt h] | b != GenesisBlock] in
+      let: matchingBlocks := [seq b <- [:: get_block bf h] | b != GenesisBlock] in
       match ohead matchingBlocks with
-      | Some b => pair (Node n prs bt pool) (emitOne (mkP n from (BlockMsg b)))
+      | Some b => pair (Node n prs bf pool) (emitOne (mkP n from (BlockMsg b)))
       | None =>
         let: matchingTxs := [seq t <- pool | (hashT t) == h] in
         match ohead matchingTxs with
         | Some tx =>
-          pair (Node n prs bt pool) (emitOne (mkP n from (TxMsg tx)))
+          pair (Node n prs bf pool) (emitOne (mkP n from (TxMsg tx)))
         | None => pair st emitZero
         end
       end
     end.
 
 Definition procInt (st : State) (tr : InternalTransition) (ts : Timestamp) :=
-    let: Node n prs bt pool := st in
+    let: Node n prs bf pool := st in
     match tr with
     | TxT tx => pair st (emitBroadcast n prs (TxMsg tx))
 
     (* Assumption: nodes broadcast to themselves as well! => simplifies logic *)
     | MintT =>
-      let: bc := bfChain bt in
+      let: bc := bfChain bf in
       let: allowedTxs := [seq t <- pool | txValid t bc] in
       match genProof n bc allowedTxs ts with
       | Some pf =>
@@ -342,10 +342,10 @@ Definition procInt (st : State) (tr : InternalTransition) (ts : Timestamp) :=
           let: prevBlock := last GenesisBlock bc in
           let: block := mkB (hashB prevBlock) allowedTxs pf in
           if tx_valid_block bc block then
-            let: newBt := bfExtend bt block in
-            let: newPool := [seq t <- pool | txValid t (bfChain newBt)] in
-            let: ownHashes := dom newBt ++ [seq hashT t | t <- newPool] in
-            pair (Node n prs newBt newPool) (emitBroadcast n prs (BlockMsg block))
+            let: newBf := bfExtend bf block in
+            let: newPool := [seq t <- pool | txValid t (bfChain newBf)] in
+            let: ownHashes := dom newBf ++ [seq hashT t | t <- newPool] in
+            pair (Node n prs newBf newPool) (emitBroadcast n prs (BlockMsg block))
           else
             pair st emitZero
         else
