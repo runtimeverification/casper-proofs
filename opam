@@ -1,0 +1,30 @@
+opam-version: "1.2"
+version: "dev"
+maintainer: "palmskog@gmail.com"
+
+homepage: "https://github.com/palmskog/caspertoychain"
+dev-repo: "https://github.com/palmskog/caspertoychain.git"
+bug-reports: "https://github.com/palmskog/caspertoychain/issues"
+license: "BSD"
+
+build: [
+  [ make "-j%{jobs}%" ]
+]
+depends: [
+  "coq" {>= "8.7" & < "8.8~"}
+  "coq-mathcomp-ssreflect" {>= "1.6" & < "1.7~"}
+  "coq-fcsl-pcm"
+]
+
+tags: [
+  "category:Computer Science/Concurrent Systems and Protocols/Theory of concurrent systems"
+  "keyword:program verification"
+  "keyword:distributed algorithms"
+]
+authors: [
+  "Ilya Sergey <>"
+  "George Pirlea <>"
+  "Karl Palmskog <>"
+  "Yoichi Hirai <>"
+  "Daejun Park <>"
+]

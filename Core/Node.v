@@ -1,10 +1,8 @@
 From mathcomp.ssreflect
-Require Import ssreflect ssrbool ssrnat eqtype ssrfun seq fintype div.
-From mathcomp
-Require Import path.
+Require Import ssreflect ssrbool ssrnat eqtype ssrfun seq fintype div path.
 Require Import Eqdep Relations.
-From HTT
-Require Import pred prelude idynamic ordtype pcm finmap unionmap heap.
+From fcsl
+Require Import pred prelude ordtype pcm finmap unionmap heap.
 From CasperToychain
 Require Import Blockforest Casper.
 Set Implicit Arguments.
@@ -299,16 +297,16 @@ Definition procMsg (st: State) (from : NodeId) (msg: Message) (ts: Timestamp) :=
     | BlockMsg b =>
       let: newBt := bfExtend bt b in
       let: newPool := [seq t <- pool | txValid t (bfChain newBt)] in
-      let: ownHashes := (keys_of newBt) ++ [seq hashT t | t <- newPool] in
+      let: ownHashes := dom newBt ++ [seq hashT t | t <- newPool] in
       pair (Node n prs newBt newPool) (emitBroadcast n prs (InvMsg ownHashes))
 
     | TxMsg tx =>
       let: newPool := tpExtend pool bt tx in
-      let: ownHashes := (keys_of bt) ++ [seq hashT t | t <- newPool] in
+      let: ownHashes := dom bt ++ [seq hashT t | t <- newPool] in
       pair (Node n prs bt newPool) (emitBroadcast n prs (InvMsg ownHashes))
 
     | InvMsg peerHashes =>
-      let: ownHashes := (keys_of bt) ++ [seq hashT t | t <- pool] in
+      let: ownHashes := dom bt ++ [seq hashT t | t <- pool] in
       let: newH := [seq h <- peerHashes | h \notin ownHashes] in
       let: gets := [seq mkP n from (GetDataMsg h) | h <- newH] in
       pair st (emitMany gets)
@@ -346,7 +344,7 @@ Definition procInt (st : State) (tr : InternalTransition) (ts : Timestamp) :=
           if tx_valid_block bc block then
             let: newBt := bfExtend bt block in
             let: newPool := [seq t <- pool | txValid t (bfChain newBt)] in
-            let: ownHashes := (keys_of newBt) ++ [seq hashT t | t <- newPool] in
+            let: ownHashes := dom newBt ++ [seq hashT t | t <- newPool] in
             pair (Node n prs newBt newPool) (emitBroadcast n prs (BlockMsg block))
           else
             pair st emitZero

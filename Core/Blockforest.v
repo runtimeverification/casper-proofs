@@ -1,10 +1,8 @@
 From mathcomp.ssreflect
-Require Import ssreflect ssrbool ssrnat eqtype ssrfun seq fintype finset.
-From mathcomp
-Require Import path.
+Require Import ssreflect ssrbool ssrnat eqtype ssrfun seq fintype path.
 Require Import Eqdep.
-From HTT
-Require Import pred prelude idynamic ordtype pcm finmap unionmap heap.
+From fcsl
+Require Import pred prelude ordtype pcm finmap unionmap heap.
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
@@ -577,17 +575,17 @@ Definition bfExtend (bf : Blockforest) (b : block) :=
 Lemma bfExtendV bf b : valid bf = valid (bfExtend bf b).
 Proof.
 rewrite /bfExtend; case: ifP=>//N.
-by rewrite gen_validPtUn/= N andbC.
+by rewrite validPtUn/= N andbC.
 Qed.
 
 Lemma bfExtendH bf b : valid bf -> validH bf -> validH (bfExtend bf b).
 Proof.
 move=>V H z c; rewrite /bfExtend.
 case: ifP=>X; first by move/H.
-rewrite findUnL ?gen_validPtUn ?V ?X//.
+rewrite findUnL ?validPtUn ?V ?X//.
 case: ifP=>Y; last by move/H.
-rewrite um_domPt inE in Y; move/eqP: Y=>Y; subst z.
-by rewrite um_findPt; case=>->.
+rewrite domPt inE in Y; move/eqP: Y=>Y; subst z.
+by rewrite findPt; case=>->.
 Qed.
 
 Lemma bfExtendIB bf b :
@@ -596,10 +594,10 @@ Lemma bfExtendIB bf b :
 Proof.
 move=>V H; rewrite /bfExtend/has_init_block=>Ib.
 case: ifP=>X; first done.
-rewrite findUnL ?gen_validPtUn ?V ?X//.
+rewrite findUnL ?validPtUn ?V ?X//.
 case: ifP=>Y; last done.
-rewrite um_domPt inE in Y; move/eqP: Y=>Y.
-by specialize (hashB_inj Y)=><-; rewrite Y um_findPt.
+rewrite domPt inE in Y; move/eqP: Y=>Y.
+by specialize (hashB_inj Y)=><-; rewrite Y findPt.
 Qed.
 
 Definition tx_valid_block bc (b : block) := all [pred t | txValid t bc] (txs b).
@@ -624,14 +622,14 @@ Fixpoint compute_chain' (bf : Blockforest) b remaining n : Blockchain :=
 
 (* Compute chain from the block *)
 Definition compute_chain bf b :=
-  compute_chain' bf b (keys_of bf) (size (keys_of bf)).
+  compute_chain' bf b (dom bf) (size (dom bf)).
 
 (* Total get_block function *)
 Definition get_block (bf : Blockforest) k : Block :=
   if find k bf is Some b then b else GenesisBlock.
 
 (* Collect all blocks *)
-Definition all_blocks (bf : Blockforest) := [seq get_block bf k | k <- keys_of bf].
+Definition all_blocks (bf : Blockforest) := [seq get_block bf k | k <- dom bf].
 
 Definition is_block_in (bf : Blockforest) b := exists k, find k bf = Some b.
 
@@ -640,12 +638,12 @@ Lemma all_blocksP bf b : reflect (is_block_in bf b) (b \in all_blocks bf).
 Proof.
 case B : (b \in all_blocks bf); [constructor 1|constructor 2].
 - move: B; rewrite /all_blocks; case/mapP=>k Ik->{b}.
-  rewrite keys_dom in Ik; move/gen_eta: Ik=>[b]/=[E H].
+  move/um_eta: Ik=>[b]/=[E H].
   by exists k; rewrite /get_block E.
 case=>k F; move/negP: B=>B; apply: B.
 rewrite /all_blocks; apply/mapP.
 exists k; last by rewrite /get_block F.
-by rewrite keys_dom; move/find_some: F.
+by move/find_some: F.
 Qed.
 
 Lemma all_blocksP' bf b : validH bf -> reflect (b ∈ bf) (b \in all_blocks bf).
@@ -653,12 +651,12 @@ Proof.
 move=>Vh.
 case B : (b \in all_blocks bf); [constructor 1|constructor 2].
 - move: B; rewrite /all_blocks; case/mapP=>k Ik->{b}.
-  rewrite keys_dom in Ik; move/gen_eta: Ik=>[b]/=[E H].
+  move/um_eta: Ik=>[b]/=[E H].
   rewrite/get_block E /bfHasBlock; specialize (Vh _ _ E); subst k.
   by move: (find_some E).
 case=>H; rewrite/bfHasBlock; move/negP: B=>B; apply: B.
 rewrite /all_blocks; apply/mapP.
-exists (#b); first by rewrite keys_dom.
+exists (#b); first by [].
 rewrite/bfHasBlock in H; rewrite/get_block.
 case X: (find _ _)=>[b'|].
 by move: (Vh _  _ X); move/hashB_inj.
