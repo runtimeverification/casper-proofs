@@ -1,6 +1,8 @@
 Casper Toychain
 ===============
 
+[![Build Status](https://travis-ci.org/palmskog/caspertoychain.svg?branch=master)](https://travis-ci.org/palmskog/caspertoychain)
+
 Minimalistic set of definitions for a blockchain protocol,
 extracted from [Toychain](https://github.com/certichain/toychain).
 
