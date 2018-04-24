@@ -530,7 +530,7 @@ Definition TxPool := seq Transaction.
 Parameter hashT : Transaction -> Hash.
 Parameter hashB : block -> Hash.
 Parameter genProof : NodeId -> Blockchain -> TxPool -> Timestamp -> option VProof.
-Parameter VAF : VProof -> Timestamp -> Blockchain -> TxPool -> bool.
+Parameter VAF : VProof -> Blockchain -> TxPool -> bool.
 Parameter FCR : Blockchain -> Blockchain -> bool.
 Parameter blockNumber : block -> nat.
 
@@ -600,7 +600,8 @@ rewrite domPt inE in Y; move/eqP: Y=>Y.
 by specialize (hashB_inj Y)=><-; rewrite Y findPt.
 Qed.
 
-Definition tx_valid_block bc (b : block) := all [pred t | txValid t bc] (txs b).
+Definition valid_chain_block bc (b : block) :=
+  [&& VAF (proof b) bc (txs b) & all [pred t | txValid t bc] (txs b)].
 
 (* All paths/chains should start with the GenesisBlock *)
 Fixpoint compute_chain' (bf : Blockforest) b remaining n : Blockchain :=
@@ -668,21 +669,20 @@ Definition good_chain (bc : Blockchain) :=
   if bc is h :: _ then h == GenesisBlock else false.
 
 (* Transaction validity *)
-Fixpoint tx_valid_chain' (bc prefix : seq block) :=
+Fixpoint valid_chain' (bc prefix : seq block) :=
   if bc is b :: bc'
-  then [&& all [pred t | txValid t prefix] (txs b) &
-        tx_valid_chain' bc' (rcons prefix b)]
+  then [&& VAF (proof b) prefix (txs b) && all [pred t | txValid t prefix] (txs b) & valid_chain' bc' (rcons prefix b)]
   else true.
 
-Definition tx_valid_chain bc := tx_valid_chain' bc [::].
+Definition valid_chain bc := valid_chain' bc [::].
 
 Definition all_chains bf := [seq compute_chain bf b | b <- all_blocks bf].
 
-Definition good_chains bf := [seq c <- all_chains bf | good_chain c && tx_valid_chain c].
+Definition good_chains bf := [seq c <- all_chains bf | good_chain c && valid_chain c].
 
 (* Get the blockchain *)
 Definition take_better_bc bc2 bc1 :=
-  if (good_chain bc2 && tx_valid_chain bc2) && (bc2 > bc1) then bc2 else bc1.
+  if (good_chain bc2 && valid_chain bc2) && (bc2 > bc1) then bc2 else bc1.
 
 Definition bfChain bf : Blockchain :=
   foldr take_better_bc [:: GenesisBlock] (all_chains bf).

@@ -338,16 +338,13 @@ Definition procInt (st : State) (tr : InternalTransition) (ts : Timestamp) :=
       let: allowedTxs := [seq t <- pool | txValid t bc] in
       match genProof n bc allowedTxs ts with
       | Some pf =>
-        if VAF pf ts bc allowedTxs then
-          let: prevBlock := last GenesisBlock bc in
-          let: block := mkB (hashB prevBlock) allowedTxs pf in
-          if tx_valid_block bc block then
-            let: newBf := bfExtend bf block in
-            let: newPool := [seq t <- pool | txValid t (bfChain newBf)] in
-            let: ownHashes := dom newBf ++ [seq hashT t | t <- newPool] in
-            pair (Node n prs newBf newPool) (emitBroadcast n prs (BlockMsg block))
-          else
-            pair st emitZero
+        let: prevBlock := last GenesisBlock bc in
+        let: block := mkB (hashB prevBlock) allowedTxs pf in
+        if valid_chain_block bc block then
+          let: newBf := bfExtend bf block in
+          let: newPool := [seq t <- pool | txValid t (bfChain newBf)] in
+          let: ownHashes := dom newBf ++ [seq hashT t | t <- newPool] in
+          pair (Node n prs newBf newPool) (emitBroadcast n prs (BlockMsg block))
         else
           pair st emitZero
       | None => pair st emitZero

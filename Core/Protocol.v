@@ -174,8 +174,8 @@ Lemma procInt_id_constant : forall (s1 : State) (t : InternalTransition) (ts : T
     id s1 = id (procInt s1 t ts).1.
 Proof.
 case=> n1 p1 b1 t1 [] =>// ts; simpl.
-case hP: genProof => //; case vP: (VAF _)=>//.
-case tV: (tx_valid_block _ _)=>//.
+case hP: genProof => //.
+case tV: (valid_chain_block _ _)=>//.
 Qed.
 
 Lemma procMsg_valid :
@@ -197,8 +197,8 @@ Proof.
 move=>s1 t ts.
 case Int: t; destruct s1; rewrite/procInt/=; first by [].
 case: (genProof _); last done.
-move=>Pf; case: (VAF _ _ _); last done.
-case tV: (tx_valid_block _ _)=>//.
+move=>Pf.
+case tV: (valid_chain_block _ _)=>//.
 by rewrite/Node.blocks/=; apply bfExtendV.
 Qed.
 
@@ -223,8 +223,8 @@ Proof.
 move=>s1 t ts v vh.
 case Int: t; destruct s1; rewrite/procInt/=; first by [].
 case: (genProof _); last done.
-move=>Pf; case: (VAF _ _ _); last done.
-case tV: (tx_valid_block _ _)=>//.
+move=>Pf.
+case tV: (valid_chain_block _ _)=>//.
 by rewrite/Node.blocks/=; apply bfExtendH.
 Qed.
 
@@ -251,8 +251,8 @@ Proof.
 move=>s1 t ts v vh.
 case Int: t; destruct s1; rewrite/procInt/=; first by [].
 case: (genProof _); last done.
-move=>Pf; case: (VAF _ _ _); last done.
-case tV: (tx_valid_block _ _)=>//.
+move=>Pf.
+case tV: (valid_chain_block _ _)=>//.
 by apply bfExtendIB.
 Qed.
 
@@ -272,8 +272,8 @@ Lemma procInt_peers_uniq :
     uniq (peers s1) -> uniq (peers s2).
 Proof.
 move=>s1 t ts; case: s1=>n prs bf txp; rewrite /peers/procInt=>Up.
-case: t=>//; case hP: (genProof _)=>//; case vP: (VAF _)=>//.
-case tV: (tx_valid_block _ _)=>//.
+case: t=>//; case hP: (genProof _)=>//.
+case tV: (valid_chain_block _ _)=>//.
 Qed.
 
 Lemma Coh_step w w' q:
