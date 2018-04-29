@@ -3,14 +3,13 @@ Casper Toychain
 
 [![Build Status](https://travis-ci.org/palmskog/caspertoychain.svg?branch=master)](https://travis-ci.org/palmskog/caspertoychain)
 
-Minimalistic set of definitions for a blockchain protocol,
-extracted from [Toychain](https://github.com/certichain/toychain).
+Minimalistic set of definitions and lemmas for verification of the [Casper](https://github.com/ethereum/casper) smart contract, extracted from [Toychain](https://github.com/certichain/toychain).
 
 Requirements
 ------------
 
-* [Coq 8.7](https://coq.inria.fr/coq-87)
-* [Mathematical Components 1.6.4](http://math-comp.github.io/math-comp/) (`ssreflect`)
+* [Coq 8.7 or 8.8](https://coq.inria.fr)
+* [Mathematical Components 1.6.4 or 1.7.0](http://math-comp.github.io/math-comp/) (`ssreflect`)
 * [FCSL PCM library 1.0.0](https://github.com/imdea-software/fcsl-pcm)
 
 Building
@@ -23,4 +22,4 @@ opam repo add coq-released https://coq.inria.fr/opam/released
 opam install coq coq-mathcomp-ssreflect coq-fcsl-pcm
 ```
 
-Then, run `make` in the project root directory.
+Then, run `make` in the project root directory to check all definitions and proofs.
