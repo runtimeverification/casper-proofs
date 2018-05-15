@@ -5,3 +5,4 @@ Core/Blockforest.v
 Core/Casper.v
 Core/Node.v
 Core/Protocol.v
+Core/Behavior.v
