@@ -28,7 +28,13 @@ Lemma procContractCallTx_LogoutCall :
     (s = NullSender /\
        st' = st /\ sa = [::]).
 Proof.
-Admitted.
+  intros.
+  unfold procContractCallTx, tx_call, tx_sender in H.
+  destruct s. repeat right; inversion H; auto.
+  destruct (find (logout_validator_index l) (casper_validators st)) eqn:H'.
+  do 4 right. left; exists s; split; auto; exists v; auto.
+  left; exists s; inversion H; auto.
+Qed.
 
 Lemma procContractCallTx_WithdrawCall :
   forall (s : Sender)(block_number : nat) (st st' : CasperData) (validator_index : ValidatorIndex) (sa : seq SendAccount),
