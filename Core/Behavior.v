@@ -49,6 +49,48 @@ Lemma procContractCallTx_DepositCall :
 Proof.
 Admitted.
 
-
-    
-    
+Lemma procContractCallTx_SlashCall :
+  forall (s : Sender) (block_number : nat) (st st' : CasperData) (v1 v2 : Vote) (sa : seq SendAccount),
+    procContractCallTx block_number (mkTx s (SlashCall v1 v2)) st = (st', sa) ->
+    (exists sender_addr, s = AddrSender sender_addr /\ find v1.(vote_validator_index) st.(casper_validators) = None /\
+      st' = st /\ sa = [::]) \/
+    (exists sender_addr, s = AddrSender sender_addr /\
+      exists validator, find v1.(vote_validator_index) st.(casper_validators) = Some validator /\
+      find st.(casper_current_epoch) validator.(validator_deposit) = None /\ 
+      st' = st /\ sa = [::]) \/
+    (exists sender_addr, s = AddrSender sender_addr /\
+      exists validator, find v1.(vote_validator_index) st.(casper_validators) = Some validator /\
+      exists deposit, find st.(casper_current_epoch) validator.(validator_deposit) = Some deposit /\
+      ~ sigValid_epochs validator.(validator_addr) v1.(vote_validator_index) v1.(vote_target_hash) v1.(vote_target_epoch) v1.(vote_source_epoch) v1.(vote_sig) /\
+      st' = st /\ sa = [::]) \/
+    (exists sender_addr, s = AddrSender sender_addr /\
+      exists validator, find v1.(vote_validator_index) st.(casper_validators) = Some validator /\
+       exists deposit, find st.(casper_current_epoch) validator.(validator_deposit) = Some deposit /\
+        ~ sigValid_epochs validator.(validator_addr) v2.(vote_validator_index) v2.(vote_target_hash) v2.(vote_target_epoch) v2.(vote_source_epoch) v2.(vote_sig) /\
+        st' = st /\ sa = [::]) \/
+    (exists sender_addr, s = AddrSender sender_addr /\
+      exists validator, find v1.(vote_validator_index) st.(casper_validators) = Some validator /\
+       exists deposit, find st.(casper_current_epoch) validator.(validator_deposit) = Some deposit /\
+        sigValid_epochs validator.(validator_addr) v1.(vote_validator_index) v1.(vote_target_hash) v1.(vote_target_epoch) v1.(vote_source_epoch) v1.(vote_sig) /\
+        sigValid_epochs validator.(validator_addr) v2.(vote_validator_index) v2.(vote_target_hash) v2.(vote_target_epoch) v2.(vote_source_epoch) v2.(vote_sig) /\
+        v1.(vote_validator_index) <> v2.(vote_validator_index) /\
+        st' = st /\ sa = [::]) \/
+    (exists sender_addr, s = AddrSender sender_addr /\
+      exists validator, find v1.(vote_validator_index) st.(casper_validators) = Some validator /\
+       exists deposit, find st.(casper_current_epoch) validator.(validator_deposit) = Some deposit /\
+        sigValid_epochs validator.(validator_addr) v1.(vote_validator_index) v1.(vote_target_hash) v1.(vote_target_epoch) v1.(vote_source_epoch) v1.(vote_sig) /\
+        sigValid_epochs validator.(validator_addr) v2.(vote_validator_index) v2.(vote_target_hash) v2.(vote_target_epoch) v2.(vote_source_epoch) v2.(vote_sig) /\
+        v1.(vote_validator_index) = v2.(vote_validator_index) /\
+        v1.(vote_target_hash) = v2.(vote_target_hash) /\ v1.(vote_target_epoch) = v2.(vote_target_epoch) /\ v1.(vote_source_epoch) = v2.(vote_source_epoch) /\
+        st' = st /\ sa = [::]) \/
+    (exists sender_addr, s = AddrSender sender_addr /\
+      exists validator, find v1.(vote_validator_index) st.(casper_validators) = Some validator /\
+       exists deposit, find st.(casper_current_epoch) validator.(validator_deposit) = Some deposit /\
+        sigValid_epochs validator.(validator_addr) v1.(vote_validator_index) v1.(vote_target_hash) v1.(vote_target_epoch) v1.(vote_source_epoch) v1.(vote_sig) /\
+        sigValid_epochs validator.(validator_addr) v2.(vote_validator_index) v2.(vote_target_hash) v2.(vote_target_epoch) v2.(vote_source_epoch) v2.(vote_sig) /\
+        v1.(vote_validator_index) = v2.(vote_validator_index) /\
+        ~ (v1.(vote_target_hash) = v2.(vote_target_hash) /\ v1.(vote_target_epoch) = v2.(vote_target_epoch) /\ v1.(vote_source_epoch) = v2.(vote_source_epoch)) /\
+        st' = st /\ sa = [::]) \/
+    (s = NullSender /\ st' = st /\ sa = [::]).
+Proof.
+Admitted.

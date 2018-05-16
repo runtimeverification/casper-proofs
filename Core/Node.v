@@ -154,7 +154,7 @@ Definition procContractCallTx (block_number : nat) (t : Transaction) (st : Caspe
       let: source_epoch_1 := v1.(vote_source_epoch) in
       let: source_epoch_2 := v2.(vote_source_epoch) in
       let: sig_1 := v1.(vote_sig) in
-      let: sig_2 := v1.(vote_sig) in
+      let: sig_2 := v2.(vote_sig) in
       (* look up validator *)
       if find validator_index_1 validators is Some validator then
         let: validator_deposit := validator.(validator_deposit) in
@@ -164,7 +164,7 @@ Definition procContractCallTx (block_number : nat) (t : Transaction) (st : Caspe
           let: valid_sig_1 := sigValid_epochs validator_addr validator_index_1 target_hash_1 target_epoch_1 source_epoch_1 sig_1 in
           let: valid_sig_2 := sigValid_epochs validator_addr validator_index_2 target_hash_2 target_epoch_2 source_epoch_2 sig_2 in
           let: valid_indexes := validator_index_1 == validator_index_2 in
-          let: valid_hashes_epochs := ~~[&& target_hash_1 == target_hash_1, target_epoch_1 == target_epoch_2 & source_epoch_1 == source_epoch_2] in
+          let: valid_hashes_epochs := ~~[&& target_hash_1 == target_hash_2, target_epoch_1 == target_epoch_2 & source_epoch_1 == source_epoch_2] in
           let: epoch_cond_1 := [&& target_epoch_2 < target_epoch_1 & source_epoch_1 < source_epoch_2] in
           let: epoch_cond_2 := [&& target_epoch_1 < target_epoch_2 & source_epoch_2 < source_epoch_1] in
           let: valid_targets := [|| target_epoch_1 == target_epoch_2, epoch_cond_1 | epoch_cond_2] in
