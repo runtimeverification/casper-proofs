@@ -28,10 +28,16 @@ Lemma procContractCallTx_LogoutCall :
     (s = NullSender /\
        st' = st /\ sa = [::]).
 Proof.
-  intros.
-  unfold procContractCallTx, tx_call, tx_sender in H.
-  destruct s. repeat right; inversion H; auto.
-  destruct (find (logout_validator_index l) (casper_validators st)) eqn:H'.
+  intros. unfold procContractCallTx, tx_call, tx_sender in H.
+
+  (* Case match on sender. NullSender case is trivial. *)
+  destruct s; first by repeat right; inversion H; auto.
+
+  (* Case match on existence of validator. Trivially discharge goal if no validator. *)
+  destruct (find (logout_validator_index l) (casper_validators st));
+    last by left; exists s; inversion H; auto.
+
+  (* Case match on boolean conditions of if statement in H. *)
   destruct (casper_current_epoch st == block_number %/ casper_epoch_length) eqn:H1.
   destruct (logout_epoch l <= casper_current_epoch st) eqn:H2.
   destruct (sigValid_epoch (validator_addr v) (logout_validator_index l)
@@ -40,25 +46,26 @@ Proof.
            eqn:H4.
 
   (* Incomplete case: all true *)
-  - do 4 right; left. exists s; split; auto; exists v; auto.
+  - do 4 right; left.
+    by exists s; split; auto; exists v; auto.
 
   (* current dynasty + logout_delay < end_dynasty = false *)
   - do 3 right; left. exists s; split; auto. exists v; split; auto. split.
-    apply negbT in H4; rewrite leqNgt; auto. inversion H; auto.
+    apply negbT in H4; rewrite leqNgt; auto.
+    by inversion H; auto.
 
   (* Incomplete case: sigValid_epoch ... = false *)
-  - do 4 right; left. exists s; split; auto; exists v; auto.
+  - do 4 right; left.
+    by exists s; split; auto; exists v; auto.
 
   (* logout_epoch <= current_epoch = false *)
   - do 2 right; left. exists s; split; auto. exists v; split; auto. split.
-    apply negbT in H2; rewrite ltnNge; auto. inversion H; auto.
+    apply negbT in H2; rewrite ltnNge; auto.
+    by inversion H; auto.
 
   (* current_epoch == block_number / epoch_length = false *)
   - right; left. exists s; split; auto. exists v; split; auto. split; move/eqP in H1; auto.
-    inversion H; auto.
-
-  (* sender = None *)
-  - left; exists s; inversion H; auto.
+    by inversion H; auto.
 Qed.
 
 Lemma procContractCallTx_WithdrawCall :
