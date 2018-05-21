@@ -21,6 +21,9 @@ Lemma procContractCallTx_LogoutCall :
       exists validator, find l.(logout_validator_index) st.(casper_validators) = Some validator /\ st.(casper_current_epoch) < l.(logout_epoch) /\      
        st' = st /\ sa = [::]) \/
     (exists sender_addr, s = AddrSender sender_addr /\
+      exists validator, find l.(logout_validator_index) st.(casper_validators) = Some validator /\ ~ sigValid_epoch validator.(validator_addr) l.(logout_validator_index) l.(logout_epoch) l.(logout_sig) /\
+       st' = st /\ sa = [::]) \/
+    (exists sender_addr, s = AddrSender sender_addr /\
       exists validator, find l.(logout_validator_index) st.(casper_validators) = Some validator /\ validator.(validator_end_dynasty) <= st.(casper_current_dynasty) + casper_dynasty_logout_delay /\ 
        st' = st /\ sa = [::]) \/
     (exists sender_addr, s = AddrSender sender_addr /\
@@ -46,17 +49,18 @@ Proof.
            eqn:H4.
 
   (* Incomplete case: all true *)
-  - do 4 right; left.
+  - do 5 right; left.
     by exists s; split; auto; exists v; auto.
 
   (* current dynasty + logout_delay < end_dynasty = false *)
-  - do 3 right; left. exists s; split; auto. exists v; split; auto. split.
+  - do 4 right; left. exists s; split; auto. exists v; split; auto. split.
     apply negbT in H4; rewrite leqNgt; auto.
     by inversion H; auto.
 
-  (* Incomplete case: sigValid_epoch ... = false *)
-  - do 4 right; left.
-    by exists s; split; auto; exists v; auto.
+  (* sigValid_epoch addr index epoch sig = false *)
+  - do 3 right; left. exists s; split; auto. exists v; split. auto. split.
+    move/negP in H3; auto.
+    by inversion H; auto.
 
   (* logout_epoch <= current_epoch = false *)
   - do 2 right; left. exists s; split; auto. exists v; split; auto. split.
