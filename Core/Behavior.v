@@ -40,25 +40,25 @@ Proof.
            eqn:H4.
 
   (* Incomplete case: all true *)
-  do 4 right; left. exists s; split; auto; exists v; auto.
+  - do 4 right; left. exists s; split; auto; exists v; auto.
 
   (* current dynasty + logout_delay < end_dynasty = false *)
-  do 3 right; left. exists s; split; auto. exists v; split; auto. split.
-  apply negbT in H4; rewrite leqNgt; auto. inversion H; auto.
+  - do 3 right; left. exists s; split; auto. exists v; split; auto. split.
+    apply negbT in H4; rewrite leqNgt; auto. inversion H; auto.
 
   (* Incomplete case: sigValid_epoch ... = false *)
-  do 4 right; left. exists s; split; auto; exists v; auto.
+  - do 4 right; left. exists s; split; auto; exists v; auto.
 
   (* logout_epoch <= current_epoch = false *)
-  do 2 right; left. exists s; split; auto. exists v; split; auto. split.
-  apply negbT in H2; rewrite ltnNge; auto. inversion H; auto.
+  - do 2 right; left. exists s; split; auto. exists v; split; auto. split.
+    apply negbT in H2; rewrite ltnNge; auto. inversion H; auto.
 
   (* current_epoch == block_number / epoch_length = false *)
-  right; left. exists s; split; auto. exists v; split; auto. split; move/eqP in H1; auto.
-  inversion H; auto.
+  - right; left. exists s; split; auto. exists v; split; auto. split; move/eqP in H1; auto.
+    inversion H; auto.
 
   (* sender = None *)
-  left; exists s; inversion H; auto.
+  - left; exists s; inversion H; auto.
 Qed.
 
 Lemma procContractCallTx_WithdrawCall :
