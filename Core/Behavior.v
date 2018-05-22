@@ -77,10 +77,54 @@ Lemma procContractCallTx_WithdrawCall :
     procContractCallTx block_number (mkTx s (WithdrawCall validator_index)) st = (st', sa) ->
     (exists sender_addr, s = AddrSender sender_addr /\ find validator_index st.(casper_validators) = None /\
      st' = st /\ sa = [::]) \/
+    (exists sender_addr, s = AddrSender sender_addr /\ exists validator, find validator_index st.(casper_validators) = Some validator /\ find validator.(validator_end_dynasty).+1 st.(casper_dynasty_start_epoch) = None /\
+     st' = st /\ sa = [::]) \/
+    (exists sender_addr, s = AddrSender sender_addr /\ exists validator, find validator_index st.(casper_validators) = Some validator /\ exists epoch, find validator.(validator_end_dynasty).+1 st.(casper_dynasty_start_epoch) = Some epoch /\ find epoch validator.(validator_deposit) = None /\
+     st' = st /\ sa = [::]) \/
+    (exists sender_addr, s = AddrSender sender_addr /\ exists validator, find validator_index st.(casper_validators) = Some validator /\ exists epoch, find validator.(validator_end_dynasty).+1 st.(casper_dynasty_start_epoch) = Some epoch /\ exists deposit, find epoch validator.(validator_deposit) = Some deposit /\ st.(casper_current_dynasty) <= validator.(validator_end_dynasty) /\
+     st' = st /\ sa = [::]) \/
+    (exists sender_addr, s = AddrSender sender_addr /\ exists validator, find validator_index st.(casper_validators) = Some validator /\ exists epoch, find validator.(validator_end_dynasty).+1 st.(casper_dynasty_start_epoch) = Some epoch /\ exists deposit, find epoch validator.(validator_deposit) = Some deposit /\ st.(casper_current_epoch) < epoch + casper_withdrawal_delay /\
+     st' = st /\ sa = [::]) \/
     (exists sender_addr, s = AddrSender sender_addr /\ exists validator, find validator_index st.(casper_validators) = Some validator (* more details here *)) \/
     (s = NullSender /\ st' = st /\ sa = [::]).
 Proof.
-Admitted.
+  intros. unfold procContractCallTx, tx_call, tx_sender in H.
+
+  (* Case match on sender. NullSender case is trivial. *)
+  destruct s; first by repeat right; inversion H; auto.
+
+  (* Case match on existence of validator. Trivially discharge goal if no validator. *)
+  destruct (find validator_index (casper_validators st));
+    last by left; exists s; inversion H; auto.
+
+  (* Case match on existence of end epoch. Trivially discharge goal if no end epoch. *)
+  destruct (find (validator_end_dynasty v).+1 (casper_dynasty_start_epoch st)) eqn:H';
+    last by right; left; exists s; split; auto; exists v; inversion H; subst; auto.
+
+  (* Case match on existence of deposit. Trivially discharge goal if no deposit. *)
+  destruct (find e (validator_deposit v)) eqn:H'';
+    last by do 2 right; left; exists s; split; auto; exists v; split; auto;
+      exists e; inversion H; subst; auto.
+
+  (* Case match on boolean conditions of if statement in H. *)
+  destruct (validator_end_dynasty v < casper_current_dynasty st) eqn:H1.
+  destruct (e + casper_withdrawal_delay <= casper_current_epoch st) eqn:H2.
+
+  (* incomplete case: all true *)
+  - by do 5 right; left; exists s; split; auto; exists v; auto.
+
+  (* epoch + casper_withdrawal_delay > casper_current_epoch *)
+  - inversion H; subst.
+    do 4 right; left. exists s; split; auto. exists v; split; auto.
+    exists e; split; auto. exists w.
+    by apply negbT in H2; rewrite leqNgt; auto.
+
+  (* validator_end_dynasty >= casper_current_dynasty *)
+  - inversion H; subst.
+    do 3 right; left. exists s; split; auto. exists v; split; auto.
+    exists e; split; auto. exists w.
+    by apply negbT in H1; rewrite leqNgt; auto.
+Qed.
 
 Lemma procContractCallTx_DepositCall :
   forall (s : Sender) (block_number : nat) (st st' : CasperData) (d : Deposit) (sa : seq SendAccount),
