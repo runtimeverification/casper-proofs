@@ -34,11 +34,11 @@ Proof.
   intros. unfold procContractCallTx, tx_call, tx_sender in H.
 
   (* Case match on sender. NullSender case is trivial. *)
-  destruct s; first by repeat right; inversion H; auto.
+  destruct s; first by repeat right; inversion H.
 
   (* Case match on existence of validator. Trivially discharge goal if no validator. *)
   destruct (find (logout_validator_index l) (casper_validators st));
-    last by left; exists s; inversion H; auto.
+    last by left; exists s; inversion H.
 
   (* Case match on boolean conditions of if statement in H. *)
   destruct (casper_current_epoch st == block_number %/ casper_epoch_length) eqn:H1.
@@ -50,26 +50,26 @@ Proof.
 
   (* Incomplete case: all true *)
   - do 5 right; left.
-    by exists s; split; auto; exists v; auto.
+    by exists s; split; auto; exists v.
 
   (* current dynasty + logout_delay < end_dynasty = false *)
   - do 4 right; left. exists s; split; auto. exists v; split; auto. split.
     apply negbT in H4; rewrite leqNgt; auto.
-    by inversion H; auto.
+    by inversion H.
 
   (* sigValid_epoch addr index epoch sig = false *)
   - do 3 right; left. exists s; split; auto. exists v; split. auto. split.
     move/negP in H3; auto.
-    by inversion H; auto.
+    by inversion H.
 
   (* logout_epoch <= current_epoch = false *)
   - do 2 right; left. exists s; split; auto. exists v; split; auto. split.
     apply negbT in H2; rewrite ltnNge; auto.
-    by inversion H; auto.
+    by inversion H.
 
   (* current_epoch == block_number / epoch_length = false *)
   - right; left. exists s; split; auto. exists v; split; auto. split; move/eqP in H1; auto.
-    by inversion H; auto.
+    by inversion H.
 Qed.
 
 Lemma procContractCallTx_WithdrawCall :
@@ -91,39 +91,39 @@ Proof.
   intros. unfold procContractCallTx, tx_call, tx_sender in H.
 
   (* Case match on sender. NullSender case is trivial. *)
-  destruct s; first by repeat right; inversion H; auto.
+  destruct s; first by repeat right; inversion H.
 
   (* Case match on existence of validator. Trivially discharge goal if no validator. *)
   destruct (find validator_index (casper_validators st));
-    last by left; exists s; inversion H; auto.
+    last by left; exists s; inversion H.
 
   (* Case match on existence of end epoch. Trivially discharge goal if no end epoch. *)
   destruct (find (validator_end_dynasty v).+1 (casper_dynasty_start_epoch st)) eqn:H';
-    last by right; left; exists s; split; auto; exists v; inversion H; subst; auto.
+    last by right; left; exists s; split; auto; exists v; inversion H; subst.
 
   (* Case match on existence of deposit. Trivially discharge goal if no deposit. *)
   destruct (find e (validator_deposit v)) eqn:H'';
     last by do 2 right; left; exists s; split; auto; exists v; split; auto;
-      exists e; inversion H; subst; auto.
+      exists e; inversion H; subst.
 
   (* Case match on boolean conditions of if statement in H. *)
   destruct (validator_end_dynasty v < casper_current_dynasty st) eqn:H1.
   destruct (e + casper_withdrawal_delay <= casper_current_epoch st) eqn:H2.
 
   (* incomplete case: all true *)
-  - by do 5 right; left; exists s; split; auto; exists v; auto.
+  - by do 5 right; left; exists s; split; auto; exists v.
 
   (* epoch + casper_withdrawal_delay > casper_current_epoch *)
   - inversion H; subst.
     do 4 right; left. exists s; split; auto. exists v; split; auto.
     exists e; split; auto. exists w.
-    by apply negbT in H2; rewrite leqNgt; auto.
+    by apply negbT in H2; rewrite leqNgt.
 
   (* validator_end_dynasty >= casper_current_dynasty *)
   - inversion H; subst.
     do 3 right; left. exists s; split; auto. exists v; split; auto.
     exists e; split; auto. exists w.
-    by apply negbT in H1; rewrite leqNgt; auto.
+    by apply negbT in H1; rewrite leqNgt.
 Qed.
 
 Lemma procContractCallTx_DepositCall :
@@ -204,15 +204,15 @@ Proof.
   intros. unfold procContractCallTx, tx_call, tx_sender in H.
 
   (* Case match on sender. NullSender case is trivial. *)
-  destruct s; first by repeat right; inversion H; auto.
+  destruct s; first by repeat right; inversion H.
 
   (* Case match on existence of validator. Trivially discharge goal if no validator. *)
   destruct (find (vote_validator_index v1) (casper_validators st));
-    last by left; exists s; inversion H; auto.
+    last by left; exists s; inversion H.
 
   (* Case match on existence of deposit. Trivially discharge goal if no deposit. *)
   destruct (find (casper_current_epoch st) (validator_deposit v)) eqn:H';
-    last by inversion H; subst; right; left; exists s; auto; split; auto; exists v; auto.
+    last by inversion H; subst; right; left; exists s; auto; split; auto; exists v.
 
   (* Case match on boolean conditions of if statement in H. *)
   destruct (sigValid_epochs (validator_addr v) (vote_validator_index v1)
@@ -230,7 +230,7 @@ Proof.
   - inversion H; subst.
     do 5 right; left. exists s; split; auto. exists v; split; auto. move/eqP in H3.
     move/andP in H4; inversion H4. move/andP in H5; inversion H5.
-    by exists w; repeat split; auto; apply/eqP; auto.
+    by exists w; repeat split; auto; apply/eqP.
 
   (* not (target_hash, tearget_epoch, source_epoch for v1/v2 equal) *)
   - do 6 right. left. exists s; split; auto. exists v; split; auto. move/eqP in H3.
@@ -248,21 +248,21 @@ Proof.
       move/and3P in H4. unfold not; intros.
       destruct H4; inversion H0; inversion H6; subst.
       move/eqP in H4; move/eqP in H7; move/eqP in H8.
-      by repeat split; auto.
+      by repeat split.
 
   (* vote_validator_index v1 =/= vote_validator_index v2 *)
   - inversion H; subst.
     do 4 right; left. exists s; split; auto. exists v; split; auto. move/eqP in H3.
-    by exists w; repeat split; auto.
+    by exists w; repeat split.
 
   (* sigValid_epochs ... v2 = false *)
   - inversion H; subst.
     do 3 right; left. exists s; split; auto. exists v; split; auto. move/negP in H2.
-    by exists w; split; auto.
+    by exists w; split.
 
   (* sigValid_epochs ... v1 = false *)
   - inversion H; subst.
     do 2 right; left. exists s; split; auto. exists v; split; auto. move/negP in H1.
-    by exists w; split; auto.
+    by exists w; split.
 
   Admitted.
