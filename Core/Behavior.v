@@ -130,10 +130,32 @@ Lemma procContractCallTx_DepositCall :
   forall (s : Sender) (block_number : nat) (st st' : CasperData) (d : Deposit) (sa : seq SendAccount),
     procContractCallTx block_number (mkTx s (DepositCall d)) st = (st', sa) ->
     (exists sender_addr, s = AddrSender sender_addr /\ st.(casper_current_epoch) <> block_number %/ casper_epoch_length /\ st' = st /\ sa = [::]) \/
+    (exists sender_addr, s = AddrSender sender_addr /\ d.(deposit_amount) < casper_min_deposit_size /\ st' = st /\ sa = [::]) \/
     (exists sender_addr, s = AddrSender sender_addr (* more details here *)) \/
     (s = NullSender /\ st' = st /\ sa = [::]).
 Proof.
-Admitted.
+  intros. unfold procContractCallTx, tx_call, tx_sender in H.
+
+  (* Case match on sender. NullSender case is trivial. *)
+  destruct s; first by repeat right; inversion H.
+
+  (* Case match on boolean conditions of if statement in H. *)
+  destruct (casper_current_epoch st == block_number %/ casper_epoch_length) eqn:H1.
+  destruct (casper_min_deposit_size <= deposit_amount d) eqn:H2.
+
+  (* incomplete case: all true *)
+  - by do 2 right; left; exists s.
+
+  (* casper_min_deposit_size > deposit_amount *)
+  - inversion H; subst.
+    right; left. exists s; split; auto.
+    by apply negbT in H2; rewrite leqNgt.
+
+  (* current_epoch == block_number / epoch_length = false *)
+  - inversion H; subst.
+    left. exists s; split; auto.
+    by move/eqP in H1.
+Qed.
 
 Lemma procContractCallTx_SlashCall :
   forall (s : Sender) (block_number : nat) (st st' : CasperData) (v1 v2 : Vote) (sa : seq SendAccount),
