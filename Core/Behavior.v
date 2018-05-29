@@ -92,7 +92,10 @@ Lemma procContractCallTx_WithdrawCall :
      st' = st /\ sa = [::]) \/
     (exists sender_addr, s = AddrSender sender_addr /\ exists validator, find validator_index st.(casper_validators) = Some validator /\ exists epoch, find validator.(validator_end_dynasty).+1 st.(casper_dynasty_start_epoch) = Some epoch /\ exists deposit, find epoch validator.(validator_deposit) = Some deposit /\ st.(casper_current_epoch) < epoch + casper_withdrawal_delay /\
      st' = st /\ sa = [::]) \/
-    (exists sender_addr, s = AddrSender sender_addr /\ exists validator, find validator_index st.(casper_validators) = Some validator (* more details here *)) \/
+    (exists sender_addr, s = AddrSender sender_addr /\ exists validator, find validator_index st.(casper_validators) = Some validator /\ exists epoch, find validator.(validator_end_dynasty).+1 st.(casper_dynasty_start_epoch) = Some epoch /\ exists deposit, find epoch validator.(validator_deposit) = Some deposit /\
+    st' = {[st
+      with casper_validators := deleteValidator validator_index st.(casper_validators)]} /\
+    sa = [:: {| send_account_addr := validator_withdrawal_addr validator; send_account_wei := deposit |}]) \/
     (s = NullSender /\ st' = st /\ sa = [::]).
 Proof.
   intros. unfold procContractCallTx, tx_call, tx_sender in H.
@@ -117,8 +120,10 @@ Proof.
   destruct (validator_end_dynasty v < casper_current_dynasty st) eqn:H1.
   destruct (e + casper_withdrawal_delay <= casper_current_epoch st) eqn:H2.
 
-  (* incomplete case: all true *)
-  - by do 5 right; left; exists s; split; auto; exists v.
+  (* all true case: st, sa updated *)
+  - do 5 right; left. exists s; split; auto. exists v; split; auto.
+    exists e; split; auto. exists w.
+    by inversion H.
 
   (* epoch + casper_withdrawal_delay > casper_current_epoch *)
   - inversion H; subst.
