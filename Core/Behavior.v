@@ -27,7 +27,13 @@ Lemma procContractCallTx_LogoutCall :
       exists validator, find l.(logout_validator_index) st.(casper_validators) = Some validator /\ validator.(validator_end_dynasty) <= st.(casper_current_dynasty) + casper_dynasty_logout_delay /\ 
        st' = st /\ sa = [::]) \/
     (exists sender_addr, s = AddrSender sender_addr /\
-      exists validator, find l.(logout_validator_index) st.(casper_validators) = Some validator (* more details here *)) \/
+      exists validator, find l.(logout_validator_index) st.(casper_validators) = Some validator /\
+       st' = {[st
+         with casper_validators := l.(logout_validator_index) \\->
+                                   {[validator
+                                   with validator_end_dynasty := st.(casper_current_dynasty) +
+                                                                 casper_dynasty_logout_delay]} \+
+                                   st.(casper_validators)]} /\ sa = [::]) \/
     (s = NullSender /\
        st' = st /\ sa = [::]).
 Proof.
@@ -48,9 +54,10 @@ Proof.
   destruct (casper_current_dynasty st + casper_dynasty_logout_delay < validator_end_dynasty v)
            eqn:H4.
 
-  (* Incomplete case: all true *)
+  (* all true case: st updated *)
   - do 5 right; left.
-    by exists s; split; auto; exists v.
+    exists s; split; auto. exists v; split; auto.
+    by inversion H.
 
   (* current dynasty + logout_delay < end_dynasty = false *)
   - do 4 right; left. exists s; split; auto. exists v; split; auto. split.
