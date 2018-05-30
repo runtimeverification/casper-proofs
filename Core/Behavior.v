@@ -225,6 +225,13 @@ Lemma procContractCallTx_SlashCall :
         v1.(vote_validator_index) = v2.(vote_validator_index) /\
         ~ (v1.(vote_target_hash) = v2.(vote_target_hash) /\ v1.(vote_target_epoch) = v2.(vote_target_epoch) /\ v1.(vote_source_epoch) = v2.(vote_source_epoch)) /\
         st' = st /\ sa = [::]) \/
+    (exists sender_addr, s = AddrSender sender_addr /\
+      exists validator, find v1.(vote_validator_index) st.(casper_validators) = Some validator /\
+       exists deposit, find st.(casper_current_epoch) validator.(validator_deposit) = Some deposit /\
+        st' = {[st
+          with casper_validators := deleteValidator v1.(vote_validator_index)
+                                      st.(casper_validators)]} /\
+        sa = [:: {| send_account_addr := sender_addr; send_account_wei := deposit |}]) \/
     (s = NullSender /\ st' = st /\ sa = [::]).
 Proof.
   intros. unfold procContractCallTx, tx_call, tx_sender in H.
@@ -258,23 +265,25 @@ Proof.
     move/andP in H4; inversion H4. move/andP in H5; inversion H5.
     by exists w; repeat split; auto; apply/eqP.
 
+  (* Destruct remaining conditions in if statement. *)
+  destruct ([|| vote_target_epoch v1 == vote_target_epoch v2,
+                (vote_target_epoch v2 < vote_target_epoch v1) &&
+                (vote_source_epoch v1 < vote_source_epoch v2)
+              | (vote_target_epoch v1 < vote_target_epoch v2) &&
+                (vote_source_epoch v2 < vote_source_epoch v1)]) eqn:H5.
+
+  (* all true case: st, sa updated *)
+  - do 7 right; left. exists s; split; auto. exists v; split; auto.
+    inversion H. move/eqP in H.
+    by exists w; repeat split.
+
   (* not (target_hash, tearget_epoch, source_epoch for v1/v2 equal) *)
-  - do 6 right. left. exists s; split; auto. exists v; split; auto. move/eqP in H3.
-
-    destruct ([|| vote_target_epoch v1 == vote_target_epoch v2,
-                  (vote_target_epoch v2 < vote_target_epoch v1) &&
-                  (vote_source_epoch v1 < vote_source_epoch v2)
-                | (vote_target_epoch v1 < vote_target_epoch v2) &&
-                  (vote_source_epoch v2 < vote_source_epoch v1)]) eqn:H5.
-
-    (* incomplete spec: all true *)
-    * by admit.
-
-    * inversion H; subst. exists w; repeat split; auto.
-      move/and3P in H4. unfold not; intros.
-      destruct H4; inversion H0; inversion H6; subst.
-      move/eqP in H4; move/eqP in H7; move/eqP in H8.
-      by repeat split.
+  - do 6 right; left. exists s; split; auto. exists v; split; auto. move/eqP in H3.
+    inversion H; subst. exists w; repeat split; auto.
+    move/and3P in H4. unfold not; intros.
+    destruct H4; inversion H0; inversion H6; subst.
+    move/eqP in H4; move/eqP in H7; move/eqP in H8.
+    by repeat split.
 
   (* vote_validator_index v1 =/= vote_validator_index v2 *)
   - inversion H; subst.
@@ -290,5 +299,4 @@ Proof.
   - inversion H; subst.
     do 2 right; left. exists s; split; auto. exists v; split; auto. move/negP in H1.
     by exists w; split.
-
-  Admitted.
+Qed.
