@@ -143,7 +143,19 @@ Lemma procContractCallTx_DepositCall :
     procContractCallTx block_number (mkTx s (DepositCall d)) st = (st', sa) ->
     (exists sender_addr, s = AddrSender sender_addr /\ st.(casper_current_epoch) <> block_number %/ casper_epoch_length /\ st' = st /\ sa = [::]) \/
     (exists sender_addr, s = AddrSender sender_addr /\ d.(deposit_amount) < casper_min_deposit_size /\ st' = st /\ sa = [::]) \/
-    (exists sender_addr, s = AddrSender sender_addr (* more details here *)) \/
+    (exists sender_addr, s = AddrSender sender_addr /\
+      st' = {[{[st
+        with casper_validators := casper_next_validator_index st \\->
+                                  {|
+                                  validator_addr := d.(deposit_validation_addr);
+                                  validator_withdrawal_addr := d.(deposit_withdrawal_addr);
+                                  validator_deposit := st.(casper_current_dynasty) \\->
+                                                       d.(deposit_amount);
+                                  validator_start_dynasty := st.(casper_current_epoch).+2;
+                                  validator_end_dynasty := casper_default_end_dynasty |} \+
+                                  st.(casper_validators)]}
+              with casper_next_validator_index := st.(casper_next_validator_index).+1]}
+      /\ sa = [::]) \/
     (s = NullSender /\ st' = st /\ sa = [::]).
 Proof.
   intros. unfold procContractCallTx, tx_call, tx_sender in H.
@@ -155,8 +167,10 @@ Proof.
   destruct (casper_current_epoch st == block_number %/ casper_epoch_length) eqn:H1.
   destruct (casper_min_deposit_size <= deposit_amount d) eqn:H2.
 
-  (* incomplete case: all true *)
-  - by do 2 right; left; exists s.
+  (* all true case: st updated *)
+  - do 2 right; left.
+    exists s; split; auto.
+    by inversion H.
 
   (* casper_min_deposit_size > deposit_amount *)
   - inversion H; subst.
