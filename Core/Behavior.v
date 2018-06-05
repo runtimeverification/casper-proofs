@@ -161,7 +161,9 @@ Lemma procContractCallTx_DepositCall :
                                   validator_end_dynasty := casper_default_end_dynasty |} \+
                                   st.(casper_validators)]}
               with casper_next_validator_index := st.(casper_next_validator_index).+1]}
-      /\ sa = [::]) \/
+      /\ sa = [::]
+      /\ st.(casper_current_epoch) == block_number %/ casper_epoch_length
+      /\ casper_min_deposit_size <= d.(deposit_amount)) \/
     (s = NullSender /\ st' = st /\ sa = [::]).
 Proof.
   intros. unfold procContractCallTx, tx_call, tx_sender in H.
