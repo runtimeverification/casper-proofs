@@ -33,7 +33,11 @@ Lemma procContractCallTx_LogoutCall :
                                    {[validator
                                    with validator_end_dynasty := st.(casper_current_dynasty) +
                                                                  casper_dynasty_logout_delay]} \+
-                                   st.(casper_validators)]} /\ sa = [::]) \/
+                                   st.(casper_validators)]} /\ sa = [::]
+    /\ st.(casper_current_epoch) == block_number %/ casper_epoch_length
+    /\ l.(logout_epoch) <= st.(casper_current_epoch)
+    /\ sigValid_epoch validator.(validator_addr) l.(logout_validator_index) l.(logout_epoch) l.(logout_sig)
+    /\ st.(casper_current_dynasty) + casper_dynasty_logout_delay < validator.(validator_end_dynasty)) \/
     (s = NullSender /\
        st' = st /\ sa = [::]).
 Proof.
