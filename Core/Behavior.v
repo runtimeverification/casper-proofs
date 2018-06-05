@@ -99,7 +99,9 @@ Lemma procContractCallTx_WithdrawCall :
     (exists sender_addr, s = AddrSender sender_addr /\ exists validator, find validator_index st.(casper_validators) = Some validator /\ exists epoch, find validator.(validator_end_dynasty).+1 st.(casper_dynasty_start_epoch) = Some epoch /\ exists deposit, find epoch validator.(validator_deposit) = Some deposit /\
     st' = {[st
       with casper_validators := deleteValidator validator_index st.(casper_validators)]} /\
-    sa = [:: {| send_account_addr := validator_withdrawal_addr validator; send_account_wei := deposit |}]) \/
+    sa = [:: {| send_account_addr := validator_withdrawal_addr validator; send_account_wei := deposit |}]
+    /\ validator.(validator_end_dynasty) < st.(casper_current_dynasty)
+    /\ epoch + casper_withdrawal_delay <= st.(casper_current_epoch)) \/
     (s = NullSender /\ st' = st /\ sa = [::]).
 Proof.
   intros. unfold procContractCallTx, tx_call, tx_sender in H.
