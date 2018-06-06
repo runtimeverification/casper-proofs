@@ -239,7 +239,23 @@ Lemma procContractCallTx_SlashCall :
         st' = {[st
           with casper_validators := deleteValidator v1.(vote_validator_index)
                                       st.(casper_validators)]} /\
-        sa = [:: {| send_account_addr := sender_addr; send_account_wei := deposit |}]) \/
+        sa = [:: {| send_account_addr := sender_addr; send_account_wei := deposit |}]
+    /\ sigValid_epochs validator.(validator_addr)
+         v1.(vote_validator_index) v1.(vote_target_hash)
+         v1.(vote_target_epoch) v1.(vote_source_epoch)
+         v1.(vote_sig)
+    /\ sigValid_epochs validator.(validator_addr)
+         v2.(vote_validator_index) v2.(vote_target_hash)
+         v2.(vote_target_epoch) v2.(vote_source_epoch)
+         v2.(vote_sig)
+    /\ [&& vote_target_hash v1 == vote_target_hash v2,
+           vote_target_epoch v1 == vote_target_epoch v2
+           & vote_source_epoch v1 == vote_source_epoch v2] = false
+    /\ [|| vote_target_epoch v1 == vote_target_epoch v2,
+          (vote_target_epoch v2 < vote_target_epoch v1) &&
+          (vote_source_epoch v1 < vote_source_epoch v2)
+        | (vote_target_epoch v1 < vote_target_epoch v2) &&
+          (vote_source_epoch v2 < vote_source_epoch v1)]) \/
     (s = NullSender /\ st' = st /\ sa = [::]).
 Proof.
   intros. unfold procContractCallTx, tx_call, tx_sender in H.
