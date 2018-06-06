@@ -236,10 +236,10 @@ Lemma procContractCallTx_SlashCall :
     (exists sender_addr, s = AddrSender sender_addr /\
       exists validator, find v1.(vote_validator_index) st.(casper_validators) = Some validator /\
        exists deposit, find st.(casper_current_epoch) validator.(validator_deposit) = Some deposit /\
-        st' = {[st
-          with casper_validators := deleteValidator v1.(vote_validator_index)
+         st' = {[st
+           with casper_validators := deleteValidator v1.(vote_validator_index)
                                       st.(casper_validators)]} /\
-        sa = [:: {| send_account_addr := sender_addr; send_account_wei := deposit |}]
+         sa = [:: {| send_account_addr := sender_addr; send_account_wei := deposit |}]
     /\ sigValid_epochs validator.(validator_addr)
          v1.(vote_validator_index) v1.(vote_target_hash)
          v1.(vote_target_epoch) v1.(vote_source_epoch)
@@ -324,3 +324,48 @@ Proof.
     do 2 right; left. exists s; split; auto. exists v; split; auto. move/negP in H1.
     by exists w; split.
 Qed.
+
+Lemma procContractCallTx_VoteCall :
+  forall (s : Sender) (block_number : nat) (st st' : CasperData) (vote : Vote) (sa : seq SendAccount),
+    procContractCallTx block_number (mkTx s (VoteCall vote)) st = (st', sa) ->
+    (find vote.(vote_validator_index) st.(casper_validators) = None
+      /\ st' = st /\ sa = [::]) \/
+    (exists validator, find vote.(vote_validator_index) st.(casper_validators) = Some validator
+      /\ find vote.(vote_target_epoch) st.(casper_epochs) = None
+      /\ st' = st /\ sa = [::]) \/
+    (exists validator, find vote.(vote_validator_index) st.(casper_validators) = Some validator
+      /\ exists ed, find vote.(vote_target_epoch) st.(casper_epochs) = Some ed
+      /\ vote.(vote_validator_index) \notin ed.(epoch_voted) = false
+      /\ st' = st /\ sa = [::]) \/
+    (exists validator, find vote.(vote_validator_index) st.(casper_validators) = Some validator
+      /\ exists ed, find vote.(vote_target_epoch) st.(casper_epochs) = Some ed
+      /\ vote.(vote_validator_index) \notin ed.(epoch_voted)
+      /\ st' = {[st
+                with casper_epochs := upd (vote_target_epoch vote)
+                                        {[ed
+                                        with epoch_voted := rcons 
+                                                              ed.(epoch_voted)
+                                                              vote.(vote_validator_index)]}
+                                        st.(casper_epochs)]}
+      /\ sa = [::]).
+Proof.
+  intros. unfold procContractCallTx, tx_call, tx_sender in H.
+
+  (* Case match on existence of validator. Trivially discharge goal if none. *)
+  destruct (find (vote_validator_index vote) (casper_validators st));
+    last by left; inversion H.
+
+  (* Case match on existence of epoch data. Trivially discharge goal if none. *)
+  destruct (find (vote_target_epoch vote) (casper_epochs st));
+    last by right; left; exists v; inversion H.
+
+  (* Destruct case of if statement *)
+  destruct (vote_validator_index vote \notin epoch_voted e) eqn:H'.
+
+  (* True case: vote not in epoch_voted *)
+  - by repeat right; inversion H; exists v; split; auto; exists e.
+
+  (* False case: vote in epoch_voted *)
+  - by do 2 right; left; inversion H; exists v; split; auto; exists e.
+Qed.
+  
