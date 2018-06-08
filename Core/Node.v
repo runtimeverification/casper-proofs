@@ -71,11 +71,16 @@ Definition procContractCallTx (block_number : nat) (t : Transaction) (st : Caspe
           if source_epoch_data.(epoch_is_justified) then
             (* check that validator_index has not already voted *)
             if validator_index \notin voted then
-              let: voted' := rcons voted validator_index in
-              let: epoch_data' := {[ target_epoch_data with epoch_voted := voted' ]} in
-              let: epochs' := upd target_epoch epoch_data' epochs in
-              let: st' := {[ st with casper_epochs := epochs' ]} in
-              (st', [::])
+              (* check that signature is valid *)
+              let: valid_sig := sigValid_epochs validation_addr validator_index target_hash target_epoch source_epoch sig in
+              if valid_sig then
+                let: voted' := rcons voted validator_index in
+                let: epoch_data' := {[ target_epoch_data with epoch_voted := voted' ]} in
+                let: epochs' := upd target_epoch epoch_data' epochs in
+                let: st' := {[ st with casper_epochs := epochs' ]} in
+                (st', [::])
+              else
+                (st, [::])
             else
               (st, [::])
           else
