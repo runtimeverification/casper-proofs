@@ -64,14 +64,22 @@ Definition procContractCallTx (block_number : nat) (t : Transaction) (st : Caspe
     if find validator_index validators is Some validator then
       let: validation_addr := validator.(validator_addr) in
       (* look up epoch *)
-      if find target_epoch epochs is Some epoch_data then
-        let: voted := epoch_data.(epoch_voted) in
-        if validator_index \notin voted then
-          let: voted' := rcons voted validator_index in
-          let: epoch_data' := {[ epoch_data with epoch_voted := voted' ]} in
-          let: epochs' := upd target_epoch epoch_data' epochs in
-          let: st' := {[ st with casper_epochs := epochs' ]} in
-          (st', [::])
+      if find target_epoch epochs is Some target_epoch_data then
+        let: voted := target_epoch_data.(epoch_voted) in
+        if find source_epoch epochs is Some source_epoch_data then
+          (* check that source epoch is justified *)
+          if source_epoch_data.(epoch_is_justified) then
+            (* check that validator_index has not already voted *)
+            if validator_index \notin voted then
+              let: voted' := rcons voted validator_index in
+              let: epoch_data' := {[ target_epoch_data with epoch_voted := voted' ]} in
+              let: epochs' := upd target_epoch epoch_data' epochs in
+              let: st' := {[ st with casper_epochs := epochs' ]} in
+              (st', [::])
+            else
+              (st, [::])
+          else
+            (st, [::])
         else
           (st, [::])
       else
