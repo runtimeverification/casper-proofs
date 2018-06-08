@@ -325,6 +325,7 @@ Proof.
     by exists w; split.
 Qed.
 
+(* TODO: Account for rewards *)
 Lemma procContractCallTx_VoteCall :
   forall (s : Sender) (block_number : nat) (st st' : CasperData) (vote : Vote) (sa : seq SendAccount),
     procContractCallTx block_number (mkTx s (VoteCall vote)) st = (st', sa) ->
