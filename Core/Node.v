@@ -29,8 +29,8 @@ Definition reward (validator_index : ValidatorIndex) (source_epoch : Epoch) (st 
   st.
 
 (* FIXME: implement *)
-Definition justify (target_epoch : Epoch) (source_epoch : Epoch) (st : CasperData) (epoch_data : EpochData) :=
-  (st, epoch_data).
+Definition justify (target_epoch : Epoch) (source_epoch : Epoch) (st : CasperData) :=
+  st.
 
 (* FIXME: implement *)
 Definition finalize (target_epoch : Epoch) (source_epoch : Epoch) (st : CasperData) (epoch_data : EpochData) :=
@@ -87,17 +87,13 @@ Definition procContractCallTx (block_number : nat) (t : Transaction) (st : Caspe
               let: valid_sig := sigValid_epochs validation_addr validator_index target_hash target_epoch source_epoch sig in
               if valid_sig then
                 let: voted' := rcons voted validator_index in
-                let: epoch_data'0 := {[ target_epoch_data with epoch_voted := voted' ]} in
-                let: epochs'0 := upd target_epoch epoch_data'0 epochs in
-                let: st'0 := {[ st with casper_epochs := epochs'0 ]} in
+                let: epoch_data' := {[ target_epoch_data with epoch_voted := voted' ]} in
+                let: epochs' := upd target_epoch epoch_data' epochs in
+                let: st'0 := {[ st with casper_epochs := epochs' ]} in
                 let: st'1 := reward validator_index source_epoch st'0 in
-                let: (st'2, epoch_data'1) := justify target_epoch source_epoch st'1 epoch_data'0 in
-                let: epochs'1 := upd target_epoch epoch_data'1 epochs'0 in
-                let: st'3 := {[ st'2 with casper_epochs := epochs'1 ]} in
-                let: (st'3, epoch_data'2) := finalize target_epoch source_epoch st'2 epoch_data'1 in
-                let: epochs'2 := upd target_epoch epoch_data'2 epochs'1 in
-                let st'4 := {[ st'3 with casper_epochs := epochs'2 ]} in
-                (st'4, [::])
+                let: st'2 := justify target_epoch source_epoch st'1 in
+                let: st'3 := finalize target_epoch source_epoch st'2 in
+                (st'3, [::])
               else
                 (st, [::])
             else
