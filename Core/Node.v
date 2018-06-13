@@ -32,9 +32,19 @@ Definition reward (validator_index : ValidatorIndex) (source_epoch : Epoch) (st 
 Definition justify (target_epoch : Epoch) (source_epoch : Epoch) (st : CasperData) :=
   st.
 
-(* FIXME: implement *)
-Definition finalize (target_epoch : Epoch) (source_epoch : Epoch) (st : CasperData) (epoch_data : EpochData) :=
-  (st, epoch_data).
+Definition finalize (target_epoch : Epoch) (source_epoch : Epoch) (st : CasperData) :=
+  let: epochs := st.(casper_epochs) in
+  if find source_epoch epochs is Some source_epoch_data then
+    if target_epoch == source_epoch + 1 then
+      let: epoch_data' := {[ source_epoch_data with epoch_is_finalized := true ]} in
+      let: epochs' := upd target_epoch epoch_data' epochs in
+      let: st'0 := {[ st with casper_epochs := epochs' ]} in
+      let: st'1 := {[ st'0 with casper_last_finalized_epoch := source_epoch ]} in
+      st'1
+    else
+      st
+  else
+    st.
 
 Definition procContractCallTx (block_number : nat) (t : Transaction) (st : CasperData) : CasperData * seq SendAccount :=
   let: sender := t.(tx_sender) in
