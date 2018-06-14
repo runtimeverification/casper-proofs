@@ -16,9 +16,22 @@ Canonical NodeId_ordType := Eval hnf in OrdType NodeId NodeId_ordMixin.
 (* CASPER FUNCTIONS *)
 (* -----------------*)
 
-(* FIXME: nullize instead of removing *)
+(* FIXME: implement *)
+Definition setZero (deposits : union_map [ordType of Epoch] Wei) :=
+  deposits.
+
 Definition deleteValidator (validator_index : ValidatorIndex) (validators : union_map [ordType of ValidatorIndex] ValidatorData) :=
-  free validator_index validators.
+  if find validator_index validators is Some validator then
+    let: deposits := validator.(validator_deposit) in
+    let: validator'0 := {[ validator with validator_start_dynasty := 0 ]} in
+    let: validator'1 := {[ validator'0 with validator_end_dynasty := 0 ]} in
+    (* FIXME: 0 values for addresses? *)
+    (* let: validator'2 := {[ validator'1 with validator_addr := 0 ]} in *)
+    (* let: validator'3 := {[ validator'2 with validator_withdrawal_addr := 0 ]} in *)
+    let: validator'2 := {[ validator'1 with validator_deposit := setZero(deposits) ]} in
+    validator_index \\-> validator'2 \+ validators
+  else
+    validators.
 
 (* FIXME: implement *)
 Definition updateDeposit (validators : union_map [ordType of ValidatorIndex] ValidatorData) (current_epoch : Epoch) (addition : Wei) :=
