@@ -46,6 +46,10 @@ Definition finalize (target_epoch : Epoch) (source_epoch : Epoch) (st : CasperDa
   else
     st.
 
+(* FIXME: implement *)
+Definition send (withdrawal_addr : Address) (amount : Wei) (st : CasperData) :=
+  st.
+
 Definition procContractCallTx (block_number : nat) (t : Transaction) (st : CasperData) : CasperData * seq SendAccount :=
   let: sender := t.(tx_sender) in
   let: validators := st.(casper_validators) in
@@ -163,9 +167,10 @@ Definition procContractCallTx (block_number : nat) (t : Transaction) (st : Caspe
               (* delete validator information *)
               let: validators' := deleteValidator validator_index validators in
               (* return deposit *)
-              let: st' := {[ st with casper_validators := validators' ]} in
+              let: st'0 := {[ st with casper_validators := validators' ]} in
+              let: st'1 := send validator_withdrawal_addr deposit st'0 in
               let: sa' := [:: mkSA validator_withdrawal_addr deposit] in
-              (st', sa')
+              (st'1, sa')
             else
               (st, [::])
           else
@@ -208,9 +213,10 @@ Definition procContractCallTx (block_number : nat) (t : Transaction) (st : Caspe
           let: valid_targets := [|| target_epoch_1 == target_epoch_2, epoch_cond_1 | epoch_cond_2] in
           if [&& valid_sig_1, valid_sig_2, valid_indexes, valid_hashes_epochs & valid_targets] then
             let: validators' := deleteValidator validator_index_1 validators in
-            let: st' := {[ st with casper_validators := validators' ]} in
+            let: st'0 := {[ st with casper_validators := validators' ]} in
+            let: st'1 := send sender_addr (deposit %/ 25) st'0 in
             let: sa' := [:: mkSA sender_addr deposit] in (* FIXME: scale factor? *)
-            (st', sa')
+            (st'1, sa')
           else
             (st, [::])
         else
