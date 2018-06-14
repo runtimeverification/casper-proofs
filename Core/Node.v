@@ -72,6 +72,25 @@ Definition finalize (target_epoch : Epoch) (source_epoch : Epoch) (st : CasperDa
 Definition send (withdrawal_addr : Address) (amount : Wei) (st : CasperData) :=
   st.
 
+(* Update expected source epoch *)
+Definition updateExpectedSourceEpoch (st : CasperData) :=
+  let: epochs := st.(casper_epochs) in
+  let: current_epoch := st.(casper_current_epoch) in
+  let: dec_epoch := current_epoch.-1 in
+  if 1 <= current_epoch then
+    if find dec_epoch epochs is Some dec_epoch_data then
+      if dec_epoch_data.(epoch_is_justified) then
+        let: st' := {[ st with casper_expected_source_epoch := dec_epoch ]} in
+        st'
+      else
+        st
+    else
+      (* FIXME: error here? *)
+      st
+  else
+    (* FIXME: error here? *)
+    st.
+
 (* Increment dynasty *)
 Definition incrementDynasty (st : CasperData) :=
   let: epochs := st.(casper_epochs) in
