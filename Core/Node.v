@@ -91,6 +91,23 @@ Definition updateExpectedSourceEpoch (st : CasperData) :=
     (* FIXME: error here? *)
     st.
 
+(* Increment epoch *)
+(* FIXME: initialize target hash correctly *)
+Definition incrementEpoch (st : CasperData) (dummy : Hash) :=
+  let: epochs := st.(casper_epochs) in
+  let: current_epoch := st.(casper_current_epoch) in
+  let: block_number := st.(casper_block_number) in
+  let: inc_epoch := current_epoch.+1 in
+  if inc_epoch == block_number then
+    let: new_epoch := mkEpochData dummy [::] (UMDef.empty [ordType of Epoch] Wei) (UMDef.empty [ordType of Epoch] Wei) false false in
+    let: epochs' := upd inc_epoch new_epoch epochs in
+    let: st'0 := {[ st with casper_epochs := epochs' ]} in
+    let: st'1 := updateExpectedSourceEpoch st'0 in
+    st'1
+  else
+    (* FIXME: error here? *)
+    st.
+
 (* Increment dynasty *)
 Definition incrementDynasty (st : CasperData) :=
   let: epochs := st.(casper_epochs) in
