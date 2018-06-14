@@ -63,6 +63,30 @@ Definition finalize (target_epoch : Epoch) (source_epoch : Epoch) (st : CasperDa
 Definition send (withdrawal_addr : Address) (amount : Wei) (st : CasperData) :=
   st.
 
+Definition incrementDynasty (st : CasperData) :=
+  let: epochs := st.(casper_epochs) in
+  let: current_epoch := st.(casper_current_epoch) in
+  let: dec_epoch := current_epoch.-2 in
+  let: current_dynasty := st.(casper_current_dynasty) in
+  let: dynasty_start_epoch := st.(casper_dynasty_start_epoch) in
+  if 2 <= current_epoch then
+    if find dec_epoch epochs is Some dec_epoch_data then
+      if dec_epoch_data.(epoch_is_finalized) then
+        let: new_current_dynasty := current_dynasty.+1 in
+        let: st'0 := {[ st with casper_current_dynasty := new_current_dynasty ]} in
+        let: dynasty_start_epoch' := upd new_current_dynasty current_epoch dynasty_start_epoch in
+        let: st'1 := {[ st'0 with casper_dynasty_start_epoch := dynasty_start_epoch' ]} in
+        st'1
+      else
+        (* No change if not finalized *)
+        st
+    else
+      (* FIXME: error here? *)
+      st
+  else
+    (* FIXME: report error here, and other places where we do not match? *)
+    st.
+
 Definition procContractCallTx (block_number : nat) (t : Transaction) (st : CasperData) : CasperData * seq SendAccount :=
   let: sender := t.(tx_sender) in
   let: validators := st.(casper_validators) in
