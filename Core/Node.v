@@ -16,10 +16,12 @@ Canonical NodeId_ordType := Eval hnf in OrdType NodeId NodeId_ordMixin.
 (* CASPER FUNCTIONS *)
 (* -----------------*)
 
+(* Set deposits at each epoch in deposits map to 0 *)
 (* FIXME: implement *)
 Definition setZero (deposits : union_map [ordType of Epoch] Wei) :=
   deposits.
 
+(* Delete validator: set all fields corresponding to validator index to 0 *)
 Definition deleteValidator (validator_index : ValidatorIndex) (validators : union_map [ordType of ValidatorIndex] ValidatorData) :=
   if find validator_index validators is Some validator then
     let: deposits := validator.(validator_deposit) in
@@ -31,20 +33,25 @@ Definition deleteValidator (validator_index : ValidatorIndex) (validators : unio
     let: validator'2 := {[ validator'1 with validator_deposit := setZero(deposits) ]} in
     validator_index \\-> validator'2 \+ validators
   else
+    (* FIXME: error here? *)
     validators.
 
+(* Update deposit for all validators for next epoch *)
 (* FIXME: implement *)
 Definition updateDeposit (validators : union_map [ordType of ValidatorIndex] ValidatorData) (current_epoch : Epoch) (addition : Wei) :=
 validators.
 
+(* Reward validator at validator_index if source epoch is expected source epoch *)
 (* FIXME: implement *)
 Definition reward (validator_index : ValidatorIndex) (source_epoch : Epoch) (st : CasperData) :=
   st.
 
+(* Justify target epoch *)
 (* FIXME: implement *)
 Definition justify (target_epoch : Epoch) (source_epoch : Epoch) (st : CasperData) :=
   st.
 
+(* Finalize source epoch *)
 Definition finalize (target_epoch : Epoch) (source_epoch : Epoch) (st : CasperData) :=
   let: epochs := st.(casper_epochs) in
   if find source_epoch epochs is Some source_epoch_data then
@@ -57,12 +64,15 @@ Definition finalize (target_epoch : Epoch) (source_epoch : Epoch) (st : CasperDa
     else
       st
   else
+    (* FIXME: error here? *)
     st.
 
+(* Send amount to withdrawal_addr *)
 (* FIXME: implement *)
 Definition send (withdrawal_addr : Address) (amount : Wei) (st : CasperData) :=
   st.
 
+(* Increment dynasty *)
 Definition incrementDynasty (st : CasperData) :=
   let: epochs := st.(casper_epochs) in
   let: current_epoch := st.(casper_current_epoch) in
