@@ -91,6 +91,16 @@ Definition updateExpectedSourceEpoch (st : CasperData) :=
     (* FIXME: error here? *)
     st.
 
+(* Update deposits *)
+(* FIXME: implement *)
+Definition updateDeposits (st : CasperData) :=
+  st.
+
+(* Update reward factor *)
+(* FIXME: implement *)
+Definition updateRewardFactor (st : CasperData) :=
+  st.
+
 (* Increment epoch *)
 (* FIXME: initialize target hash correctly *)
 Definition incrementEpoch (st : CasperData) (dummy : Hash) :=
@@ -132,6 +142,11 @@ Definition incrementDynasty (st : CasperData) :=
   else
     (* FIXME: report error here, and other places where we do not match? *)
     st.
+
+(* Update dynasty deposits *)
+(* FIXME: implement *)
+Definition updateDynDeposits (st : CasperData) :=
+  st.
 
 Definition procContractCallTx (block_number : nat) (t : Transaction) (st : CasperData) : CasperData * seq SendAccount :=
   let: sender := t.(tx_sender) in
