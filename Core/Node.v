@@ -101,9 +101,12 @@ Definition updateDeposits (st : CasperData) :=
 Definition updateRewardFactor (st : CasperData) :=
   st.
 
+(* Dummy hash so incrementEpoch can compile *)
+Hypothesis dummy : Hash.
+
 (* Increment epoch *)
 (* FIXME: initialize target hash correctly *)
-Definition incrementEpoch (st : CasperData) (dummy : Hash) :=
+Definition incrementEpoch (st : CasperData) :=
   let: epochs := st.(casper_epochs) in
   let: current_epoch := st.(casper_current_epoch) in
   let: block_number := st.(casper_block_number) in
@@ -280,8 +283,14 @@ Definition procContractCallTx (block_number : nat) (t : Transaction) (st : Caspe
     else
       (st, [::])
 
+  (* FIXME: why is e needed as a parameter? *)
   | InitializeEpochCall e =>
-    (st, [::])
+    let: st'0 := updateDeposits st in
+    let: st'1 := updateRewardFactor st'0 in
+    let: st'2 := incrementEpoch st'1 in
+    let: st'3 := incrementDynasty st'2 in
+    let: st'4 := updateDynDeposits st'3 in
+    (st'4, [::])
 
   | SlashCall v1 v2 =>
     (* check non-null sender *)
