@@ -363,18 +363,74 @@ Lemma procContractCallTx_VoteCall :
       /\ sed.(epoch_is_justified)
       /\ vote.(vote_validator_index) \notin ted.(epoch_voted)
       /\ sigValid_epochs validator.(validator_addr) vote.(vote_validator_index)
+                           vote.(vote_target_hash) vote.(vote_target_epoch)
+                           vote.(vote_source_epoch) vote.(vote_sig)
+      /\ find vote.(vote_source_epoch)
+                    (casper_epochs
+                       {[st with casper_epochs := upd (vote_target_epoch vote)
+                         {[ted with epoch_voted := rcons (epoch_voted ted)
+                                                         (vote_validator_index vote)]}
+                         (casper_epochs st)]}) = None
+      /\ st' = {[st
+                 with casper_epochs := upd vote.(vote_target_epoch)
+                                           {[ted
+                                             with epoch_voted := rcons ted.(epoch_voted)
+                                                                       vote.(vote_validator_index)]}
+                                           st.(casper_epochs)]}
+      /\ sa = [::]) \/
+    (exists validator, find vote.(vote_validator_index) st.(casper_validators) = Some validator
+      /\ exists ted, find vote.(vote_target_epoch) st.(casper_epochs) = Some ted
+      /\ exists sed, find vote.(vote_source_epoch) st.(casper_epochs) = Some sed
+      /\ sed.(epoch_is_justified)
+      /\ vote.(vote_validator_index) \notin ted.(epoch_voted)
+      /\ sigValid_epochs validator.(validator_addr) vote.(vote_validator_index)
+                           vote.(vote_target_hash) vote.(vote_target_epoch)
+                           vote.(vote_source_epoch) vote.(vote_sig)
+     /\ exists e1, find vote.(vote_source_epoch)
+                             (casper_epochs
+                                {[st with casper_epochs := upd (vote_target_epoch vote)
+                                  {[ted with epoch_voted := rcons (epoch_voted ted)
+                                                                  (vote_validator_index vote)]}
+                                  (casper_epochs st)]}) = Some e1
+      (* FIXME: ... == false is lazy *)
+      /\ (vote_target_epoch vote == vote_source_epoch vote + 1) == false
+      /\ st' = {[st
+                 with casper_epochs := upd vote.(vote_target_epoch)
+                                           {[ted
+                                             with epoch_voted := rcons ted.(epoch_voted)
+                                                                       vote.(vote_validator_index)]}
+                                           st.(casper_epochs)]}
+      /\ sa = [::]) \/
+    (exists validator, find vote.(vote_validator_index) st.(casper_validators) = Some validator
+      /\ exists ted, find vote.(vote_target_epoch) st.(casper_epochs) = Some ted
+      /\ exists sed, find vote.(vote_source_epoch) st.(casper_epochs) = Some sed
+      /\ sed.(epoch_is_justified)
+      /\ vote.(vote_validator_index) \notin ted.(epoch_voted)
+      /\ sigValid_epochs validator.(validator_addr) vote.(vote_validator_index)
                          vote.(vote_target_hash) vote.(vote_target_epoch)
                          vote.(vote_source_epoch) vote.(vote_sig)
-      /\ st' = {[st
-                with casper_epochs := upd (vote_target_epoch vote)
-                                        {[ted
-                                        with epoch_voted := rcons 
-                                                              ted.(epoch_voted)
+      /\ exists e1, find vote.(vote_source_epoch)
+                         (casper_epochs
+                            {[st with casper_epochs := upd vote.(vote_target_epoch)
+                              {[ted with epoch_voted := rcons ted.(epoch_voted)
                                                               vote.(vote_validator_index)]}
-                                        st.(casper_epochs)]}
+                              st.(casper_epochs)]}) = Some e1
+      /\ st' = {[{[{[st
+           with casper_epochs := upd vote.(vote_target_epoch)
+             {[ted with epoch_voted := rcons ted.(epoch_voted)
+                                             vote.(vote_validator_index)]}
+             (casper_epochs st)]}
+                   with casper_epochs := upd vote.(vote_target_epoch)
+                     {[e1 with epoch_is_finalized := true]}
+                     (casper_epochs
+                       {[st with casper_epochs := upd vote.(vote_target_epoch)
+                         {[ted with epoch_voted := rcons ted.(epoch_voted)
+                                                         vote.(vote_validator_index)]}
+                         st.(casper_epochs)]})]}
+                with casper_last_finalized_epoch := vote.(vote_source_epoch)]}
       /\ sa = [::]).
 Proof.
-  intros. unfold procContractCallTx, tx_call, tx_sender in H.
+  intros. unfold procContractCallTx, tx_call, tx_sender, finalize, justify, reward in H.
 
   (* Case match on existence of validator. Trivially discharge goal if none. *)
   destruct (find (vote_validator_index vote) (casper_validators st));
@@ -395,8 +451,32 @@ Proof.
                             (vote_target_hash vote) (vote_target_epoch vote)
                             (vote_source_epoch vote) (vote_sig vote)) eqn:H3.
 
-  (* All true case: epoch justified and vote not in epoch_voted *)
-  - by repeat right; inversion H; exists v; split; auto; exists e; split; auto; exists e0.
+  destruct (find (vote_source_epoch vote)
+           (casper_epochs
+              {[st
+              with casper_epochs := upd (vote_target_epoch vote)
+                                      {[e
+                                      with epoch_voted := rcons (epoch_voted e)
+                                                            (vote_validator_index vote)]}
+                                      (casper_epochs st)]})) eqn:H4.
+
+  destruct (vote_target_epoch vote == vote_source_epoch vote + 1) eqn:H5.
+
+  (* All true case *)
+  - repeat right.
+    exists v; split; auto; exists e; split; auto; exists e0.
+    inversion H; subst. repeat split; auto.
+    by exists e1.
+
+  (* False case: vote_target_epoch vote == vote_source_epoch vote + 1) = false *)
+  - do 7 right; left.
+    exists v; split; auto; exists e; split; auto; exists e0.
+    inversion H; subst. repeat split; auto.
+    by exists e1; repeat split; auto.
+
+  (* False case: vote_target_epoch vote == vote_source_epoch vote + 1) = false *)
+  - do 6 right; left.
+    by inversion H; exists v; split; auto; exists e; split; auto; exists e0.
 
   (* False case: signature is not valid *)
   - do 5 right; left.
