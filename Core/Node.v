@@ -12,6 +12,9 @@ Unset Printing Implicit Defensive.
 Definition NodeId_ordMixin := fin_ordMixin NodeId.
 Canonical NodeId_ordType := Eval hnf in OrdType NodeId NodeId_ordMixin.
 
+(* Parameter of type Hash *)
+Parameter dummy : Hash.
+
 (* -----------------*)
 (* CASPER FUNCTIONS *)
 (* -----------------*)
@@ -99,9 +102,6 @@ Definition updateDeposits (st : CasperData) :=
 (* FIXME: implement *)
 Definition updateRewardFactor (st : CasperData) :=
   st.
-
-(* Dummy hash so incrementEpoch can compile *)
-Hypothesis dummy : Hash.
 
 (* Increment epoch *)
 (* FIXME: initialize target hash correctly *)
