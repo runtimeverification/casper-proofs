@@ -17,9 +17,8 @@ Canonical NodeId_ordType := Eval hnf in OrdType NodeId NodeId_ordMixin.
 (* -----------------*)
 
 (* Set deposits at each epoch in deposits map to 0 *)
-(* FIXME: implement *)
-Definition setZero (deposits : union_map [ordType of Epoch] Wei) :=
-  deposits.
+Definition setZero (deposits : union_map [ordType of Epoch] Wei) : union_map [ordType of Epoch] Wei :=
+  foldr (fun e m => upd e 0 m) deposits (dom deposits).
 
 (* Delete validator: set all fields corresponding to validator index to 0 *)
 Definition deleteValidator (validator_index : ValidatorIndex) (validators : union_map [ordType of ValidatorIndex] ValidatorData) :=
