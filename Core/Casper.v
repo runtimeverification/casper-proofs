@@ -21,8 +21,8 @@ Record EpochData :=
 
 Record ValidatorData :=
   mkValidatorData {
-    validator_addr : Address;
-    validator_withdrawal_addr : Address;
+    validator_addr : Sender;
+    validator_withdrawal_addr : Sender;
     validator_deposit : union_map [ordType of Epoch] Wei;
     validator_start_dynasty : Dynasty;
     validator_end_dynasty : Dynasty

@@ -278,12 +278,16 @@ Definition Dynasty := nat.
 (* casper payload signature *)
 Parameter Signature : eqType.
 
+Inductive Sender :=
+| NullSender : Sender
+| AddrSender : Address -> Sender.
+
 (* Deposit(VALIDATION_ADDR, WITHDRAWAL_ADDR, DEPOSIT) *)
 
 Record Deposit :=
   mkDeposit {
-   deposit_validation_addr : Address;
-   deposit_withdrawal_addr : Address;
+   deposit_validation_addr : Sender;
+   deposit_withdrawal_addr : Sender;
    deposit_amount : Wei
   }.
 
@@ -307,10 +311,6 @@ Record Logout :=
     logout_sig : Signature
   }.
 
-Inductive Sender :=
-| NullSender : Sender
-| AddrSender : Address -> Sender.
-
 Inductive ContractCall :=
 | DepositCall of Deposit
 | VoteCall of Vote
@@ -327,9 +327,34 @@ Record Transaction :=
 
 Record SendAccount :=
  mkSA {
-   send_account_addr : Address;
+   send_account_addr : Sender;
    send_account_wei : Wei
  }.
+
+Definition eq_Sender (s s' : Sender) :=
+  match s, s' with
+  | NullSender, NullSender => true
+  | NullSender, _ => false
+  | AddrSender a1, AddrSender a2 => a1 == a2
+  | AddrSender _, _ => false
+  end.
+
+Lemma eq_SenderP : Equality.axiom eq_Sender.
+Proof.
+case => [|a1]; case => [|a2].
+- by constructor 1.
+- by constructor 2.
+- by constructor 2.
+- rewrite /eq_Sender /=.
+  case H1: (a1 == a2); [move/eqP: H1=>?; subst a2| constructor 2];
+    last by case=>?; subst a2;rewrite eqxx in H1.
+  by constructor 1.
+Qed.
+
+Definition Sender_eqMixin :=
+  Eval hnf in EqMixin eq_SenderP.
+Canonical Sender_eqType :=
+  Eval hnf in EqType Sender Sender_eqMixin.
 
 Definition eq_Deposit (d d' : Deposit) :=
   match d, d' with
@@ -403,31 +428,6 @@ Definition Logout_eqMixin :=
   Eval hnf in EqMixin eq_LogoutP.
 Canonical Logout_eqType :=
   Eval hnf in EqType Logout Logout_eqMixin.
-
-Definition eq_Sender (s s' : Sender) :=
-  match s, s' with
-  | NullSender, NullSender => true
-  | NullSender, _ => false
-  | AddrSender a1, AddrSender a2 => a1 == a2
-  | AddrSender _, _ => false
-  end.
-
-Lemma eq_SenderP : Equality.axiom eq_Sender.
-Proof.
-case => [|a1]; case => [|a2].
-- by constructor 1.
-- by constructor 2.
-- by constructor 2.
-- rewrite /eq_Sender /=.
-  case H1: (a1 == a2); [move/eqP: H1=>?; subst a2| constructor 2];
-    last by case=>?; subst a2;rewrite eqxx in H1.
-  by constructor 1.
-Qed.
-
-Definition Sender_eqMixin :=
-  Eval hnf in EqMixin eq_SenderP.
-Canonical Sender_eqType :=
-  Eval hnf in EqType Sender Sender_eqMixin.
 
 Definition eq_ContractCall c1 c2 :=
   match c1, c2 with
@@ -537,8 +537,8 @@ Parameter blockNumber : block -> nat.
 Parameter txValid : Transaction -> Blockchain -> bool.
 Parameter tpExtend : TxPool -> Blockforest -> Transaction -> TxPool.
 
-Parameter sigValid_epoch : Address -> ValidatorIndex -> Epoch -> Signature -> bool.
-Parameter sigValid_epochs : Address -> ValidatorIndex -> Hash -> Epoch -> Epoch -> Signature -> bool.
+Parameter sigValid_epoch : Sender -> ValidatorIndex -> Epoch -> Signature -> bool.
+Parameter sigValid_epochs : Sender -> ValidatorIndex -> Hash -> Epoch -> Epoch -> Signature -> bool.
 
 Notation "A > B" := (FCR A B).
 Notation "A >= B" := (A = B \/ A > B).
