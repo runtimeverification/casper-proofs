@@ -70,7 +70,7 @@ Definition finalize (target_epoch : Epoch) (source_epoch : Epoch) (st : CasperDa
 
 (* Send amount to withdrawal_addr *)
 (* FIXME: implement *)
-Definition send (withdrawal_addr : Address) (amount : Wei) (st : CasperData) :=
+Definition send (withdrawal_addr : Sender) (amount : Wei) (st : CasperData) :=
   st.
 
 (* Update expected source epoch *)
@@ -319,8 +319,8 @@ Definition procContractCallTx (block_number : nat) (t : Transaction) (st : Caspe
           if [&& valid_sig_1, valid_sig_2, valid_indexes, valid_hashes_epochs & valid_targets] then
             let: validators' := deleteValidator validator_index_1 validators in
             let: st'0 := {[ st with casper_validators := validators' ]} in
-            let: st'1 := send sender_addr (deposit %/ 25) st'0 in
-            let: sa' := [:: mkSA sender_addr deposit] in (* FIXME: scale factor? *)
+            let: st'1 := send sender (deposit %/ 25) st'0 in
+            let: sa' := [:: mkSA sender deposit] in (* FIXME: scale factor? *)
             (st'1, sa')
           else
             (st, [::])
