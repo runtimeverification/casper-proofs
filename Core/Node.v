@@ -29,11 +29,10 @@ Definition deleteValidator (validator_index : ValidatorIndex) (validators : unio
     let: deposits := validator.(validator_deposit) in
     let: validator'0 := {[ validator with validator_start_dynasty := 0 ]} in
     let: validator'1 := {[ validator'0 with validator_end_dynasty := 0 ]} in
-    (* FIXME: 0 values for addresses? *)
-    (* let: validator'2 := {[ validator'1 with validator_addr := 0 ]} in *)
-    (* let: validator'3 := {[ validator'2 with validator_withdrawal_addr := 0 ]} in *)
-    let: validator'2 := {[ validator'1 with validator_deposit := setZero(deposits) ]} in
-    validator_index \\-> validator'2 \+ validators
+    let: validator'2 := {[ validator'1 with validator_addr := NullSender ]} in
+    let: validator'3 := {[ validator'2 with validator_withdrawal_addr := NullSender ]} in
+    let: validator'4 := {[ validator'3 with validator_deposit := setZero(deposits) ]} in
+    validator_index \\-> validator'4 \+ validators
   else
     (* FIXME: error here? *)
     validators.
