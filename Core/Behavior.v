@@ -239,7 +239,7 @@ Lemma procContractCallTx_SlashCall :
          st' = {[st
            with casper_validators := deleteValidator v1.(vote_validator_index)
                                       st.(casper_validators)]} /\
-         sa = [:: {| send_account_addr := sender_addr; send_account_wei := deposit |}]
+         sa = [:: {| send_account_addr := s; send_account_wei := deposit |}]
     /\ sigValid_epochs validator.(validator_addr)
          v1.(vote_validator_index) v1.(vote_target_hash)
          v1.(vote_target_epoch) v1.(vote_source_epoch)
