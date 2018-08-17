@@ -24,7 +24,7 @@ Record AttestationRecord {Hash : ordType} :=
     slot : ordType;
     shard_id_ar : ordType;
     oblique_parent_hashes: seq Hash;
-    shard_block_hash: Hash;
+    shard_block_hash_ar: Hash;
     attester_bitfield: ordType;
     aggregate_sig: seq ordType
   }.
@@ -55,12 +55,32 @@ Record ActiveState {Hash : ordType} :=
     recent_block_hashes : seq Hash
   }.
 
+Record RecentProposerRecord {Hash : ordType} :=
+  mkRPR {
+    (* Proposer index *)
+    index: ordType;
+    (* New RANDAO commitment *)
+    randao_commitment_rpr: Hash;
+    (* Balance delta *)
+    balance_delta: ordType
+  }.
+
 Record CrosslinkRecord {Hash : ordType} :=
   mkCR {
     (* What dynasty the crosslink was submitted in *)
     dynasty: ordType;
     (* The block hash *)
     hash: Hash
+  }.
+
+Record PartialCrosslinkRecord {Hash : ordType} :=
+  mkPCR {
+    (* What shard is the crosslink being made for *)
+    shard_id_pcr: ordType;
+    (* Hash of the block *)
+    shard_block_hash_pcr: Hash;
+    (* Which of the eligible voters are voting for it (as a bitfield) *)
+    voter_bitfield: ordType
   }.
 
 Record ShardAndCommittee :=
@@ -80,7 +100,7 @@ Record ValidatorRecord {Hash : ordType} :=
     (* And what address *)
     withdrawal_address : Sender;
     (* The validators current RANDAO beacon commitment *)
-    randao_commitment : Hash;
+    randao_commitment_vr : Hash;
     (* Current balance *)
     balance : ordType;
     (* Dynasty where the validator is inducted *)
