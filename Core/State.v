@@ -19,6 +19,8 @@ Unset Printing Implicit Defensive.
 
 (* TODO: need to figure out which records need equality types *)
 
+(* TODO: default values? *)
+
 Record AttestationRecord {Hash : ordType} :=
   mkAR {
     slot : ordType;
