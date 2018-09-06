@@ -21,6 +21,14 @@ Unset Printing Implicit Defensive.
 
 (* TODO: default values? *)
 
+(* Axiomatic type seq byte *)
+
+(* nat for integers *)
+
+(* Default m16 blah *)
+
+(* Default values, not populated *)
+
 Record AttestationRecord {Hash : ordType} :=
   mkAR {
     slot : ordType;
