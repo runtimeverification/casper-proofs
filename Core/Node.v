@@ -476,7 +476,8 @@ Definition procMsg (st: State) (from : NodeId) (msg: Message) (ts: Timestamp) :=
       end
     end.
 
-Definition procInt (st : State) (tr : InternalTransition) (ts : Timestamp) :=
+(* Commented out because Block definition changed, mkB won't work *)
+(* Definition procInt (st : State) (tr : InternalTransition) (ts : Timestamp) :=
     let: Node n prs bf pool := st in
     match tr with
     | TxT tx => pair st (emitBroadcast n prs (TxMsg tx))
@@ -499,3 +500,4 @@ Definition procInt (st : State) (tr : InternalTransition) (ts : Timestamp) :=
       | None => pair st emitZero
       end
     end.
+*)
