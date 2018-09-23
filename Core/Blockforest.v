@@ -13,6 +13,12 @@ Unset Printing Implicit Defensive.
 
 Parameter byte : ordType.
 
+Parameter Address : finType.
+
+Inductive Sender :=
+| NullSender : Sender
+| AddrSender : Address -> Sender.
+
 Record AttestationRecord {Hash : ordType} :=
   mkAR {
     slot_ar: nat;
@@ -42,6 +48,80 @@ Record Block {Hash : ordType} {Transaction VProof : eqType} :=
     (* NOTE: transactions and proof not present in Danny's beacon_chain implementation *)
     txs : seq Transaction;
     proof : VProof
+  }.
+
+Record ShardAndCommittee :=
+  mkSAC {
+    (* The shard ID *)
+    shard_id_sac: nat;
+    (* Validator indices *)
+    committee: seq nat
+  }.
+
+Record CrosslinkRecord {Hash : ordType} :=
+  mkCR {
+    (* What dynasty the crosslink was submitted in *)
+    dynasty: nat;
+    (* slot during which crosslink was added *)
+    slot: nat;
+    (* The block hash *)
+    hash: Hash
+  }.
+
+Record ValidatorRecord {Hash : ordType} :=
+  mkVR {
+    (* The validator's public key *)
+    pubkey : nat;
+    (* What shard the validators balance will be sent to after withdrawal *)
+    withdrawal_shard : nat;
+    (* And what address *)
+    withdrawal_address : Sender;
+    (* The validators current RANDAO beacon commitment *)
+    randao_commitment : Hash;
+    (* Current balance *)
+    balance : nat;
+    (* Dynasty where the validator is inducted *)
+    start_dynasty : nat;
+    (* Dynasty where the validator leaves *)
+    end_dynasty : nat
+  }.
+
+Record ActiveState {Hash : ordType} :=
+  mkAS {
+    (* Attestations that have not yet been processed *)
+    pending_attestations : seq (@AttestationRecord Hash);
+    (* Most recent 2*CYCLE_LENGTH block hashes, older to newer *)
+    recent_block_hashes : seq Hash
+  }.
+
+Record CrystallizedState {Hash : ordType} :=
+  mkCS {
+    (* List of validators *)
+    validators: seq (@ValidatorRecord Hash);
+    (* Last CrystallizedState recalculation *)
+    last_state_recalc: nat;
+    (* What active validators are part of the attester set *)
+    (* at what height; and in what shard. Starts at slot *)
+    (* last_state_recalc - CYCLE_LENGTH *)
+    shard_and_committee_for_slots: seq (seq ShardAndCommittee);
+    (* The last justified slot *)
+    last_justified_slot: nat;
+    (* Number of consecutive justified slots ending at this one *)
+    justified_streak: nat;
+    (* The last finalized slot *)
+    last_finalized_slot: nat;
+    (* The current dynasty *)
+    current_dynasty: nat;
+    (* The next shard that crosslinking assignment will start from *)
+    crosslinking_start_shard: nat;
+    (* Records about the most recent crosslink for each shard *)
+    crosslink_records: seq (@CrosslinkRecord Hash);
+    (* Total balance of deposits *)
+    total_deposits: nat;
+    (* Used to select the committees for each shard *)
+    dynasty_seed: Hash;
+    (* Last epoch the crosslink seed was reset *)
+    dynasty_start: nat;
   }.
 
 Definition eq_attestation_record {H : ordType} (ar ar' : @AttestationRecord H) :=
@@ -337,7 +417,6 @@ Parameter Hash : ordType.
 Parameter VProof : eqType.
 
 Parameter NodeId : finType.
-Parameter Address : finType.
 
 Definition ValidatorIndex := nat.
 Definition Wei := nat.
@@ -346,10 +425,6 @@ Definition Dynasty := nat.
 
 (* casper payload signature *)
 Parameter Signature : eqType.
-
-Inductive Sender :=
-| NullSender : Sender
-| AddrSender : Address -> Sender.
 
 (* Deposit(VALIDATION_ADDR, WITHDRAWAL_ADDR, DEPOSIT) *)
 
