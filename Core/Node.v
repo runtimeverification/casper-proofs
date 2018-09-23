@@ -15,9 +15,60 @@ Canonical NodeId_ordType := Eval hnf in OrdType NodeId NodeId_ordMixin.
 (* Parameter of type Hash *)
 Parameter dummy : Hash.
 
-(* -----------------*)
-(* CASPER FUNCTIONS *)
-(* -----------------*)
+Parameter BlockVoteCache : Type.
+
+(* -------------------- *)
+(* NEW CASPER FUNCTIONS *)
+(* -------------------- *)
+
+(* TODO: implement *)
+Definition getAttestationIndices (crystallizedState : @CrystallizedState Hash)
+           (attestation : @AttestationRecord Hash) (* TODO: config parameter? *) : seq nat :=
+  [::].
+
+Definition getBitfieldLength (bitCount : nat) : nat :=
+  (bitCount + 7) %/ 8.
+
+(* TODO: implement *)
+Definition checkLastBits (attBitfield : seq byte) (lastBit : nat) : bool := true.
+
+Definition validateAttestation (crystallizedState : @CrystallizedState Hash)
+           (activeState : @ActiveState Hash)
+           (attestation : @AttestationRecord Hash)
+           (blk : block) (* TODO: config paramter? *) : bool :=
+  if slot_number blk <= slot_ar attestation then (* TODO: throw exception *) false
+  else
+    let: attestationIndices := getAttestationIndices crystallizedState attestation in
+    let: lastBit := size attestationIndices in
+    let: attBitfield := attester_bitfield attestation in
+    if size attBitfield != getBitfieldLength lastBit then (* TODO: throw exception *) false
+    else
+      if lastBit %% 8 == 0 then checkLastBits attBitfield lastBit
+      else (* TODO: create pubKeys, message, call verify *) true.
+
+Definition getUpdatedBlockVoteCache (crystallizedState : @CrystallizedState Hash)
+           (activeState : @ActiveState Hash)
+           (attestation : @AttestationRecord Hash)
+           (blk : block)
+           (blkVoteCache: BlockVoteCache) (* TODO: config paramter? *) : BlockVoteCache :=
+  blkVoteCache.
+
+Definition processBlock (crystallizedState : @CrystallizedState Hash)
+           (activeState : @ActiveState Hash)
+           (blk : block) (* TODO: config paramter? *) : ActiveState :=
+  if all (fun x => validateAttestation crystallizedState activeState x blk) (attestations blk) then
+    (* TODO: throw exception *) activeState
+  else
+    (* TODO: new block vote cache *)
+    let: newAtts := pending_attestations activeState ++ attestations blk in
+    let: recentBlockHashes := recent_block_hashes activeState in
+    (* TODO: need macro for updating activeState *)
+    (* update active state with newBlockVoteCache, newAtts, recentBlockHashes *)
+    activeState.
+
+(* -------------------- *)
+(* OLD CASPER FUNCTIONS *)
+(* -------------------- *)
 
 (* Set deposits at each epoch in deposits map to 0 *)
 Definition setZero (deposits : union_map [ordType of Epoch] Wei) : union_map [ordType of Epoch] Wei :=
