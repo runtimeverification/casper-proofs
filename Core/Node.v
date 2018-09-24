@@ -62,9 +62,76 @@ Definition processBlock (crystallizedState : @CrystallizedState Hash)
     (* TODO: new block vote cache *)
     let: newAtts := pending_attestations activeState ++ attestations blk in
     let: recentBlockHashes := recent_block_hashes activeState in
-    (* TODO: need macro for updating activeState *)
-    (* update active state with newBlockVoteCache, newAtts, recentBlockHashes *)
-    activeState.
+    (* TODO: new chain *)
+    let: activeState' :=  @mkAS Hash newAtts recentBlockHashes in
+    (* TODO: update activeState with newBlockVoteCache, chain *)
+    activeState'.
+
+(* TODO: implement *)
+Definition processUpdatedCrosslinks (crystallizedState : @CrystallizedState Hash)
+           (activeState : @ActiveState Hash)
+           (blk : block) (* TODO: config paramter? *) : seq (@CrosslinkRecord Hash) :=
+  let: crosslinks := crosslink_records crystallizedState in
+  crosslinks.
+
+(* TODO: implement *)
+Definition initializeNewCycle (crystallizedState : @CrystallizedState Hash)
+           (activeState : @ActiveState Hash)
+           (blk : block) (* TODO: config paramter? *) : CrystallizedState * ActiveState :=
+  let: lastStateRealc := last_state_recalc crystallizedState in
+  let: lastJustifiedSlot := last_justified_slot crystallizedState in
+  let: lastFinalizedSlot := last_finalized_slot crystallizedState in
+  let: justifiedStreak := justified_streak crystallizedState in
+  let: totalDeposits := total_deposits crystallizedState in
+  (crystallizedState, activeState).
+
+(* TODO: implement *)
+Definition fillRecentBlockHashes (activeState : @ActiveState Hash)
+           (parentBlk : block)
+           (blk : block) (* TODO: config paramter? *) : ActiveState :=
+  activeState.
+
+(* TODO: implement *)
+Definition calculate_ffg_rewards (crystallizedState : @CrystallizedState Hash)
+           (activeState : @ActiveState Hash)
+           (blk : block) (* TODO: config paramter? *) : seq nat :=
+  [::].
+
+(* TODO: implement *)
+Definition calculate_crosslink_rewards (crystallizedState : @CrystallizedState Hash)
+           (activeState : @ActiveState Hash)
+           (blk : block) (* TODO: config paramter? *) : seq nat :=
+  [::].
+
+(* TODO: implement *)
+Definition applyRewardsAndPenalties (crystallizedState : @CrystallizedState Hash)
+           (activeState : @ActiveState Hash)
+           (blk : block) (* TODO: config paramter? *) : seq (@ValidatorRecord Hash) :=
+  let: validators := validators crystallizedState in
+  validators.
+
+(* TODO: implement *)
+Definition readyForDynastyTransition (crystallizedState : @CrystallizedState Hash)
+           (blk : block) (* TODO: config paramter? *) : bool :=
+  true.
+
+(* TODO: implement *)
+Definition computeDynastyTransition (crystallizedState : @CrystallizedState Hash)
+           (blk : block) (* TODO: config paramter? *) : CrystallizedState :=
+  crystallizedState.
+
+(* TODO: implement *)
+Definition computeCycleTransitions (crystallizedState : @CrystallizedState Hash)
+           (activeState : @ActiveState Hash)
+           (blk : block) (* TODO: config paramter? *) : CrystallizedState * ActiveState :=
+  (crystallizedState, activeState).
+
+(* TODO: implement *)
+Definition computeStateTransition (crystallizedState : @CrystallizedState Hash)
+           (activeState : @ActiveState Hash)
+           (parentBlk : block)
+           (blk : block) (* TODO: config paramter? *) : CrystallizedState * ActiveState :=
+  (crystallizedState, activeState)
 
 (* -------------------- *)
 (* OLD CASPER FUNCTIONS *)
