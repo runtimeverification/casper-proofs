@@ -91,7 +91,8 @@ Record ActiveState {Hash : ordType} :=
     (* Attestations that have not yet been processed *)
     pending_attestations : seq (@AttestationRecord Hash);
     (* Most recent 2*CYCLE_LENGTH block hashes, older to newer *)
-    recent_block_hashes : seq Hash
+    recent_block_hashes : seq Hash;
+    (* TODO: need to have block_vote_cache and chain here? *)
   }.
 
 Record CrystallizedState {Hash : ordType} :=
