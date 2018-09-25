@@ -21,30 +21,30 @@ Inductive Sender :=
 
 Record AttestationRecord {Hash : ordType} :=
   mkAR {
-    slot_ar: nat;
-    shard_id: nat;
-    oblique_parent_hashes: seq Hash;
-    shard_block_hash: Hash;
-    attester_bitfield: seq byte;
-    aggregate_sig: seq nat
+    slot_ar : nat;
+    shard_id : nat;
+    oblique_parent_hashes : seq Hash;
+    shard_block_hash : Hash;
+    attester_bitfield : seq byte;
+    aggregate_sig : seq nat
   }.
 
 Record Block {Hash : ordType} {Transaction VProof : eqType} :=
   mkB {
     (* Hash of the parent block *)
-    parent_hash: Hash;
+    parent_hash : Hash;
     (* Slot number (for the PoS mechanism) *)
-    slot_number: nat;
+    slot_number : nat;
     (* Randao commitment reveal *)
-    randao_reveal: Hash;
+    randao_reveal : Hash;
     (* Attestations *)
-    attestations: seq (@AttestationRecord Hash);
+    attestations : seq (@AttestationRecord Hash);
     (* Reference to PoW chain block *)
-    pow_chain_ref: Hash;
+    pow_chain_ref : Hash;
     (* Hash of the active state *)
-    active_state_root: Hash;
+    active_state_root : Hash;
     (* Hash of the crystallized state *)
-    crystallized_state_root: Hash;
+    crystallized_state_root : Hash;
     (* NOTE: transactions and proof not present in Danny's beacon_chain implementation *)
     txs : seq Transaction;
     proof : VProof
@@ -53,19 +53,19 @@ Record Block {Hash : ordType} {Transaction VProof : eqType} :=
 Record ShardAndCommittee :=
   mkSAC {
     (* The shard ID *)
-    shard_id_sac: nat;
+    shard_id_sac : nat;
     (* Validator indices *)
-    committee: seq nat
+    committee : seq nat
   }.
 
 Record CrosslinkRecord {Hash : ordType} :=
   mkCR {
     (* What dynasty the crosslink was submitted in *)
-    dynasty: nat;
+    dynasty : nat;
     (* slot during which crosslink was added *)
-    slot: nat;
+    slot : nat;
     (* The block hash *)
-    hash: Hash
+    hash : Hash
   }.
 
 Record ValidatorRecord {Hash : ordType} :=
@@ -91,7 +91,8 @@ Record ActiveState {Hash : ordType} :=
     (* Attestations that have not yet been processed *)
     pending_attestations : seq (@AttestationRecord Hash);
     (* Most recent 2*CYCLE_LENGTH block hashes, older to newer *)
-    recent_block_hashes : seq Hash
+    recent_block_hashes : seq Hash;
+    (* TODO: need to have block_vote_cache and chain here? *)
   }.
 
 Record CrystallizedState {Hash : ordType} :=
