@@ -15,9 +15,129 @@ Canonical NodeId_ordType := Eval hnf in OrdType NodeId NodeId_ordMixin.
 (* Parameter of type Hash *)
 Parameter dummy : Hash.
 
-(* -----------------*)
-(* CASPER FUNCTIONS *)
-(* -----------------*)
+Parameter BlockVoteCache : Type.
+
+(* -------------------- *)
+(* NEW CASPER FUNCTIONS *)
+(* -------------------- *)
+
+(* TODO: implement *)
+Definition getAttestationIndices (crystallizedState : @CrystallizedState [ordType of Hash])
+           (attestation : @AttestationRecord [ordType of Hash]) (* TODO: config parameter? *) : seq nat :=
+  [::].
+
+Definition getBitfieldLength (bitCount : nat) : nat :=
+  (bitCount + 7) %/ 8.
+
+(* TODO: implement *)
+Definition checkLastBits (attBitfield : seq byte) (lastBit : nat) : bool := true.
+
+Definition validateAttestation (crystallizedState : @CrystallizedState [ordType of Hash])
+           (activeState : @ActiveState [ordType of Hash])
+           (attestation : @AttestationRecord [ordType of Hash])
+           (blk : block) (* TODO: config paramter? *) : bool :=
+  if slot_number blk <= slot_ar attestation then (* TODO: throw exception *) false
+  else
+    let: attestationIndices := getAttestationIndices crystallizedState attestation in
+    let: lastBit := size attestationIndices in
+    let: attBitfield := attester_bitfield attestation in
+    if size attBitfield != getBitfieldLength lastBit then (* TODO: throw exception *) false
+    else
+      if lastBit %% 8 == 0 then checkLastBits attBitfield lastBit
+      else (* TODO: create pubKeys, message, call verify *) true.
+
+Definition getUpdatedBlockVoteCache (crystallizedState : @CrystallizedState [ordType of Hash])
+           (activeState : @ActiveState [ordType of Hash])
+           (attestation : @AttestationRecord [ordType of Hash])
+           (blk : block)
+           (blkVoteCache: BlockVoteCache) (* TODO: config paramter? *) : BlockVoteCache :=
+  blkVoteCache.
+
+Definition processBlock (crystallizedState : @CrystallizedState [ordType of Hash])
+           (activeState : @ActiveState [ordType of Hash])
+           (blk : block) (* TODO: config paramter? *) : ActiveState :=
+  if all (fun x => validateAttestation crystallizedState activeState x blk) (attestations blk) then
+    (* TODO: throw exception *) activeState
+  else
+    (* TODO: new block vote cache *)
+    let: newAtts := pending_attestations activeState ++ attestations blk in
+    let: recentBlockHashes := recent_block_hashes activeState in
+    (* TODO: new chain *)
+    let: activeState' :=  @mkAS [ordType of Hash] newAtts recentBlockHashes in
+    (* TODO: update activeState with newBlockVoteCache, chain *)
+    activeState'.
+
+(* TODO: implement *)
+Definition processUpdatedCrosslinks (crystallizedState : @CrystallizedState [ordType of Hash])
+           (activeState : @ActiveState [ordType of Hash])
+           (blk : block) (* TODO: config paramter? *) : seq (@CrosslinkRecord [ordType of Hash]) :=
+  let: crosslinks := crosslink_records crystallizedState in
+  crosslinks.
+
+(* TODO: implement *)
+Definition initializeNewCycle (crystallizedState : @CrystallizedState [ordType of Hash])
+           (activeState : @ActiveState [ordType of Hash])
+           (blk : block) (* TODO: config paramter? *) : CrystallizedState * ActiveState :=
+  let: lastStateRealc := last_state_recalc crystallizedState in
+  let: lastJustifiedSlot := last_justified_slot crystallizedState in
+  let: lastFinalizedSlot := last_finalized_slot crystallizedState in
+  let: justifiedStreak := justified_streak crystallizedState in
+  let: totalDeposits := total_deposits crystallizedState in
+  (crystallizedState, activeState).
+
+(* TODO: implement *)
+Definition fillRecentBlockHashes (activeState : @ActiveState [ordType of Hash])
+           (parentBlk : block)
+           (blk : block) (* TODO: config paramter? *) : ActiveState :=
+  activeState.
+
+(* TODO: implement *)
+Definition calculate_ffg_rewards (crystallizedState : @CrystallizedState [ordType of Hash])
+           (activeState : @ActiveState [ordType of Hash])
+           (blk : block) (* TODO: config paramter? *) : seq nat :=
+  [::].
+
+(* TODO: implement *)
+Definition calculate_crosslink_rewards (crystallizedState : @CrystallizedState [ordType of Hash])
+           (activeState : @ActiveState [ordType of Hash])
+           (blk : block) (* TODO: config paramter? *) : seq nat :=
+  [::].
+
+(* TODO: implement *)
+Definition applyRewardsAndPenalties (crystallizedState : @CrystallizedState [ordType of Hash])
+           (activeState : @ActiveState [ordType of Hash])
+           (blk : block) (* TODO: config paramter? *) : seq (@ValidatorRecord [ordType of Hash]) :=
+  let: validators := validators crystallizedState in
+  validators.
+
+(* TODO: implement *)
+Definition readyForDynastyTransition (crystallizedState : @CrystallizedState [ordType of Hash])
+           (blk : block) (* TODO: config paramter? *) : bool :=
+  true.
+
+(* TODO: implement *)
+Definition computeDynastyTransition (crystallizedState : @CrystallizedState [ordType of Hash])
+           (blk : block) (* TODO: config paramter? *) : CrystallizedState :=
+  crystallizedState.
+
+(* TODO: implement *)
+Definition computeCycleTransitions (crystallizedState : @CrystallizedState [ordType of Hash])
+           (activeState : @ActiveState [ordType of Hash])
+           (blk : block) (* TODO: config paramter? *) : CrystallizedState * ActiveState :=
+  (crystallizedState, activeState).
+
+Definition computeStateTransition (crystallizedState : @CrystallizedState [ordType of Hash])
+           (activeState : @ActiveState [ordType of Hash])
+           (parentBlk : block)
+           (blk : block) (* TODO: config paramter? *) : CrystallizedState * ActiveState :=
+  let: activeState'0 := fillRecentBlockHashes activeState parentBlk blk in
+  let: activeState'1 := processBlock crystallizedState activeState blk in
+  let: (crystallizedState', activeState'2) := computeCycleTransitions crystallizedState activeState blk in
+  (crystallizedState', activeState'2).
+
+(* -------------------- *)
+(* OLD CASPER FUNCTIONS *)
+(* -------------------- *)
 
 (* Set deposits at each epoch in deposits map to 0 *)
 Definition setZero (deposits : union_map [ordType of Epoch] Wei) : union_map [ordType of Epoch] Wei :=
@@ -476,7 +596,8 @@ Definition procMsg (st: State) (from : NodeId) (msg: Message) (ts: Timestamp) :=
       end
     end.
 
-Definition procInt (st : State) (tr : InternalTransition) (ts : Timestamp) :=
+(* Commented out because Block definition changed, mkB won't work *)
+(* Definition procInt (st : State) (tr : InternalTransition) (ts : Timestamp) :=
     let: Node n prs bf pool := st in
     match tr with
     | TxT tx => pair st (emitBroadcast n prs (TxMsg tx))
@@ -499,3 +620,4 @@ Definition procInt (st : State) (tr : InternalTransition) (ts : Timestamp) :=
       | None => pair st emitZero
       end
     end.
+*)
