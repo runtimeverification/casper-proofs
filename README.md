@@ -3,7 +3,7 @@ Casper Toychain
 
 [![Build Status](https://travis-ci.org/palmskog/caspertoychain.svg?branch=master)](https://travis-ci.org/palmskog/caspertoychain)
 
-Minimalistic set of definitions and lemmas for verification of the [Casper](https://github.com/ethereum/casper) smart contract, extracted from [Toychain](https://github.com/certichain/toychain).
+Minimalistic set of definitions and lemmas for verification of Casper beacon chain nodes, extracted from [Toychain](https://github.com/certichain/toychain).
 
 Requirements
 ------------
