@@ -11,28 +11,178 @@ Unset Printing Implicit Defensive.
 (* BLOCKS *)
 (* ------ *)
 
+Parameter byte : ordType.
+
+Parameter Address : finType.
+
+Inductive Sender :=
+| NullSender : Sender
+| AddrSender : Address -> Sender.
+
+Record AttestationRecord {Hash : ordType} :=
+  mkAR {
+    slot_ar : nat;
+    shard_id : nat;
+    oblique_parent_hashes : seq Hash;
+    shard_block_hash : Hash;
+    attester_bitfield : seq byte;
+    aggregate_sig : seq nat
+  }.
+
 Record Block {Hash : ordType} {Transaction VProof : eqType} :=
   mkB {
-    prevBlockHash : Hash;
+    (* Hash of the parent block *)
+    parent_hash : Hash;
+    (* Slot number (for the PoS mechanism) *)
+    slot_number : nat;
+    (* Randao commitment reveal *)
+    randao_reveal : Hash;
+    (* Attestations *)
+    attestations : seq (@AttestationRecord Hash);
+    (* Reference to PoW chain block *)
+    pow_chain_ref : Hash;
+    (* Hash of the active state *)
+    active_state_root : Hash;
+    (* Hash of the crystallized state *)
+    crystallized_state_root : Hash;
+    (* NOTE: transactions and proof not present in Danny's beacon_chain implementation *)
     txs : seq Transaction;
     proof : VProof
   }.
 
+Record ShardAndCommittee :=
+  mkSAC {
+    (* The shard ID *)
+    shard_id_sac : nat;
+    (* Validator indices *)
+    committee : seq nat
+  }.
+
+Record CrosslinkRecord {Hash : ordType} :=
+  mkCR {
+    (* What dynasty the crosslink was submitted in *)
+    dynasty : nat;
+    (* slot during which crosslink was added *)
+    slot : nat;
+    (* The block hash *)
+    hash : Hash
+  }.
+
+Record ValidatorRecord {Hash : ordType} :=
+  mkVR {
+    (* The validator's public key *)
+    pubkey : nat;
+    (* What shard the validators balance will be sent to after withdrawal *)
+    withdrawal_shard : nat;
+    (* And what address *)
+    withdrawal_address : Sender;
+    (* The validators current RANDAO beacon commitment *)
+    randao_commitment : Hash;
+    (* Current balance *)
+    balance : nat;
+    (* Dynasty where the validator is inducted *)
+    start_dynasty : nat;
+    (* Dynasty where the validator leaves *)
+    end_dynasty : nat
+  }.
+
+Record ActiveState {Hash : ordType} :=
+  mkAS {
+    (* Attestations that have not yet been processed *)
+    pending_attestations : seq (@AttestationRecord Hash);
+    (* Most recent 2*CYCLE_LENGTH block hashes, older to newer *)
+    recent_block_hashes : seq Hash;
+    (* TODO: need to have block_vote_cache and chain here? *)
+  }.
+
+Record CrystallizedState {Hash : ordType} :=
+  mkCS {
+    (* List of validators *)
+    validators: seq (@ValidatorRecord Hash);
+    (* Last CrystallizedState recalculation *)
+    last_state_recalc: nat;
+    (* What active validators are part of the attester set *)
+    (* at what height; and in what shard. Starts at slot *)
+    (* last_state_recalc - CYCLE_LENGTH *)
+    shard_and_committee_for_slots: seq (seq ShardAndCommittee);
+    (* The last justified slot *)
+    last_justified_slot: nat;
+    (* Number of consecutive justified slots ending at this one *)
+    justified_streak: nat;
+    (* The last finalized slot *)
+    last_finalized_slot: nat;
+    (* The current dynasty *)
+    current_dynasty: nat;
+    (* The next shard that crosslinking assignment will start from *)
+    crosslinking_start_shard: nat;
+    (* Records about the most recent crosslink for each shard *)
+    crosslink_records: seq (@CrosslinkRecord Hash);
+    (* Total balance of deposits *)
+    total_deposits: nat;
+    (* Used to select the committees for each shard *)
+    dynasty_seed: Hash;
+    (* Last epoch the crosslink seed was reset *)
+    dynasty_start: nat;
+  }.
+
+Definition eq_attestation_record {H : ordType} (ar ar' : @AttestationRecord H) :=
+  match ar, ar' with
+  | mkAR sa si oph sbh ab ags, mkAR sa' si' oph' sbh' ab' ags' =>
+    [&& sa == sa', si == si', oph == oph', sbh == sbh', ab == ab' & ags == ags']
+  end.
+
+Lemma eq_attestation_recordP {H : ordType} : Equality.axiom (@eq_attestation_record H).
+Proof.
+case=> sa si oph sbh ab ags; case=> sa' si' oph' sbh' ab' ags'; rewrite /eq_attestation_record/=.
+case H2: (sa == sa'); [move/eqP: H2=>?; subst sa'| constructor 2];
+  last by case=>?; subst sa';rewrite eqxx in H2.
+case H3: (si == si'); [move/eqP: H3=>?; subst si'| constructor 2];
+  last by case=>?; subst si';rewrite eqxx in H3.
+case H4: (oph == oph'); [move/eqP: H4=>?; subst oph'| constructor 2];
+  last by case=>?; subst oph';rewrite eqxx in H4.
+case H5: (sbh == sbh'); [move/eqP: H5=>?; subst sbh'| constructor 2];
+  last by case=>?; subst sbh';rewrite eqxx in H5.
+case H6: (ab == ab'); [move/eqP: H6=>?; subst ab'| constructor 2];
+  last by case=>?; subst ab';rewrite eqxx in H6.
+case H7: (ags == ags'); [move/eqP: H7=>?; subst ags'| constructor 2];
+  last by case=>?; subst ags';rewrite eqxx in H7.
+by constructor 1.
+Qed.
+
+Canonical AttestationRecord_eqMixin {H : ordType} :=
+  Eval hnf in EqMixin (@eq_attestation_recordP H).
+Canonical AttestationRecord_eqType {H : ordType} :=
+  Eval hnf in EqType (@AttestationRecord H) (@AttestationRecord_eqMixin H).
+
 Definition eq_block {H : ordType} {T P : eqType} (b b' : @Block H T P) :=
   match b, b' with
-  | mkB p t pf, mkB p' t' pf' =>
-    [&& p == p', t == t' & pf == pf']
+  | mkB ph sn rr ars pcr asr csr txs p, mkB ph' sn' rr' ars' pcr' asr' csr' txs' p' =>
+    [&& ph == ph', sn == sn', rr == rr', ars == ars', pcr == pcr', asr == asr',
+     csr == csr', txs == txs' & p == p']
   end.
       
 Lemma eq_blockP {H : ordType} {T P : eqType} : Equality.axiom (@eq_block H T P).
 Proof.
-case=> p t pf; case=> p' t' pf'; rewrite /eq_block/=.
-case H2: (p == p'); [move/eqP: H2=>?; subst p'| constructor 2];
-  last by case=>?; subst p';rewrite eqxx in H2.
-case H3: (t == t'); [move/eqP: H3=>?; subst t'| constructor 2];
-  last by case=>?; subst t';rewrite eqxx in H3.
-case H4: (pf == pf'); [move/eqP: H4=>?; subst pf'| constructor 2];
-  last by case=>?; subst pf';rewrite eqxx in H4.
+case=> ph sn rr ars pcr asr csr txs p;
+case=> ph' sn' rr' ars' pcr' asr' csr' txs' p'; rewrite /eq_block/=.
+case H2: (ph == ph'); [move/eqP: H2=>?; subst ph'| constructor 2];
+  last by case=>?; subst ph';rewrite eqxx in H2.
+case H3: (sn == sn'); [move/eqP: H3=>?; subst sn'| constructor 2];
+  last by case=>?; subst sn';rewrite eqxx in H3.
+case H4: (rr == rr'); [move/eqP: H4=>?; subst rr'| constructor 2];
+  last by case=>?; subst rr';rewrite eqxx in H4.
+case H5: (ars == ars'); [move/eqP: H5=>?; subst ars'| constructor 2];
+  last by case=>?; subst ars';rewrite eqxx in H5.
+case H6: (pcr == pcr'); [move/eqP: H6=>?; subst pcr'| constructor 2];
+  last by case=>?; subst pcr';rewrite eqxx in H6.
+case H7: (asr == asr'); [move/eqP: H7=>?; subst asr'| constructor 2];
+  last by case=>?; subst asr';rewrite eqxx in H7.
+case H8: (csr == csr'); [move/eqP: H8=>?; subst csr'| constructor 2];
+  last by case=>?; subst csr';rewrite eqxx in H8.
+case H9: (txs == txs'); [move/eqP: H9=>?; subst txs'| constructor 2];
+  last by case=>?; subst txs';rewrite eqxx in H9.
+case H10: (p == p'); [move/eqP: H10=>?; subst p'| constructor 2];
+  last by case=>?; subst p';rewrite eqxx in H10.
 by constructor 1. 
 Qed.
 
@@ -264,11 +414,10 @@ Qed.
 (* -----------*)
 
 Parameter Timestamp : Type.
-Parameter Hash : ordType.
+Parameter Hash : finType.
 Parameter VProof : eqType.
 
 Parameter NodeId : finType.
-Parameter Address : finType.
 
 Definition ValidatorIndex := nat.
 Definition Wei := nat.
@@ -277,10 +426,6 @@ Definition Dynasty := nat.
 
 (* casper payload signature *)
 Parameter Signature : eqType.
-
-Inductive Sender :=
-| NullSender : Sender
-| AddrSender : Address -> Sender.
 
 (* Deposit(VALIDATION_ADDR, WITHDRAWAL_ADDR, DEPOSIT) *)
 
@@ -513,17 +658,20 @@ Definition SendAccount_eqMixin :=
 Canonical SendAccount_eqType :=
   Eval hnf in EqType SendAccount SendAccount_eqMixin.
 
+Definition Hash_ordMixin := fin_ordMixin Hash.
+Canonical Hash_finType := Eval hnf in OrdType Hash Hash_ordMixin.
+
 (* --------------*)
 (* BLOCK FORESTS *)
 (* --------------*)
 
-Definition block := @Block Hash [eqType of Transaction] VProof.
+Definition block := @Block [ordType of Hash] [eqType of Transaction] VProof.
 
 Parameter GenesisBlock : block.
 
 Definition Blockchain := seq block.
 
-Definition Blockforest := union_map Hash block.
+Definition Blockforest := union_map [ordType of Hash] block.
 
 Definition TxPool := seq Transaction.
 
@@ -556,7 +704,7 @@ Notation "b ∈ bf" := (bfHasBlock bf b) (at level 70).
 Notation "b ∉ bf" := (~~ bfHasBlock bf b) (at level 70).
 
 Definition valid_block b : bool :=
-  prevBlockHash b != #b.
+  parent_hash b != #b.
 
 Definition has_init_block (bf : Blockforest) :=
   find (# GenesisBlock) bf = Some GenesisBlock.
@@ -611,7 +759,7 @@ Fixpoint compute_chain' (bf : Blockforest) b remaining n : Blockchain :=
     let rest := seq.rem (hashB b) remaining in
     (* Supporting primitive inductions *)
     if n is n'.+1 then
-      match find (prevBlockHash b) bf with
+      match find (parent_hash b) bf with
       (* No parent *)
       | None => [:: b]
       (* Build chain prefix recursively *)

@@ -4,14 +4,14 @@ Require Import Eqdep Relations.
 From fcsl
 Require Import pred prelude ordtype pcm finmap unionmap heap.
 From CasperToychain
-Require Import Blockforest Node Casper.
+Require Import Blockforest Casper Node.
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-Definition StateMap := union_map [ordType of NodeId] State.
+Definition StateMap := union_map NodeId_ordType State.
 
-Definition initState' s ps : StateMap := foldr (fun a m => (a \\-> Init a (ps a)) \+ m) Unit s.
+Definition initState' s ps : StateMap := foldr (fun (a : [finType of NodeId_ordType]) m => (a \\-> Init a (ps a)) \+ m) Unit s.
 
 (* Master-lemma, proving a conjunction of two mutually-necessary facts *)
 Lemma initStateValidDom s ps :
@@ -25,7 +25,8 @@ split; last first.
 - case: validUn; rewrite ?validPt ?H2//.
   move=>k; rewrite domPt inE=>/eqP Z; subst k.
   by rewrite H1; move/negP: H_ni.
-- move=>z; rewrite domUn !inE !domPt !inE.
+- move=>z.
+  rewrite (@domUn NodeId_ordType) !inE !domPt !inE.
   rewrite H1.
   case validUn.
   * by move/negP => H_v; case: H_v; rewrite validPt.
@@ -60,7 +61,7 @@ Record World :=
     consumedMsgs : PacketSoup;
   }.
 
-Definition holds (n : NodeId) (w : World) (cond : State -> Prop) :=
+Definition holds (n : NodeId_ordType) (w : World) (cond : State -> Prop) :=
   forall (st : State),
     find n (localState w) = Some st -> cond st.
 
@@ -80,7 +81,8 @@ Definition Coh (w : World) :=
 
 Record Qualifier := Q { ts: Timestamp; allowed: NodeId; }.
 
-Inductive system_step (w w' : World) (q : Qualifier) : Prop :=
+(* procInt currently undefined *)
+(* Inductive system_step (w w' : World) (q : Qualifier) : Prop :=
 | Idle of Coh w /\ w = w'
 
 | Deliver (p : Packet) (st : State) of
@@ -99,16 +101,21 @@ Inductive system_step (w w' : World) (q : Qualifier) : Prop :=
       w' = mkW (upd proc st' (localState w))
                (ms ++ (inFlightMsgs w))
                (consumedMsgs w).
+*)
 
 Definition Schedule := seq Qualifier.
 
-Fixpoint reachable' (s : Schedule) (w w' : World) : Prop :=
+(* system_step currently undefined *)
+(* Fixpoint reachable' (s : Schedule) (w w' : World) : Prop :=
   if s is (ins :: insts)
   then exists via, reachable' insts w via /\ system_step via w' ins
   else w = w'.
+*)
 
-Definition reachable (w w' : World) :=
+(* reachable' currently undefined *)
+(* Definition reachable (w w' : World) :=
   exists s, reachable' s w w'.
+*)
 
 Definition initWorld := mkW (initState (fun _ => enum NodeId)) [::] [::].
 
@@ -170,13 +177,15 @@ move/eqP => H_neq; case: ifP; move/eqP => //= H_eq.
 by case ohead.
 Qed.
 
-Lemma procInt_id_constant : forall (s1 : State) (t : InternalTransition) (ts : Timestamp),
+(* procInt currently undefined *)
+(* Lemma procInt_id_constant : forall (s1 : State) (t : InternalTransition) (ts : Timestamp),
     id s1 = id (procInt s1 t ts).1.
 Proof.
 case=> n1 p1 b1 t1 [] =>// ts; simpl.
 case hP: genProof => //.
 case tV: (valid_chain_block _ _)=>//.
 Qed.
+*)
 
 Lemma procMsg_valid :
    forall (s1 : State) from (m : Message) (ts : Timestamp),
@@ -190,7 +199,8 @@ move/eqP => H_neq; case: ifP; move/eqP => //= H_eq H_v.
 by case ohead.
 Qed.
 
-Lemma procInt_valid :
+(* procInt currently undefined *)
+(* Lemma procInt_valid :
   forall (s1 : State) (t : InternalTransition) (ts : Timestamp),
     valid (blocks s1) = valid (blocks (procInt s1 t ts).1).
 Proof.
@@ -201,6 +211,7 @@ move=>Pf.
 case tV: (valid_chain_block _ _)=>//.
 by rewrite/Node.blocks/=; apply bfExtendV.
 Qed.
+*)
 
 Lemma procMsg_validH :
    forall (s1 : State) from  (m : Message) (ts : Timestamp),
@@ -215,7 +226,8 @@ destruct s1; rewrite/procMsg/=; do? by []; do? by case: ifP => //=.
   by case ohead.
 Qed.
 
-Lemma procInt_validH :
+(* procInt currently undefined *)
+(* Lemma procInt_validH :
    forall (s1 : State) (t : InternalTransition) (ts : Timestamp),
      valid (blocks s1) -> validH (blocks s1) ->
      validH (blocks (procInt s1 t ts).1).
@@ -227,6 +239,7 @@ move=>Pf.
 case tV: (valid_chain_block _ _)=>//.
 by rewrite/Node.blocks/=; apply bfExtendH.
 Qed.
+*)
 
 Lemma procMsg_has_init_block:
    forall (s1 : State) from (m : Message) (ts : Timestamp),
@@ -242,7 +255,8 @@ destruct s1; rewrite/procMsg/=; do? by []; do? by case:ifP.
   by case ohead.
 Qed.
 
-Lemma procInt_has_init_block :
+(* procInt currently undefined *)
+(* Lemma procInt_has_init_block :
    forall (s1 : State) (t : InternalTransition) (ts : Timestamp),
      valid (blocks s1) -> validH (blocks s1) ->
      has_init_block (blocks s1) ->
@@ -255,6 +269,7 @@ move=>Pf.
 case tV: (valid_chain_block _ _)=>//.
 by apply bfExtendIB.
 Qed.
+*)
 
 Lemma procMsg_peers_uniq :
   forall (s1 : State) from  (m : Message) (ts : Timestamp),
@@ -267,7 +282,8 @@ move/eqP => H_eq; case: ifP; move/eqP => //= H_eq'.
 by case ohead.
 Qed.
 
-Lemma procInt_peers_uniq :
+(* procInt currently undefined *)
+(* Lemma procInt_peers_uniq :
   forall (s1 : State) (t : InternalTransition) ts, let: s2 := (procInt s1 t ts).1 in
     uniq (peers s1) -> uniq (peers s2).
 Proof.
@@ -275,7 +291,14 @@ move=>s1 t ts; case: s1=>n prs bf txp; rewrite /peers/procInt=>Up.
 case: t=>//; case hP: (genProof _)=>//.
 case tV: (valid_chain_block _ _)=>//.
 Qed.
+*)
 
+(* most deifnitions in remainder of file rely on some combination of 
+   system_step, reachable, etc. of which the definitions are currently
+   commented out
+*)
+
+(*
 Lemma Coh_step w w' q:
   system_step w w' q -> Coh w'.
 Proof.
@@ -419,3 +442,4 @@ Proof.
 move=> f S h sF st' s'F.
 by rewrite f in s'F; case: s'F=><-; move: (h st sF).
 Qed.
+*)
