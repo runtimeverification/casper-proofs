@@ -2,7 +2,7 @@ From mathcomp
 Require Import all_ssreflect.
 
 From Hammer
-Require Import Hammer Reconstr.
+Require Import Reconstr.
 
 Section CasperOneMessage.
 

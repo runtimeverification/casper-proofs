@@ -22,8 +22,8 @@ Parameter BlockVoteCache : Type.
 (* -------------------- *)
 
 (* TODO: implement *)
-Definition getAttestationIndices (crystallizedState : @CrystallizedState Hash)
-           (attestation : @AttestationRecord Hash) (* TODO: config parameter? *) : seq nat :=
+Definition getAttestationIndices (crystallizedState : @CrystallizedState [ordType of Hash])
+           (attestation : @AttestationRecord [ordType of Hash]) (* TODO: config parameter? *) : seq nat :=
   [::].
 
 Definition getBitfieldLength (bitCount : nat) : nat :=
@@ -32,9 +32,9 @@ Definition getBitfieldLength (bitCount : nat) : nat :=
 (* TODO: implement *)
 Definition checkLastBits (attBitfield : seq byte) (lastBit : nat) : bool := true.
 
-Definition validateAttestation (crystallizedState : @CrystallizedState Hash)
-           (activeState : @ActiveState Hash)
-           (attestation : @AttestationRecord Hash)
+Definition validateAttestation (crystallizedState : @CrystallizedState [ordType of Hash])
+           (activeState : @ActiveState [ordType of Hash])
+           (attestation : @AttestationRecord [ordType of Hash])
            (blk : block) (* TODO: config paramter? *) : bool :=
   if slot_number blk <= slot_ar attestation then (* TODO: throw exception *) false
   else
@@ -46,15 +46,15 @@ Definition validateAttestation (crystallizedState : @CrystallizedState Hash)
       if lastBit %% 8 == 0 then checkLastBits attBitfield lastBit
       else (* TODO: create pubKeys, message, call verify *) true.
 
-Definition getUpdatedBlockVoteCache (crystallizedState : @CrystallizedState Hash)
-           (activeState : @ActiveState Hash)
-           (attestation : @AttestationRecord Hash)
+Definition getUpdatedBlockVoteCache (crystallizedState : @CrystallizedState [ordType of Hash])
+           (activeState : @ActiveState [ordType of Hash])
+           (attestation : @AttestationRecord [ordType of Hash])
            (blk : block)
            (blkVoteCache: BlockVoteCache) (* TODO: config paramter? *) : BlockVoteCache :=
   blkVoteCache.
 
-Definition processBlock (crystallizedState : @CrystallizedState Hash)
-           (activeState : @ActiveState Hash)
+Definition processBlock (crystallizedState : @CrystallizedState [ordType of Hash])
+           (activeState : @ActiveState [ordType of Hash])
            (blk : block) (* TODO: config paramter? *) : ActiveState :=
   if all (fun x => validateAttestation crystallizedState activeState x blk) (attestations blk) then
     (* TODO: throw exception *) activeState

@@ -413,7 +413,7 @@ Qed.
 (* -----------*)
 
 Parameter Timestamp : Type.
-Parameter Hash : ordType.
+Parameter Hash : finType.
 Parameter VProof : eqType.
 
 Parameter NodeId : finType.
@@ -657,17 +657,20 @@ Definition SendAccount_eqMixin :=
 Canonical SendAccount_eqType :=
   Eval hnf in EqType SendAccount SendAccount_eqMixin.
 
+Definition Hash_ordMixin := fin_ordMixin Hash.
+Canonical Hash_finType := Eval hnf in OrdType Hash Hash_ordMixin.
+
 (* --------------*)
 (* BLOCK FORESTS *)
 (* --------------*)
 
-Definition block := @Block Hash [eqType of Transaction] VProof.
+Definition block := @Block [ordType of Hash] [eqType of Transaction] VProof.
 
 Parameter GenesisBlock : block.
 
 Definition Blockchain := seq block.
 
-Definition Blockforest := union_map Hash block.
+Definition Blockforest := union_map [ordType of Hash] block.
 
 Definition TxPool := seq Transaction.
 

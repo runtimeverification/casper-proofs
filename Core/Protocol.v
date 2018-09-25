@@ -4,14 +4,14 @@ Require Import Eqdep Relations.
 From fcsl
 Require Import pred prelude ordtype pcm finmap unionmap heap.
 From CasperToychain
-Require Import Blockforest Node Casper.
+Require Import Blockforest Casper Node.
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-Definition StateMap := union_map [ordType of NodeId] State.
+Definition StateMap := union_map NodeId_ordType State.
 
-Definition initState' s ps : StateMap := foldr (fun a m => (a \\-> Init a (ps a)) \+ m) Unit s.
+Definition initState' s ps : StateMap := foldr (fun (a : [finType of NodeId_ordType]) m => (a \\-> Init a (ps a)) \+ m) Unit s.
 
 (* Master-lemma, proving a conjunction of two mutually-necessary facts *)
 Lemma initStateValidDom s ps :
@@ -25,7 +25,8 @@ split; last first.
 - case: validUn; rewrite ?validPt ?H2//.
   move=>k; rewrite domPt inE=>/eqP Z; subst k.
   by rewrite H1; move/negP: H_ni.
-- move=>z; rewrite domUn !inE !domPt !inE.
+- move=>z.
+  rewrite (@domUn NodeId_ordType) !inE !domPt !inE.
   rewrite H1.
   case validUn.
   * by move/negP => H_v; case: H_v; rewrite validPt.
@@ -60,7 +61,7 @@ Record World :=
     consumedMsgs : PacketSoup;
   }.
 
-Definition holds (n : NodeId) (w : World) (cond : State -> Prop) :=
+Definition holds (n : NodeId_ordType) (w : World) (cond : State -> Prop) :=
   forall (st : State),
     find n (localState w) = Some st -> cond st.
 
