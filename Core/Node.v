@@ -63,20 +63,20 @@ Definition processBlock (crystallizedState : @CrystallizedState [ordType of Hash
     let: newAtts := pending_attestations activeState ++ attestations blk in
     let: recentBlockHashes := recent_block_hashes activeState in
     (* TODO: new chain *)
-    let: activeState' :=  @mkAS Hash newAtts recentBlockHashes in
+    let: activeState' :=  @mkAS [ordType of Hash] newAtts recentBlockHashes in
     (* TODO: update activeState with newBlockVoteCache, chain *)
     activeState'.
 
 (* TODO: implement *)
-Definition processUpdatedCrosslinks (crystallizedState : @CrystallizedState Hash)
-           (activeState : @ActiveState Hash)
-           (blk : block) (* TODO: config paramter? *) : seq (@CrosslinkRecord Hash) :=
+Definition processUpdatedCrosslinks (crystallizedState : @CrystallizedState [ordType of Hash])
+           (activeState : @ActiveState [ordType of Hash])
+           (blk : block) (* TODO: config paramter? *) : seq (@CrosslinkRecord [ordType of Hash]) :=
   let: crosslinks := crosslink_records crystallizedState in
   crosslinks.
 
 (* TODO: implement *)
-Definition initializeNewCycle (crystallizedState : @CrystallizedState Hash)
-           (activeState : @ActiveState Hash)
+Definition initializeNewCycle (crystallizedState : @CrystallizedState [ordType of Hash])
+           (activeState : @ActiveState [ordType of Hash])
            (blk : block) (* TODO: config paramter? *) : CrystallizedState * ActiveState :=
   let: lastStateRealc := last_state_recalc crystallizedState in
   let: lastJustifiedSlot := last_justified_slot crystallizedState in
@@ -86,48 +86,48 @@ Definition initializeNewCycle (crystallizedState : @CrystallizedState Hash)
   (crystallizedState, activeState).
 
 (* TODO: implement *)
-Definition fillRecentBlockHashes (activeState : @ActiveState Hash)
+Definition fillRecentBlockHashes (activeState : @ActiveState [ordType of Hash])
            (parentBlk : block)
            (blk : block) (* TODO: config paramter? *) : ActiveState :=
   activeState.
 
 (* TODO: implement *)
-Definition calculate_ffg_rewards (crystallizedState : @CrystallizedState Hash)
-           (activeState : @ActiveState Hash)
+Definition calculate_ffg_rewards (crystallizedState : @CrystallizedState [ordType of Hash])
+           (activeState : @ActiveState [ordType of Hash])
            (blk : block) (* TODO: config paramter? *) : seq nat :=
   [::].
 
 (* TODO: implement *)
-Definition calculate_crosslink_rewards (crystallizedState : @CrystallizedState Hash)
-           (activeState : @ActiveState Hash)
+Definition calculate_crosslink_rewards (crystallizedState : @CrystallizedState [ordType of Hash])
+           (activeState : @ActiveState [ordType of Hash])
            (blk : block) (* TODO: config paramter? *) : seq nat :=
   [::].
 
 (* TODO: implement *)
-Definition applyRewardsAndPenalties (crystallizedState : @CrystallizedState Hash)
-           (activeState : @ActiveState Hash)
-           (blk : block) (* TODO: config paramter? *) : seq (@ValidatorRecord Hash) :=
+Definition applyRewardsAndPenalties (crystallizedState : @CrystallizedState [ordType of Hash])
+           (activeState : @ActiveState [ordType of Hash])
+           (blk : block) (* TODO: config paramter? *) : seq (@ValidatorRecord [ordType of Hash]) :=
   let: validators := validators crystallizedState in
   validators.
 
 (* TODO: implement *)
-Definition readyForDynastyTransition (crystallizedState : @CrystallizedState Hash)
+Definition readyForDynastyTransition (crystallizedState : @CrystallizedState [ordType of Hash])
            (blk : block) (* TODO: config paramter? *) : bool :=
   true.
 
 (* TODO: implement *)
-Definition computeDynastyTransition (crystallizedState : @CrystallizedState Hash)
+Definition computeDynastyTransition (crystallizedState : @CrystallizedState [ordType of Hash])
            (blk : block) (* TODO: config paramter? *) : CrystallizedState :=
   crystallizedState.
 
 (* TODO: implement *)
-Definition computeCycleTransitions (crystallizedState : @CrystallizedState Hash)
-           (activeState : @ActiveState Hash)
+Definition computeCycleTransitions (crystallizedState : @CrystallizedState [ordType of Hash])
+           (activeState : @ActiveState [ordType of Hash])
            (blk : block) (* TODO: config paramter? *) : CrystallizedState * ActiveState :=
   (crystallizedState, activeState).
 
-Definition computeStateTransition (crystallizedState : @CrystallizedState Hash)
-           (activeState : @ActiveState Hash)
+Definition computeStateTransition (crystallizedState : @CrystallizedState [ordType of Hash])
+           (activeState : @ActiveState [ordType of Hash])
            (parentBlk : block)
            (blk : block) (* TODO: config paramter? *) : CrystallizedState * ActiveState :=
   let: activeState'0 := fillRecentBlockHashes activeState parentBlk blk in
