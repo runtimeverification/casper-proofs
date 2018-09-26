@@ -1,11 +1,13 @@
 From mathcomp
 Require Import all_ssreflect.
-
 From fcsl
 Require Import pred prelude ordtype pcm finmap unionmap heap.
-
 From CasperToychain
 Require Import CasperOneMessage ValidatorQuorum Blockforest.
+
+Set Implicit Arguments.
+Unset Strict Implicit.
+Unset Printing Implicit Defensive.
 
 Section ValBlock.
 
@@ -15,11 +17,11 @@ Definition genesis : Hash := #GenesisBlock.
 
 Definition sState : Type := State Validator Hash.
 
-Definition specialized_safety :=
+Definition validator_safety :=
   safety Validator Hash
-      (@Validators_2_3 Validator)
-      (@Validators_1_3 Validator)
-      (@Validators_third_quorums_intersection Validator).
+   (top_validators Validator)
+   (bot_validators Validator)
+   (@bot_top_validator_intersection Validator).
 
 Definition hash_parent_bf (bf : Blockforest) : rel Hash :=
   [rel x y | [&& y != #GenesisBlock,

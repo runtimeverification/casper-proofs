@@ -1,64 +1,119 @@
-Require Import mathcomp.ssreflect.ssreflect.
+Require Import mathcomp.ssreflect.all_ssreflect.
 From Hammer
 Require Import Hammer Reconstr.
-Require Import Arith.
-Require Import Omega.
-
-Section Div.
-
-Variable n : nat.
-
-Hypothesis Hn: n <> 0.
-
-Variables x y z : nat.
-
-Hypothesis Hy: y <> 0.
-
-Hypothesis twox : z + y <= 2 * x.
-
-Lemma one : z * n + y * n <= 2 * x * n.
-Proof.
-have ->: z * n + y * n = n * (z + y) by ring.
-have ->: (2 * x * n = n * (2 * x)) by ring.
-by Reconstr.reasy (@Coq.Arith.PeanoNat.Nat.mul_le_mono_nonneg_l, @Coq.Arith.PeanoNat.Nat.add_1_r, @Coq.Arith.PeanoNat.Nat.le_0_l) (@Coq.Init.Nat.double, @Coq.Arith.PeanoNat.Nat.b2n).
-Qed.
-
-Definition xn := (x * n) / y.
-Definition zn := (z * n) / y.
-
-Lemma two : zn + n <= 2 * xn.
-Proof.
-rewrite /zn /xn.
-have bla :=  Nat.div_mul_le (x * n) y 2 Hy.
-have Hzy: (z * n) * y / y <= y * z * n / y.
-  by Reconstr.rsimple (@Coq.Arith.PeanoNat.Nat.mul_comm, @Coq.Arith.PeanoNat.Nat.mul_shuffle0, @Coq.Init.Peano.le_n) Reconstr.Empty.
-rewrite Nat.div_mul // in Hzy.
-suff Hsuff : y * ((z * n / y) + n) <= y * (2 * (x * n / y)).
-  apply Nat.mul_le_mono_pos_l in Hsuff; auto with arith.
-  by omega.
-have Hone := one.
-ring_simplify.
-clear bla.
-have Hp1: y * (z * n / y) <= S (z * n) by Reconstr.reasy (@Coq.Arith.PeanoNat.Nat.le_succ_r, @Coq.Arith.PeanoNat.Nat.mul_div_le) Reconstr.Empty.
-have Hs: y * (z * n / y) + y * n <= S (z * n) + y * n by apply plus_le_compat_r.
-suff Hsuff: S (z * n) + y * n <= 2 * y * (x * n / y) by eapply le_trans in Hsuff; eauto.
-clear Hs Hp1.
-have Hle: 2 * (y * (x * n / y)) <= 2 * S (x * n).
-  apply Nat.mul_le_mono_pos_l; auto.
-  by Reconstr.reasy (@Coq.Arith.PeanoNat.Nat.le_succ_r, @Coq.Arith.PeanoNat.Nat.mul_div_le) Reconstr.Empty.
-Admitted.
-
-End Div.
-
-From mathcomp
-Require Import all_ssreflect.
-
-From CasperToychain
-Require Import CasperOneMessage.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
+
+Section Thirds.
+
+Variable n : nat.
+
+Lemma constr_thirds : (n %/ 3).+1 + n <= 2 * (2 * n %/ 3).+1.
+Proof.
+destruct n => //.
+set n' := n0.+1.
+have Hn': 0 < n' by [].
+move: n' Hn' => n' Hn'.
+rewrite -(@leq_pmul2l 3) //=.
+rewrite mulnDr /=.
+rewrite mulnS.
+case H3: (3 %| n').
+- rewrite muln_divCA //=.
+  rewrite divnn //= muln1.
+  rewrite mulnCA.
+  rewrite mulnS.
+  rewrite muln_divCA //=; last by rewrite dvdn_mull.
+  rewrite divnn //= muln1.
+  rewrite mulnDr /=.
+  have ->: 2 * (2 * n') = 4 * n' by rewrite mulnA.
+  have ->: 3 + n' + 3 * n' = 3 + 4 * n' by [].
+  have ->: 2 * 3 = 6 by [].
+  by apply leq_add.
+- have Hlt: n' %% 3 < 3 by rewrite ltn_mod.
+  have Hlt0: n' %% 3 > 0.
+    move: H3 Hlt.
+    rewrite /dvdn.
+    by case Hn3: (n' %% 3).
+  rewrite mulnS mulnDr.
+  rewrite {2}(divn_eq n' 3) /= mulnDr.
+  have ->: 3 * (n' %/ 3 * 3) = 3 * 3 * (n' %/ 3).
+    rewrite mulnC.
+    rewrite -(mulnC 3 (n' %/ 3)).
+    by rewrite -(mulnAC 3 (n' %/ 3)).
+  set lhs := _ + _.
+  rewrite mulnA.
+  have ->: 3 * 2 = 6 by [].
+  rewrite (divn_eq n' 3).
+  rewrite mulnDr.
+  rewrite mulnA.
+  have ->: 2 * (n' %/ 3) * 3 = 6 * (n' %/ 3) by rewrite mulnAC.
+  case Hn3: (n' %% 3 == 1).
+  * move/eqP: Hn3 => Hn3.
+    rewrite Hn3.
+    have ->: 2 * 1 = 2 by [].
+    rewrite divnDl; last by apply dvdn_mulr.
+    have ->: 2 %/ 3 = 0 by [].
+    rewrite addn0.
+    rewrite muln_divA; last by apply dvdn_mulr.
+    have ->: (6 * (6 * (n' %/ 3))) = (3 * (2 * (6 * (n' %/ 3)))) by rewrite (mulnA 3).
+    rewrite mulKn //.
+    rewrite mulnA.
+    have ->: 2 * 6 = 12 by [].
+    rewrite /lhs Hn3.
+    have ->: 3 * 3 = 9 by [].
+    rewrite muln1.
+    rewrite mulnC.
+    have ->: 9 * (n' %/ 3) + 3 = 3 + 9 * (n' %/ 3) by rewrite addnC.
+    rewrite addnA -addnC.
+    have ->: 3 + n' %/ 3 * 3 + 3 = 3 * (n' %/ 3) + 6.
+      rewrite addnC addnA.
+      have ->: 3 + 3 = 6 by [].
+      rewrite mulnC.
+      by rewrite addnC.
+    rewrite addnA.
+    rewrite -mulnDl.
+    have ->: 9 + 3 = 12 by [].
+    by rewrite addnC.
+  * move/eqP: Hn3 => Hn3.
+    case Hn3': (n' %% 3 == 2).
+    + move/eqP: Hn3' => Hn3'.
+      rewrite Hn3'.
+      have ->: 2 * 2 = 4 by [].
+      rewrite divnDl; last by apply dvdn_mulr.
+      have ->: 4 %/ 3 = 1 by [].
+      rewrite mulnDr muln1.
+      rewrite muln_divA; last by apply dvdn_mulr.
+      have ->: (6 * (6 * (n' %/ 3))) = (3 * (2 * (6 * (n' %/ 3)))) by rewrite (mulnA 3).
+      rewrite mulKn //.
+      rewrite mulnA.
+      have ->: 2 * 6 = 12 by [].
+      rewrite /lhs Hn3'.
+      have ->: 3 * 3 = 9 by [].
+      have ->: 3 * 2 = 6 by [].
+      rewrite mulnC.
+      have ->: 9 * (n' %/ 3) + 6 = 6 + 9 * (n' %/ 3) by rewrite addnC.
+      rewrite addnA -addnC.
+      have ->: 3 + n' %/ 3 * 3 + 6 = 3 * (n' %/ 3) + 9.
+        rewrite addnC addnA.
+        have ->: 6 + 3 = 9 by [].
+        rewrite mulnC.
+        by rewrite addnC.
+      rewrite addnA.
+      rewrite -mulnDl.
+      have ->: 9 + 3 = 12 by [].
+      rewrite addnA.
+      rewrite addnC.
+      have ->: 6 + 12 * (n' %/ 3) + 6 = 12 + 12 * (n' %/ 3) by rewrite addnC addnA.
+      by apply leq_add.
+    + move/eqP: Hn3' => Hn3'.
+      destruct (n' %% 3) => //.
+      destruct n1 => //.
+      by destruct n1.
+Qed.
+
+End Thirds.
 
 Section MT.
 
@@ -73,54 +128,62 @@ rewrite inE andb_idl // => Hn.
 by rewrite powersetE.
 Qed.
 
-End MT.
+Variable x y z : nat.
 
-Section Validators.
+Local Notation bot := ((x * #|T| %/ y).+1).
 
-Variable Validator : finType.
+Local Notation top := ((z * #|T| %/ y).+1).
 
-Definition more_than_one_third := (#|Validator| %/ 3).+1.
+Hypothesis constr : bot + #|T| <= 2 * top.
 
-Definition more_than_two_thirds := (2 * #|Validator| %/ 3).+1.
-
-(*
-Eval compute in (7 %/ 3).+1.
-Eval compute in (2 * 4 %/ 3).+1.
-*)
-
-Definition Validators_2_3 : {set {set Validator}} := gt_cardset Validator more_than_two_thirds.
-
-Definition Validators_1_3 : {set {set Validator}} := gt_cardset Validator more_than_one_third.
-
-(* outline:
-   - count number of elements in overlap
-   - either overlap is greater than one third or it isn't
-   - assume overlap is one third or less
-   - show that 
-   - suffices to show that number of elements in overlap is >= one third *)
-
-Lemma Validators_third_quorums_intersection :
-  forall q1 q2, q1 \in Validators_2_3 -> q2 \in Validators_2_3 ->
-  exists q3, q3 \in Validators_1_3 /\ q3 \subset q1 /\ q3 \subset q2.
+Lemma bot_top_intersection :
+  forall q1 q2, q1 \in gt_cardset top -> q2 \in gt_cardset top ->
+  exists q3, q3 \in gt_cardset bot /\ q3 \subset q1 /\ q3 \subset q2.
 Proof.
 move => q1 q2 Hq1 Hq2.
-have Hq1': #|q1| >= more_than_two_thirds by rewrite gt_cardset_in.
-have Hq2': #|q2| >= more_than_two_thirds by rewrite gt_cardset_in.
+have Hq1': #|q1| >= top by rewrite gt_cardset_in.
+have Hq2': #|q2| >= top by rewrite gt_cardset_in.
 have Hc1 := cardsC q1.
 have Hc1' := cardsCs q1.
 have Hc2 := cardsC q2.
 have Hc2' := cardsCs q2.
-rewrite /more_than_two_thirds in Hq1',Hq2'.
 exists (q1 :&: q2).
 split; last first.
   split; first by apply subsetIl.
   by apply subsetIr.
-suff Hsuff: #|q1 :&: q2| >= more_than_one_third.
+suff Hsuff: #|q1 :&: q2| >= bot.
   rewrite inE.
   apply/andP; split => //.
   by rewrite inE.
-rewrite /more_than_one_third.
 clear Hq1 Hq2.
 Admitted.
+  
+End MT.
 
-End Validators.
+Section MTThirds.
+
+Variable Validator : finType.
+
+Definition ge_bot_validators := (#|Validator| %/ 3).+1.
+Definition ge_top_validators := (2 * #|Validator| %/ 3).+1.
+
+Definition bot_validators := gt_cardset Validator ge_bot_validators.
+Definition top_validators := gt_cardset Validator ge_top_validators.
+
+Lemma Validators_constr_thirds : (1 * #|Validator| %/ 3).+1 + #|Validator| <= 2 * (2 * #|Validator| %/ 3).+1.
+Proof.
+rewrite mul1n.
+exact: constr_thirds.
+Qed.
+
+Lemma bot_top_validator_intersection :
+  forall q1 q2, q1 \in top_validators -> q2 \in top_validators ->
+  exists q3, q3 \in bot_validators /\ q3 \subset q1 /\ q3 \subset q2.
+Proof.
+move => q1 q2 Hq1 Hq2.
+have [q3 [Hq3 Hq3']] := bot_top_intersection Validators_constr_thirds Hq1 Hq2.
+exists q3; split => //.
+by rewrite mul1n in Hq3.
+Qed.
+  
+End MTThirds.
