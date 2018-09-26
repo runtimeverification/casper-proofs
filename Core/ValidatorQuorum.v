@@ -156,6 +156,9 @@ suff Hsuff: #|q1 :&: q2| >= bot.
   apply/andP; split => //.
   by rewrite inE.
 clear Hq1 Hq2.
+have Hq: 2 * ((z * #|T|) %/ y).+1 <= #|q1| + #|q2|.
+  rewrite mul2n -addnn.
+  by apply leq_add => //=.
 Admitted.
   
 End MT.
