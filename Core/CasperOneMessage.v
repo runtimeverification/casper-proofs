@@ -221,7 +221,14 @@ have He: exists q, q \in quorum_2 /\ forall n, n \in q -> n \in q1 /\ n \in q2.
 		(@quorums_property)
 		Reconstr.Empty.
 have He': exists q, q \in quorum_2 /\ forall n, n \in q -> vote_msg s n h1 v3.+1 v2 /\ vote_msg s n c3 v3.+1 v3.
-  by admit. (* proof reconstruction failed *)
+  move: He => [q [Hq Hn]].
+  exists q.
+  split => //.
+  move => n.
+  move/Hn => [Hq'1 Hq'2].
+  split.
+  - by apply Hn1.
+  - by apply Hn2.
 have Hne: h1 <> c3.
   by Reconstr.htrivial (@Hf, @Hh)
 		(@hash_ancestor_base)
@@ -231,7 +238,7 @@ clear Hn1 Hn2 Hq1 Hq2 He He' Hne.
 by Reconstr.hobvious (@Hnen)
 		Reconstr.Empty
 		(@Coq.Init.Datatypes.is_true, @slashed_dbl_vote).
-Admitted.
+Qed.
 
 Lemma l01 : forall s q1 q2 h2 v2 h1 h3 v3 c3,
   justified_link s q1 h2 v2 h1 v3.+1 ->
@@ -277,10 +284,11 @@ have Hq: exists q, q \in quorum_2 /\ forall n, n \in q -> n \in q1 /\ n \in q2
 		Reconstr.Empty.
 have Hq': exists q, q \in quorum_2 /\ forall n, n \in q -> vote_msg s n h1 v1 v2 /\ vote_msg s n c3 v3.+1 v3.
   by Reconstr.ryelles6 Reconstr.Empty (@Coq.Init.Datatypes.is_true).
-have Hn: forall n, (vote_msg s n h1 v1 v2 /\ vote_msg s n c3 v3.+1 v3) -> slashed_surround s n.  
-  by admit. (* proof reconstruction failed *)
+have Hn: forall n, (vote_msg s n h1 v1 v2 /\ vote_msg s n c3 v3.+1 v3) -> slashed_surround s n.
+  move => n [Hvm Hvm'].
+  by exists h1, c3, v1, v3.+1, v2, v3.
 by Reconstr.ryelles6 Reconstr.Empty (@Coq.Init.Datatypes.is_true).
-Admitted.
+Qed.
 
 Lemma l03 : forall s q1 q2 h2 v2 h1 h3 v1 v3 c3,
   justified_link s q1 h2 v2 h1 v1 ->
@@ -427,11 +435,20 @@ have Hn': forall n, n \in q2 -> vote_msg s n xa v1.+1 v1 by Reconstr.scrush.
 have [q Hq]: exists q, q \in quorum_2 /\ forall n, n \in q -> n \in q1 /\ n \in q2
   by Reconstr.rsimple (@quorums_property) Reconstr.Empty.
 have Hq': forall n, n \in q -> vote_msg s n x v1.+1 v1 /\ vote_msg s n xa v1.+1 v1 by Reconstr.scrush.
-have Hor: ~ one_third_slashed s by admit.
-have Hx: x <> xa by admit.
-have Hnn: forall n, vote_msg s n x v1.+1 v1 -> vote_msg s n xa v1.+1 v1 -> slashed_dbl_vote s n by admit.
+have Hx: x <> xa.
+  move => Hx.
+  rewrite Hx in Hf.
+  move: Hf => [Hf1 [Hf2 Hf3]].
+  move: Hf' => [Hf'1 [Hf'2 Hf'3]].
+  by have Hp := hash_at_most_one_parent_2 _ _ _ Hf1 Hf'1.
+have Hnn: forall n, vote_msg s n x v1.+1 v1 -> vote_msg s n xa v1.+1 v1 -> slashed_dbl_vote s n.
+  move => n Hv1 Hv2.
+  rewrite /slashed_dbl_vote.
+  exists x,xa.
+  split => //.
+  by exists v1.+1, v1,v1.
 by Reconstr.ryelles6 (@l5) (@finalized).
-Admitted.
+Qed.
 
 Lemma safety' : forall s q1 h1 v1 x q2 h2 v2 xa,
   finalized s q1 h1 v1 x ->
