@@ -401,6 +401,10 @@ by Reconstr.hcrush Reconstr.Empty
 		(@finalized).
 Qed.
 
+Lemma strong_ind_spec : 
+forall (k : nat) (T : Type) (P : nat -> T -> Prop), (forall (v1 : nat) (h1 : T) , (forall (v1a : nat) (h1a : T), v1a - k < v1 - k -> P v1a h1a) -> P v1 h1) -> forall v1 h1, P v1 h1.
+Admitted.
+
 Lemma non_equal_case_ind : forall s h1 v1 q2 h2 v2 xa,
   justified s h1 v1 ->
   finalized s q2 h2 v2 xa ->
@@ -410,14 +414,16 @@ Lemma non_equal_case_ind : forall s h1 v1 q2 h2 v2 xa,
   one_third_slashed s.
 Proof.
 move => s h1 v1 q2 h2 v2 xa Hj Hf Hh Hh' Hv.
+pose P (v1 : nat) (h1 : Hash) := justified s h1 v1 -> finalized s q2 h2 v2 xa -> h2 </~* h1 -> h1 <> h2 -> v2 < v1 -> one_third_slashed s.
+suff Hsuff: forall v1 h1, P v1 h1 by apply: Hsuff; eauto.
+apply (@strong_ind_spec v2).
 clear v1 h1 Hj Hh Hh' Hv Hf.
-suff Hsuff:
-  forall v1 h1,(forall v1a h1, v1a - v2 < v1 - v2 -> justified s h1 v1a ->
-     finalized s q2 h2 v2 xa -> h2 </~* h1 -> h1 <> h2 -> v2 < v1a -> one_third_slashed s) ->
-  justified s h1 v1 -> finalized s q2 h2 v2 xa -> h2 </~* h1 -> h1 <> h2 -> v2 < v1 -> one_third_slashed s by admit.
 move => v1 h1 IH Hj Hf Hh Hh' Hv.
 have Hor: (h1 = genesis /\ v1 = 0) \/
-          (exists q parent pre, justified s parent pre /\ justified_link s q parent pre h1 v1) by admit.
+          (exists q parent pre, justified s parent pre /\ justified_link s q parent pre h1 v1).
+  inversion Hj; first by left.
+  right.
+  by exists q, parent, pre.
 case: Hor => Hor; first by move: Hor => [H1 H2]; rewrite H2 in Hv.
 have Ho: one_third_slashed s \/ ~ one_third_slashed s by apply classic.
 case: Ho => // Ho.
@@ -454,7 +460,7 @@ case Hlt: (v2 < pre); last first.
     move => Hlt.
     by have Hl00 := l00 Hj2 Hf Hv Hh Hlt.
 by apply: IH'.
-Admitted.
+Qed.
 
 Lemma non_equal_case : forall s q1 q2 h1 v1 x h2 v2 xa,
   finalized s q1 h1 v1 x ->
