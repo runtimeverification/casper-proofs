@@ -7,6 +7,12 @@ Require Import Hammer Reconstr.
 From CasperToychain
 Require Import StrongInductionLtn.
 
+Require Import Classical.
+
+Set Implicit Arguments.
+Unset Strict Implicit.
+Unset Printing Implicit Defensive.
+
 Section CasperOneMessage.
 
 Variable Validator : finType.
@@ -24,7 +30,7 @@ Lemma quorums_property :
  exists q3, q3 \in quorum_2 /\ forall n, n \in q3 -> n \in q1 /\ n \in q2.
 Proof.
 move => q1 q2 Hq1 Hq2.
-have [q3 [Hq3 [Hq13 Hq23]]] := (quorums_intersection _ _ Hq1 Hq2).
+have [q3 [Hq3 [Hq13 Hq23]]] := (quorums_intersection Hq1 Hq2).
 exists q3.
 split => //.
 move => n Hn.
@@ -403,14 +409,51 @@ Lemma non_equal_case_ind : forall s h1 v1 q2 h2 v2 xa,
   v1 > v2 ->
   one_third_slashed s.
 Proof.
-move => s h1 v1 q2 h2 v2.
-have Hn : v1 - v2 = v1 - v2 by [].
- move: Hn.
- set Hnn := {1}(v1 - v2).
-move: Hnn s h1 q2 h2.
-elim/strong_induction.
-move => m IH s h1 q2 h2 Hm xa Hj Hf.
-have Hs: one_third_slashed s \/ ~ one_third_slashed s by admit.
+move => s h1 v1 q2 h2 v2 xa Hj Hf Hh Hh' Hv.
+clear v1 h1 Hj Hh Hh' Hv Hf.
+suff Hsuff:
+  forall v1 h1,(forall v1a h1, v1a - v2 < v1 - v2 -> justified s h1 v1a ->
+     finalized s q2 h2 v2 xa -> h2 </~* h1 -> h1 <> h2 -> v2 < v1a -> one_third_slashed s) ->
+  justified s h1 v1 -> finalized s q2 h2 v2 xa -> h2 </~* h1 -> h1 <> h2 -> v2 < v1 -> one_third_slashed s by admit.
+move => v1 h1 IH Hj Hf Hh Hh' Hv.
+have Hor: (h1 = genesis /\ v1 = 0) \/
+          (exists q parent pre, justified s parent pre /\ justified_link s q parent pre h1 v1) by admit.
+case: Hor => Hor; first by move: Hor => [H1 H2]; rewrite H2 in Hv.
+have Ho: one_third_slashed s \/ ~ one_third_slashed s by apply classic.
+case: Ho => // Ho.
+move: Hor => [q [parent [pre [Hj1 Hj2]]]].
+have IH' := IH pre parent _ Hj1 Hf.
+have Hp: h2 </~* parent.
+  have Hm := justified_means_ancestor Hj2.
+  by apply: hash_ancestor_other; eauto.
+have Hpe: parent <> h2.
+  move => He.
+  case: Hp.
+  rewrite He.
+  by apply/connect0.
+have Hplt: pre - v2 < v1 - v2.
+  apply l0 in Hj2.
+  by apply ltn_sub2r.
+case Hlt: (v2 < pre); last first.  
+  rewrite ltn_neqAle /= in Hlt.
+  move/negP/negP: Hlt.
+  rewrite negb_and.
+  move/orP; case.
+  * move/negP/eqP => Hvv.
+    case Hv2p: (v2 == pre); last by rewrite Hv2p /= in Hvv.
+    move/eqP: Hv2p => Hv2p {Hvv}.
+    by have Hl5 := l5 Hf Ho Hj1 Hpe.
+  * rewrite leq_eqVlt.
+    rewrite negb_or.
+    rewrite -leqNgt leq_eqVlt.
+    move/andP => [Hnq Hpp].
+    move/eqP: Hnq => Hnq.
+    case/orP: Hpp.
+      move/eqP => Hpp.
+      by apply sym_eq in Hpp.
+    move => Hlt.
+    by have Hl00 := l00 Hj2 Hf Hv Hh Hlt.
+by apply: IH'.
 Admitted.
 
 Lemma non_equal_case : forall s q1 q2 h1 v1 x h2 v2 xa,
