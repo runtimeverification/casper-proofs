@@ -2,7 +2,10 @@ From mathcomp
 Require Import all_ssreflect.
 
 From Hammer
-Require Import Reconstr.
+Require Import Hammer Reconstr.
+
+From CasperToychain
+Require Import StrongInductionLtn.
 
 Section CasperOneMessage.
 
@@ -400,12 +403,14 @@ Lemma non_equal_case_ind : forall s h1 v1 q2 h2 v2 xa,
   v1 > v2 ->
   one_third_slashed s.
 Proof.
-move => s h1 v1 q2 h2 v2 xa.
-move => Hj Hf Hh Hn Hv.
-elim: v1 Hj Hv Hf => //.
-move => n IH Hj Hv Hf.
+move => s h1 v1 q2 h2 v2.
+have Hn : v1 - v2 = v1 - v2 by [].
+ move: Hn.
+ set Hnn := {1}(v1 - v2).
+move: Hnn s h1 q2 h2.
+elim/strong_induction.
+move => m IH s h1 q2 h2 Hm xa Hj Hf.
 have Hs: one_third_slashed s \/ ~ one_third_slashed s by admit.
-case: Hs => Hs //.
 Admitted.
 
 Lemma non_equal_case : forall s q1 q2 h1 v1 x h2 v2 xa,
