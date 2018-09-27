@@ -2,7 +2,7 @@ From mathcomp
 Require Import all_ssreflect.
 
 From Hammer
-Require Import Hammer Reconstr.
+Require Import Reconstr.
 
 From CasperToychain
 Require Import StrongInductionLtn.
@@ -401,10 +401,6 @@ by Reconstr.hcrush Reconstr.Empty
 		(@finalized).
 Qed.
 
-Lemma strong_ind_spec : 
-forall (k : nat) (T : Type) (P : nat -> T -> Prop), (forall (v1 : nat) (h1 : T) , (forall (v1a : nat) (h1a : T), v1a - k < v1 - k -> P v1a h1a) -> P v1 h1) -> forall v1 h1, P v1 h1.
-Admitted.
-
 Lemma non_equal_case_ind : forall s h1 v1 q2 h2 v2 xa,
   justified s h1 v1 ->
   finalized s q2 h2 v2 xa ->
@@ -416,7 +412,7 @@ Proof.
 move => s h1 v1 q2 h2 v2 xa Hj Hf Hh Hh' Hv.
 pose P (v1 : nat) (h1 : Hash) := justified s h1 v1 -> finalized s q2 h2 v2 xa -> h2 </~* h1 -> h1 <> h2 -> v2 < v1 -> one_third_slashed s.
 suff Hsuff: forall v1 h1, P v1 h1 by apply: Hsuff; eauto.
-apply (@strong_ind_spec v2).
+apply (@strong_induction_sub v2).
 clear v1 h1 Hj Hh Hh' Hv Hf.
 move => v1 h1 IH Hj Hf Hh Hh' Hv.
 have Hor: (h1 = genesis /\ v1 = 0) \/
@@ -428,7 +424,7 @@ case: Hor => Hor; first by move: Hor => [H1 H2]; rewrite H2 in Hv.
 have Ho: one_third_slashed s \/ ~ one_third_slashed s by apply classic.
 case: Ho => // Ho.
 move: Hor => [q [parent [pre [Hj1 Hj2]]]].
-have IH' := IH pre parent _ Hj1 Hf.
+have IH' := IH pre parent _ _ Hj1 Hf.
 have Hp: h2 </~* parent.
   have Hm := justified_means_ancestor Hj2.
   by apply: hash_ancestor_other; eauto.
@@ -494,7 +490,7 @@ have Hx: x <> xa.
   rewrite Hx in Hf.
   move: Hf => [Hf1 [Hf2 Hf3]].
   move: Hf' => [Hf'1 [Hf'2 Hf'3]].
-  by have Hp := hash_at_most_one_parent_2 _ _ _ Hf1 Hf'1.
+  by have Hp := hash_at_most_one_parent_2 Hf1 Hf'1.
 have Hnn: forall n, vote_msg s n x v1.+1 v1 -> vote_msg s n xa v1.+1 v1 -> slashed_dbl_vote s n.
   move => n Hv1 Hv2.
   rewrite /slashed_dbl_vote.

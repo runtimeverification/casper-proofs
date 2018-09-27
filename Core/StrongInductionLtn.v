@@ -1,7 +1,7 @@
 From mathcomp
 Require Import all_ssreflect.
 
-Section StrongInduction.
+Section StrongInductionLtn.
 
   Variable P:nat -> Prop.
 
@@ -47,9 +47,34 @@ Section StrongInduction.
       by apply: leq_trans; eauto.
   Qed.
 
-  Theorem strong_induction : forall n, P n.
+  Theorem strong_induction_ltn : forall n, P n.
   Proof.
     eauto using strong_induction_all.
   Qed.
 
-End StrongInduction.
+End StrongInductionLtn.
+
+Section StrongInductionSub.
+
+  Variable k : nat.
+
+  Variable T : Type.
+
+  Variable P : nat -> T -> Prop.
+
+  Hypothesis IH : forall (v1 : nat) (h1 : T), (forall (v1a : nat) (h1a : T), k < v1a -> v1a - k < v1 - k -> P v1a h1a) -> P v1 h1.
+
+  Theorem strong_induction_sub : forall n t, P n t.
+  Proof.
+    elim/strong_induction_ltn.
+    move => m IH' t.
+    apply IH.
+    move => v1a h1a Hlt Hlt'.
+    apply: IH'.
+    rewrite ltn_subRL in Hlt'.
+    rewrite subnKC in Hlt' => //.
+    rewrite leq_eqVlt.
+    by apply/orP; right.
+  Qed.
+
+End StrongInductionSub.

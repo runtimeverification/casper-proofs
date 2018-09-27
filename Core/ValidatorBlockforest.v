@@ -18,7 +18,7 @@ Definition genesis : Hash := #GenesisBlock.
 Definition sState : Type := State Validator Hash.
 
 Definition validator_safety :=
-  safety Validator Hash
+  @safety Validator Hash
    (top_validators Validator)
    (bot_validators Validator)
    (@bot_top_validator_intersection Validator).
