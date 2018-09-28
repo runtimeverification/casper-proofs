@@ -78,7 +78,7 @@ Definition processUpdatedCrosslinks (crystallizedState : @CrystallizedState [ord
 Definition initializeNewCycle (crystallizedState : @CrystallizedState [ordType of Hash])
            (activeState : @ActiveState [ordType of Hash])
            (blk : block) (* TODO: config paramter? *) : CrystallizedState * ActiveState :=
-  let: lastStateRealc := last_state_recalc crystallizedState in
+  let: lastStateRecalc := last_state_recalc crystallizedState in
   let: lastJustifiedSlot := last_justified_slot crystallizedState in
   let: lastFinalizedSlot := last_finalized_slot crystallizedState in
   let: justifiedStreak := justified_streak crystallizedState in
