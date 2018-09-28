@@ -14,6 +14,7 @@ Canonical NodeId_ordType := Eval hnf in OrdType NodeId NodeId_ordMixin.
 
 (* Parameter of type Hash *)
 Parameter dummyHash : Hash.
+Parameter dummySAC : ShardAndCommittee.
 
 Parameter BlockVoteCache : Type.
 
@@ -31,6 +32,13 @@ Definition getBitfieldLength (bitCount : nat) : nat :=
 
 (* TODO: implement *)
 Definition checkLastBits (attBitfield : seq byte) (lastBit : nat) : bool := true.
+
+(* TODO: implement *)
+Definition getNewShuffling (seed : Hash)
+           (validators : seq (@ValidatorRecord [ordType of Hash]))
+           (dynasty : nat) (crosslinkingStartShard : nat) : seq (seq ShardAndCommittee) :=
+  (* TODO: config parameter? *)
+  [::].
 
 Definition validateAttestation (crystallizedState : @CrystallizedState [ordType of Hash])
            (activeState : @ActiveState [ordType of Hash])
@@ -115,10 +123,32 @@ Definition readyForDynastyTransition (crystallizedState : @CrystallizedState [or
            (blk : block) (* TODO: config paramter? *) : bool :=
   true.
 
-(* TODO: implement *)
 Definition computeDynastyTransition (crystallizedState : @CrystallizedState [ordType of Hash])
-           (blk : block) (* TODO: config paramter? *) : CrystallizedState :=
-  crystallizedState.
+           (blk : block)
+           (shardCount : nat)
+           (cycleLength : nat) (* TODO: config paramter? *) : CrystallizedState :=
+  let: newDynasty := current_dynasty crystallizedState + 1 in
+  let: lastShardSeq := last [::] (shard_and_committee_for_slots crystallizedState) in
+  let: nextShard := last dummySAC lastShardSeq in
+  let: nextStartShard := shard_id_sac nextShard %/ shardCount in
+  let: validators := validators crystallizedState in
+  let: newShuffling := getNewShuffling (parent_hash blk) validators newDynasty nextStartShard in
+  let: subSACForSlots := take cycleLength (shard_and_committee_for_slots crystallizedState) in
+  let: newSACForSlots := subSACForSlots ++ newShuffling in
+  (* TODO: abstract this out *)
+  let: crystallizedState' :=  @mkCS [ordType of Hash] validators
+                                    (last_state_recalc crystallizedState)
+                                    newSACForSlots
+                                    (last_justified_slot crystallizedState)
+                                    (justified_streak crystallizedState)
+                                    (last_finalized_slot crystallizedState)
+                                    newDynasty
+                                    (crosslinking_start_shard crystallizedState)
+                                    (crosslink_records crystallizedState)
+                                    (total_deposits crystallizedState)
+                                    (dynasty_seed crystallizedState)
+                                    (dynasty_start crystallizedState) in
+  crystallizedState'.
 
 (* TODO: implement *)
 (* TODO: how do we emulate the while loop? How can Coq know a parameter is decreasing? *)
