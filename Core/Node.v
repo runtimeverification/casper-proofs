@@ -15,6 +15,7 @@ Canonical NodeId_ordType := Eval hnf in OrdType NodeId NodeId_ordMixin.
 (* Parameter of type Hash *)
 Parameter dummyHash : Hash.
 Parameter dummySAC : ShardAndCommittee.
+Parameter dummyCR : @CrosslinkRecord [ordType of Hash].
 
 Parameter BlockVoteCache : Type.
 
@@ -118,10 +119,19 @@ Definition applyRewardsAndPenalties (crystallizedState : @CrystallizedState [ord
   let: validators := validators crystallizedState in
   validators.
 
-(* TODO: implement *)
 Definition readyForDynastyTransition (crystallizedState : @CrystallizedState [ordType of Hash])
-           (blk : block) (* TODO: config paramter? *) : bool :=
-  true.
+           (blk : block)
+           (minDynastyLength : nat) (* TODO: config paramter? *) : bool :=
+  let: dynastyStart := dynasty_start crystallizedState in
+  let: slotsSinceLastDynastyChange := (slot_number blk) - dynastyStart in
+  if slotsSinceLastDynastyChange < minDynastyLength then false else
+    if (last_finalized_slot crystallizedState) <= dynastyStart then false else
+      let: flatSACForSlots := flatten (shard_and_committee_for_slots crystallizedState) in
+      let: requiredShards := undup (map shard_id_sac flatSACForSlots) in
+      let: crosslinkRecords := crosslink_records crystallizedState in
+      let: indices := iota 0 (size crosslinkRecords) in
+      let: newList := filter (fun x => x \in requiredShards) indices in
+      all (fun x => dynastyStart < slot (nth dummyCR crosslinkRecords x)) indices.
 
 Definition computeDynastyTransition (crystallizedState : @CrystallizedState [ordType of Hash])
            (blk : block)
