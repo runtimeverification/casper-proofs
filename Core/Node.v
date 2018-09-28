@@ -121,9 +121,11 @@ Definition computeDynastyTransition (crystallizedState : @CrystallizedState [ord
   crystallizedState.
 
 (* TODO: implement *)
+(* TODO: how do we emulate the while loop? How can Coq know a parameter is decreasing? *)
 Definition computeCycleTransitions (crystallizedState : @CrystallizedState [ordType of Hash])
            (activeState : @ActiveState [ordType of Hash])
-           (blk : block) (* TODO: config paramter? *) : CrystallizedState * ActiveState :=
+           (blk : block)
+           (cycleLength : nat) (* TODO: config paramter? *) : CrystallizedState * ActiveState :=
   (crystallizedState, activeState).
 
 Definition computeStateTransition (crystallizedState : @CrystallizedState [ordType of Hash])
