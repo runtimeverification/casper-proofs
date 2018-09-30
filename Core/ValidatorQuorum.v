@@ -1,6 +1,4 @@
 Require Import mathcomp.ssreflect.all_ssreflect.
-From Hammer
-Require Import Hammer Reconstr.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -32,10 +30,7 @@ case H3: (3 %| n').
   have ->: 2 * 3 = 6 by [].
   by apply leq_add.
 - have Hlt: n' %% 3 < 3 by rewrite ltn_mod.
-  have Hlt0: n' %% 3 > 0.
-    move: H3 Hlt.
-    rewrite /dvdn.
-    by case Hn3: (n' %% 3).
+  have Hlt0: n' %% 3 > 0 by move: H3 Hlt; rewrite /dvdn; case Hn3: (n' %% 3).
   rewrite mulnS mulnDr.
   rewrite {2}(divn_eq n' 3) /= mulnDr.
   have ->: 3 * (n' %/ 3 * 3) = 3 * 3 * (n' %/ 3).
@@ -157,17 +152,10 @@ move => q1 q2 Hq1 Hq2.
 have Hq1': #|q1| >= top by rewrite gt_cardset_in.
 have Hq2': #|q2| >= top by rewrite gt_cardset_in.
 exists (q1 :&: q2).
-split; last first.
-  split; first by apply subsetIl.
-  by apply subsetIr.
-suff Hsuff: #|q1 :&: q2| >= bot.
-  rewrite inE.
-  apply/andP; split => //.
-  by rewrite inE.
+split; last by split; [apply subsetIl|apply subsetIr].
+suff Hsuff: #|q1 :&: q2| >= bot by rewrite inE; apply/andP; split => //; rewrite inE.
 clear Hq1 Hq2.
-have Hq: 2 * ((z * #|T|) %/ y).+1 <= #|q1| + #|q2|.
-  rewrite mul2n -addnn.
-  by apply leq_add => //=.
+have Hq: 2 * ((z * #|T|) %/ y).+1 <= #|q1| + #|q2| by rewrite mul2n -addnn; apply leq_add => //=.
 have Hle: ((x * #|T|) %/ y).+1 + #|T| <= #|q1| + #|q2| by eapply leq_trans; eauto.
 have Hlt: (x * #|T|) %/ y + #|T| < #|q1| + #|q2| by [].
 clear Hle Hq Hq1' Hq2'.
@@ -185,10 +173,7 @@ case Hc: ([disjoint q1 & q2]).
   eapply leq_ltn_trans in Hn; eauto.
   by apply leq_addl.
 rewrite -setI_eq0 in Hc.
-have Hlt'': 0 < #|q1 :&: q2|.
-  rewrite card_gt0.
-  apply/eqP.
-  by move/eqP: Hc.
+have Hlt'': 0 < #|q1 :&: q2| by rewrite card_gt0; apply/eqP; move/eqP: Hc.
 clear Hc.
 have Hltt: #|q1| + #|q2| - #|q1 :&: q2| < #|q1| + #|q2|.  
   move: Hlt' Hlt''.
@@ -196,38 +181,29 @@ have Hltt: #|q1| + #|q2| - #|q1 :&: q2| < #|q1| + #|q2|.
   set n2 := #|_ :&: _|.
   move: n1 n2.
   move => n1 n2 Hltn1 Htln2.
-  case Heq: (n1 == n2).
-    move/eqP: Heq =>->.
-    by rewrite subnn.
+  case Heq: (n1 == n2); first by move/eqP: Heq =>->; rewrite subnn.
   move/orP: (leq_total n1 n2).
-  case => Hn12.
-  * move: Hn12.
-    rewrite -subn_eq0.
-    by move/eqP =>->.
-  * move: Hn12.
-    rewrite leq_eqVlt.
-    move/orP.
-    case; first by rewrite eq_sym Heq.
-    clear Heq Hltn1.
-    move: n1 n2 Htln2.
-    elim => //=.
-    move => n0 IH.
-    case => //=.
-    case => //=.
-    + move => Hlt Hlt'.
-      by rewrite subnS /=.
-    + move => n1 Hlt Hltn.
-      have Hlt0: 0 < n1.+1 by [].
-      have Hlt1: n1.+1 < n0.
-        rewrite -(ltn_add2l 1) /=.
-        by rewrite 2!add1n.
-      have IH' := IH n1.+1 Hlt0 Hlt1.
-      rewrite subSn //=.
-      have ->: n0.+1 = 1 + n0 by rewrite add1n.
-      have ->: (n0 - n1.+2).+1 = 1 + (n0 - n1.+2) by rewrite add1n.
-      rewrite ltn_add2l.
-      suff Hsuff: n0 - n1.+2 <= n0 - n1.+1 by eapply leq_ltn_trans in Hsuff; eauto.
-      by apply leq_sub2l.
+  case => Hn12; first by move: Hn12; rewrite -subn_eq0; move/eqP =>->.
+  move: Hn12.
+  rewrite leq_eqVlt.
+  move/orP.
+  case; first by rewrite eq_sym Heq.
+  clear Heq Hltn1.
+  move: n1 n2 Htln2.
+  elim => //=.
+  move => n0 IH.
+  case => //=.
+  case => //=; first by move => Hlt Hlt'; rewrite subnS.
+  move => n1 Hlt Hltn.
+  have Hlt0: 0 < n1.+1 by [].
+  have Hlt1: n1.+1 < n0 by rewrite -(ltn_add2l 1) /=; rewrite 2!add1n.
+  have IH' := IH n1.+1 Hlt0 Hlt1.
+  rewrite subSn //=.
+  have ->: n0.+1 = 1 + n0 by rewrite add1n.
+  have ->: (n0 - n1.+2).+1 = 1 + (n0 - n1.+2) by rewrite add1n.
+  rewrite ltn_add2l.
+  suff Hsuff: n0 - n1.+2 <= n0 - n1.+1 by eapply leq_ltn_trans in Hsuff; eauto.
+  by apply leq_sub2l.
 move/(@ltn_sub2r #|q1 :|: q2|).
 rewrite {1}cardsU => Hlt.
 move/Hlt: Hltt.
@@ -238,17 +214,12 @@ set k := #|_| - _.
 set l := #|_|.
 move: k l.
 clear Hlt.
-elim => //=.
-- move => l.
-  by rewrite addn0.
-- move => k IH l Hnk.
-  apply: IH.
-  move: Hnk.
-  rewrite addnS.
-  set m := n + k.
-  move: m.
-  move => m.
-  by move/ltnW.
+elim => //=; first by move => l; rewrite addn0.
+move => k IH l Hnk.
+apply: IH.
+move: Hnk.
+rewrite addnS.
+by move/ltnW.
 Qed.
   
 End MT.
