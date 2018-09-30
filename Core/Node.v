@@ -168,6 +168,7 @@ Definition computeCycleTransitions (crystallizedState : @CrystallizedState [ordT
            (cycleLength : nat) (* TODO: config paramter? *) : CrystallizedState * ActiveState :=
   (crystallizedState, activeState).
 
+(*
 Definition computeStateTransition (crystallizedState : @CrystallizedState [ordType of Hash])
            (activeState : @ActiveState [ordType of Hash])
            (parentBlk : block)
@@ -176,6 +177,7 @@ Definition computeStateTransition (crystallizedState : @CrystallizedState [ordTy
   let: activeState'1 := processBlock crystallizedState activeState blk in
   let: (crystallizedState', activeState'2) := computeCycleTransitions crystallizedState activeState blk in
   (crystallizedState', activeState'2).
+*)
 
 (* -------------------- *)
 (* OLD CASPER FUNCTIONS *)

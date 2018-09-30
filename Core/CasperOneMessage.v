@@ -62,13 +62,13 @@ Notation "h1 <~* h2" := (hash_ancestor h1 h2) (at level 50).
 
 Notation "h1 </~* h2" := (~ hash_ancestor h1 h2) (at level 50).
 
-Definition hash_ancestor_base : forall h1 h2,
+Lemma hash_ancestor_base : forall h1 h2,
   h1 <~ h2 -> h1 <~* h2.
 Proof.
 by apply/connect1.
 Qed.
 
-Definition hash_ancestor_step : forall h1 h2 h3,
+Lemma hash_ancestor_step : forall h1 h2 h3,
  h1 <~ h2 -> h2 <~* h3 -> h1 <~* h3.
 Proof.
 move => h1 h2 h3.
