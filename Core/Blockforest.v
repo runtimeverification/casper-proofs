@@ -19,6 +19,31 @@ Inductive Sender :=
 | NullSender : Sender
 | AddrSender : Address -> Sender.
 
+Definition eq_Sender (s s' : Sender) :=
+  match s, s' with
+  | NullSender, NullSender => true
+  | NullSender, _ => false
+  | AddrSender a1, AddrSender a2 => a1 == a2
+  | AddrSender _, _ => false
+  end.
+
+Lemma eq_SenderP : Equality.axiom eq_Sender.
+Proof.
+case => [|a1]; case => [|a2].
+- by constructor 1.
+- by constructor 2.
+- by constructor 2.
+- rewrite /eq_Sender /=.
+  case H1: (a1 == a2); [move/eqP: H1=>?; subst a2| constructor 2];
+    last by case=>?; subst a2;rewrite eqxx in H1.
+  by constructor 1.
+Qed.
+
+Definition Sender_eqMixin :=
+  Eval hnf in EqMixin eq_SenderP.
+Canonical Sender_eqType :=
+  Eval hnf in EqType Sender Sender_eqMixin.
+
 Record AttestationRecord {Hash : ordType} :=
   mkAR {
     slot_ar : nat;
@@ -124,6 +149,36 @@ Record CrystallizedState {Hash : ordType} :=
     (* Last epoch the crosslink seed was reset *)
     dynasty_start: nat;
   }.
+
+Definition eq_validator_record {H : ordType} (vr vr' : @ValidatorRecord H) :=
+  match vr, vr' with
+  | mkVR pk ws wa rc b sd ed, mkVR pk' ws' wa' rc' b' sd' ed' =>
+    [&& pk == pk', ws == ws', wa == wa', rc == rc', b == b', sd == sd' & ed == ed']
+  end.
+
+Lemma eq_validator_recordP {H : ordType} : Equality.axiom (@eq_validator_record H).
+case=> pk ws wa rc b sd ed; case=> pk' ws' wa' rc' b' sd' ed'; rewrite /eq_validator_record/=.
+case H2: (pk == pk'); [move/eqP: H2=>?; subst pk'| constructor 2];
+  last by case=>?; subst pk';rewrite eqxx in H2.
+case H3: (ws == ws'); [move/eqP: H3=>?; subst ws'| constructor 2];
+  last by case=>?; subst ws';rewrite eqxx in H3.
+case H4: (wa == wa'); [move/eqP: H4=>?; subst wa'| constructor 2];
+  last by case=>?; subst wa';rewrite eqxx in H4.
+case H5: (rc == rc'); [move/eqP: H5=>?; subst rc'| constructor 2];
+  last by case=>?; subst rc';rewrite eqxx in H5.
+case H6: (b == b'); [move/eqP: H6=>?; subst b'| constructor 2];
+  last by case=>?; subst b';rewrite eqxx in H6.
+case H7: (sd == sd'); [move/eqP: H7=>?; subst sd'| constructor 2];
+  last by case=>?; subst sd';rewrite eqxx in H7.
+case H8: (ed == ed'); [move/eqP: H8=>?; subst ed'| constructor 2];
+  last by case=>?; subst ed';rewrite eqxx in H8.
+by constructor 1.
+Qed.
+
+Canonical ValidatorRecord_eqMixin {H : ordType} :=
+  Eval hnf in EqMixin (@eq_validator_recordP H).
+Canonical ValidatorRecord_eqType {H : ordType} :=
+  Eval hnf in EqType (@ValidatorRecord H) (@ValidatorRecord_eqMixin H).
 
 Definition eq_attestation_record {H : ordType} (ar ar' : @AttestationRecord H) :=
   match ar, ar' with
@@ -475,31 +530,6 @@ Record SendAccount :=
    send_account_addr : Sender;
    send_account_wei : Wei
  }.
-
-Definition eq_Sender (s s' : Sender) :=
-  match s, s' with
-  | NullSender, NullSender => true
-  | NullSender, _ => false
-  | AddrSender a1, AddrSender a2 => a1 == a2
-  | AddrSender _, _ => false
-  end.
-
-Lemma eq_SenderP : Equality.axiom eq_Sender.
-Proof.
-case => [|a1]; case => [|a2].
-- by constructor 1.
-- by constructor 2.
-- by constructor 2.
-- rewrite /eq_Sender /=.
-  case H1: (a1 == a2); [move/eqP: H1=>?; subst a2| constructor 2];
-    last by case=>?; subst a2;rewrite eqxx in H1.
-  by constructor 1.
-Qed.
-
-Definition Sender_eqMixin :=
-  Eval hnf in EqMixin eq_SenderP.
-Canonical Sender_eqType :=
-  Eval hnf in EqType Sender Sender_eqMixin.
 
 Definition eq_Deposit (d d' : Deposit) :=
   match d, d' with
