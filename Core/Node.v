@@ -113,23 +113,32 @@ Definition fillRecentBlockHashes (activeState : @ActiveState [ordType of Hash])
   activeState.
 
 (* TODO: implement *)
-Definition calculate_ffg_rewards (crystallizedState : @CrystallizedState [ordType of Hash])
+Definition calculateFfgRewards (crystallizedState : @CrystallizedState [ordType of Hash])
            (activeState : @ActiveState [ordType of Hash])
            (blk : block) (* TODO: config paramter? *) : seq nat :=
   [::].
 
 (* TODO: implement *)
-Definition calculate_crosslink_rewards (crystallizedState : @CrystallizedState [ordType of Hash])
+Definition calculateCrosslinkRewards (crystallizedState : @CrystallizedState [ordType of Hash])
            (activeState : @ActiveState [ordType of Hash])
            (blk : block) (* TODO: config paramter? *) : seq nat :=
   [::].
 
-(* TODO: implement *)
 Definition applyRewardsAndPenalties (crystallizedState : @CrystallizedState [ordType of Hash])
            (activeState : @ActiveState [ordType of Hash])
            (blk : block) (* TODO: config paramter? *) : seq (@ValidatorRecord [ordType of Hash]) :=
   let: validators := validators crystallizedState in
-  validators.
+  let: ffgRewards := calculateFfgRewards crystallizedState activeState blk in
+  let: crosslinkRewards := calculateCrosslinkRewards crystallizedState activeState blk in
+  let: activeValidatorIndices := getActiveValidatorIndices (current_dynasty crystallizedState) validators in
+  map
+    (fun x =>
+       let: ind := index x validators in
+       if ind \in activeValidatorIndices
+       then {[ x with balance :=
+                 max 0 (balance x + nth 0 ffgRewards ind + nth 0 crosslinkRewards ind) ]}
+       else id x)
+    validators.
 
 Definition readyForDynastyTransition (crystallizedState : @CrystallizedState [ordType of Hash])
            (blk : block)
