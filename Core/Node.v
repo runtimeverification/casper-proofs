@@ -145,20 +145,10 @@ Definition computeDynastyTransition (crystallizedState : @CrystallizedState [ord
   let: newShuffling := getNewShuffling (parent_hash blk) validators newDynasty nextStartShard in
   let: subSACForSlots := take cycleLength (shard_and_committee_for_slots crystallizedState) in
   let: newSACForSlots := subSACForSlots ++ newShuffling in
-  (* TODO: abstract this out *)
-  let: crystallizedState' :=  @mkCS [ordType of Hash] validators
-                                    (last_state_recalc crystallizedState)
-                                    newSACForSlots
-                                    (last_justified_slot crystallizedState)
-                                    (justified_streak crystallizedState)
-                                    (last_finalized_slot crystallizedState)
-                                    newDynasty
-                                    (crosslinking_start_shard crystallizedState)
-                                    (crosslink_records crystallizedState)
-                                    (total_deposits crystallizedState)
-                                    (dynasty_seed crystallizedState)
-                                    (dynasty_start crystallizedState) in
-  crystallizedState'.
+  let: crystallizedState'0 := {[ crystallizedState with validators := validators ]} in
+  let: crystallizedState'1 := {[ crystallizedState with shard_and_committee_for_slots := newSACForSlots ]} in
+  let: crystallizedState'2 := {[ crystallizedState with current_dynasty := newDynasty ]} in
+  crystallizedState'2.
 
 (* TODO: implement *)
 (* TODO: how do we emulate the while loop? How can Coq know a parameter is decreasing? *)
