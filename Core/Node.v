@@ -118,11 +118,12 @@ Definition calculateFfgRewards (crystallizedState : @CrystallizedState [ordType 
            (blk : block) (* TODO: config paramter? *) : seq nat :=
   [::].
 
-(* TODO: implement *)
+(* TODO: unimplemented in beacon_chain repo *)
 Definition calculateCrosslinkRewards (crystallizedState : @CrystallizedState [ordType of Hash])
            (activeState : @ActiveState [ordType of Hash])
            (blk : block) (* TODO: config paramter? *) : seq nat :=
-  [::].
+  let: validators := validators crystallizedState in
+  map (fun _ => 0) validators.
 
 Definition applyRewardsAndPenalties (crystallizedState : @CrystallizedState [ordType of Hash])
            (activeState : @ActiveState [ordType of Hash])
