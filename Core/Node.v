@@ -112,11 +112,17 @@ Definition fillRecentBlockHashes (activeState : @ActiveState [ordType of Hash])
            (blk : block) (* TODO: config paramter? *) : ActiveState :=
   activeState.
 
-(* TODO: implement *)
+(* TODO: finish implementing *)
 Definition calculateFfgRewards (crystallizedState : @CrystallizedState [ordType of Hash])
            (activeState : @ActiveState [ordType of Hash])
            (blk : block) (* TODO: config paramter? *) : seq nat :=
-  [::].
+  let: validators := validators crystallizedState in
+  let: activeValidatorIndices := getActiveValidatorIndices (current_dynasty crystallizedState) validators in
+  let: rewardsAndPenalties := map (fun _ => 0) validators in
+  let: timeSinceFinality := slot_number blk - last_finalized_slot crystallizedState in
+  let: totalDeposits := total_deposits crystallizedState in
+  if totalDeposits <= 0 then (* TODO: throw exception *) [::] else
+    rewardsAndPenalties.
 
 (* TODO: unimplemented in beacon_chain repo *)
 Definition calculateCrosslinkRewards (crystallizedState : @CrystallizedState [ordType of Hash])
