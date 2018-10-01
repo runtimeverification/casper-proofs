@@ -23,16 +23,12 @@ Parameter BlockVoteCache : Type.
 (* NEW CASPER FUNCTIONS *)
 (* -------------------- *)
 
+(* helper functions - see helper.py *)
+
 (* TODO: implement *)
 Definition getAttestationIndices (crystallizedState : @CrystallizedState [ordType of Hash])
            (attestation : @AttestationRecord [ordType of Hash]) (* TODO: config parameter? *) : seq nat :=
   [::].
-
-Definition getBitfieldLength (bitCount : nat) : nat :=
-  (bitCount + 7) %/ 8.
-
-(* TODO: implement *)
-Definition checkLastBits (attBitfield : seq byte) (lastBit : nat) : bool := true.
 
 (* TODO: implement *)
 Definition getNewShuffling (seed : Hash)
@@ -40,6 +36,22 @@ Definition getNewShuffling (seed : Hash)
            (dynasty : nat) (crosslinkingStartShard : nat) : seq (seq ShardAndCommittee) :=
   (* TODO: config parameter? *)
   [::].
+
+Definition getActiveValidatorIndices (dynasty : nat)
+           (validators : seq (@ValidatorRecord [ordType of Hash])) : seq nat :=
+  let: indices := iota 0 (size validators) in
+  let: filteredValidators := map (fun x => (start_dynasty x <= dynasty) && (dynasty < end_dynasty x)) validators in
+  filter (fun x => nth false filteredValidators x == true) indices.
+
+(* helper functions - see bitfield.py *)
+
+Definition getBitfieldLength (bitCount : nat) : nat :=
+  (bitCount + 7) %/ 8.
+
+(* TODO: implement *)
+Definition checkLastBits (attBitfield : seq byte) (lastBit : nat) : bool := true.
+
+(* state transition functions - see state_transition.py *)
 
 Definition validateAttestation (crystallizedState : @CrystallizedState [ordType of Hash])
            (activeState : @ActiveState [ordType of Hash])
