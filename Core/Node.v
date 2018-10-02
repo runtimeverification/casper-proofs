@@ -84,9 +84,8 @@ Definition processBlock (crystallizedState : @CrystallizedState [ordType of Hash
     let: newAtts := pending_attestations activeState ++ attestations blk in
     let: recentBlockHashes := recent_block_hashes activeState in
     (* TODO: new chain *)
-    let: activeState' :=  @mkAS [ordType of Hash] newAtts recentBlockHashes in
     (* TODO: update activeState with newBlockVoteCache, chain *)
-    activeState'.
+    @mkAS [ordType of Hash] newAtts recentBlockHashes.
 
 (* TODO: implement *)
 Definition processUpdatedCrosslinks (crystallizedState : @CrystallizedState [ordType of Hash])
