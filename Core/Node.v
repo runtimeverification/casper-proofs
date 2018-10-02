@@ -37,6 +37,11 @@ Definition getNewShuffling (seed : Hash)
   (* TODO: config parameter? *)
   [::].
 
+(* TODO: implement *)
+Definition getNewRecentBlockHashes (oldHashes : seq Hash) (parentSlot : nat)
+           (slot : nat) (parentHash : Hash) : seq Hash :=
+  [::].
+
 Definition getActiveValidatorIndices (dynasty : nat)
            (validators : seq (@ValidatorRecord [ordType of Hash])) : seq nat :=
   let: indices := iota 0 (size validators) in
@@ -105,11 +110,17 @@ Definition initializeNewCycle (crystallizedState : @CrystallizedState [ordType o
   let: totalDeposits := total_deposits crystallizedState in
   (crystallizedState, activeState).
 
-(* TODO: implement *)
 Definition fillRecentBlockHashes (activeState : @ActiveState [ordType of Hash])
            (parentBlk : block)
            (blk : block) (* TODO: config paramter? *) : ActiveState :=
-  activeState.
+  let: pendingAtts := pending_attestations activeState in
+  let: newRecentBlockHashes := getNewRecentBlockHashes
+                                 (recent_block_hashes activeState)
+                                 (slot_number parentBlk)
+                                 (slot_number blk)
+                                 (parent_hash blk) in
+  (* TODO: update activeState with newBlockVoteCache, chain *)
+  @mkAS [ordType of Hash] pendingAtts newRecentBlockHashes.
 
 (* TODO: finish implementing *)
 Definition calculateFfgRewards (crystallizedState : @CrystallizedState [ordType of Hash])
