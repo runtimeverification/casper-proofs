@@ -15,6 +15,7 @@ Canonical NodeId_ordType := Eval hnf in OrdType NodeId NodeId_ordMixin.
 (* Parameter of type Hash *)
 Parameter dummyHash : Hash.
 Parameter dummySAC : ShardAndCommittee.
+Parameter dummySACSeq : seq ShardAndCommittee.
 Parameter dummyCR : @CrosslinkRecord [ordType of Hash].
 
 Parameter BlockVoteCache : Type.
@@ -25,10 +26,25 @@ Parameter BlockVoteCache : Type.
 
 (* helper functions - see helper.py *)
 
-(* TODO: implement *)
+Definition getShardsAndCommitteesForSlot (crystallizedState : @CrystallizedState [ordType of Hash])
+           (slot : nat)
+           (cycleLength : nat) (* TODO: config paramter? *) : seq ShardAndCommittee :=
+  let: start := (last_state_recalc crystallizedState) - cycleLength in
+  if (slot < start) || (start + cycleLength * 2 <= slot) then (* TODO: throw exception *) [::] else
+    nth dummySACSeq (shard_and_committee_for_slots crystallizedState) (slot - start).
+
 Definition getAttestationIndices (crystallizedState : @CrystallizedState [ordType of Hash])
-           (attestation : @AttestationRecord [ordType of Hash]) (* TODO: config parameter? *) : seq nat :=
-  [::].
+           (attestation : @AttestationRecord [ordType of Hash])
+           (cycleLength : nat) (* TODO: config paramter? *) : seq nat :=
+  let: attSlot := slot_ar attestation in
+  let: SACForSlot := getShardsAndCommitteesForSlot crystallizedState attSlot cycleLength in
+  let: shardId := shard_id attestation in
+  let: filteredSACForSlot := filter (fun x => shard_id_sac x == shardId) SACForSlot in
+  let: shardAndCommittee := ohead filteredSACForSlot in
+  match shardAndCommittee with
+    | None => [::]
+    | Some sac => committee sac
+  end.
 
 (* TODO: implement *)
 Definition getNewShuffling (seed : Hash)
@@ -61,10 +77,11 @@ Definition checkLastBits (attBitfield : seq byte) (lastBit : nat) : bool := true
 Definition validateAttestation (crystallizedState : @CrystallizedState [ordType of Hash])
            (activeState : @ActiveState [ordType of Hash])
            (attestation : @AttestationRecord [ordType of Hash])
-           (blk : block) (* TODO: config paramter? *) : bool :=
+           (blk : block)
+           (cycleLength : nat) (* TODO: config paramter? *) : bool :=
   if slot_number blk <= slot_ar attestation then (* TODO: throw exception *) false
   else
-    let: attestationIndices := getAttestationIndices crystallizedState attestation in
+    let: attestationIndices := getAttestationIndices crystallizedState attestation cycleLength in
     let: lastBit := size attestationIndices in
     let: attBitfield := attester_bitfield attestation in
     if size attBitfield != getBitfieldLength lastBit then (* TODO: throw exception *) false
@@ -76,13 +93,14 @@ Definition getUpdatedBlockVoteCache (crystallizedState : @CrystallizedState [ord
            (activeState : @ActiveState [ordType of Hash])
            (attestation : @AttestationRecord [ordType of Hash])
            (blk : block)
-           (blkVoteCache: BlockVoteCache) (* TODO: config paramter? *) : BlockVoteCache :=
+           (blkVoteCache : BlockVoteCache) (* TODO: config paramter? *) : BlockVoteCache :=
   blkVoteCache.
 
 Definition processBlock (crystallizedState : @CrystallizedState [ordType of Hash])
            (activeState : @ActiveState [ordType of Hash])
-           (blk : block) (* TODO: config paramter? *) : ActiveState :=
-  if all (fun x => validateAttestation crystallizedState activeState x blk) (attestations blk) then
+           (blk : block)
+           (cycleLength : nat) (* TODO: config paramter? *) : ActiveState :=
+  if all (fun x => validateAttestation crystallizedState activeState x blk cycleLength) (attestations blk) then
     (* TODO: throw exception *) activeState
   else
     (* TODO: new block vote cache *)
