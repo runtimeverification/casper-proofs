@@ -37,10 +37,10 @@ Definition getNewShuffling (seed : Hash)
   (* TODO: config parameter? *)
   [::].
 
-(* TODO: implement *)
-Definition getNewRecentBlockHashes (oldHashes : seq Hash) (parentSlot : nat)
-           (slot : nat) (parentHash : Hash) : seq Hash :=
-  [::].
+Definition getNewRecentBlockHashes (oldBlockHashes : seq Hash) (parentSlot : nat)
+           (currentSlot : nat) (parentHash : Hash) : seq Hash :=
+  let: d := currentSlot - parentSlot in
+  drop d oldBlockHashes ++ nseq (min d (size oldBlockHashes)) parentHash.
 
 Definition getActiveValidatorIndices (dynasty : nat)
            (validators : seq (@ValidatorRecord [ordType of Hash])) : seq nat :=
