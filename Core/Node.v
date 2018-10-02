@@ -99,29 +99,6 @@ Definition processUpdatedCrosslinks (crystallizedState : @CrystallizedState [ord
   let: crosslinks := crosslink_records crystallizedState in
   crosslinks.
 
-(* TODO: implement *)
-Definition initializeNewCycle (crystallizedState : @CrystallizedState [ordType of Hash])
-           (activeState : @ActiveState [ordType of Hash])
-           (blk : block) (* TODO: config paramter? *) : CrystallizedState * ActiveState :=
-  let: lastStateRecalc := last_state_recalc crystallizedState in
-  let: lastJustifiedSlot := last_justified_slot crystallizedState in
-  let: lastFinalizedSlot := last_finalized_slot crystallizedState in
-  let: justifiedStreak := justified_streak crystallizedState in
-  let: totalDeposits := total_deposits crystallizedState in
-  (crystallizedState, activeState).
-
-Definition fillRecentBlockHashes (activeState : @ActiveState [ordType of Hash])
-           (parentBlk : block)
-           (blk : block) (* TODO: config paramter? *) : ActiveState :=
-  let: pendingAtts := pending_attestations activeState in
-  let: newRecentBlockHashes := getNewRecentBlockHashes
-                                 (recent_block_hashes activeState)
-                                 (slot_number parentBlk)
-                                 (slot_number blk)
-                                 (parent_hash blk) in
-  (* TODO: update activeState with newBlockVoteCache, chain *)
-  @mkAS [ordType of Hash] pendingAtts newRecentBlockHashes.
-
 (* TODO: finish implementing *)
 Definition calculateFfgRewards (crystallizedState : @CrystallizedState [ordType of Hash])
            (activeState : @ActiveState [ordType of Hash])
@@ -156,6 +133,59 @@ Definition applyRewardsAndPenalties (crystallizedState : @CrystallizedState [ord
                  max 0 (balance x + nth 0 ffgRewards ind + nth 0 crosslinkRewards ind) ]}
        else id x)
     validators.
+
+Definition initializeNewCycle (crystallizedState : @CrystallizedState [ordType of Hash])
+           (activeState : @ActiveState [ordType of Hash])
+           (blk : block)
+           (cycleLength : nat) (* TODO: config paramter? *) : CrystallizedState * ActiveState :=
+  let: lastStateRecalc := last_state_recalc crystallizedState in
+  let: lastJustifiedSlot := last_justified_slot crystallizedState in
+  let: lastFinalizedSlot := last_finalized_slot crystallizedState in
+  let: justifiedStreak := justified_streak crystallizedState in
+  let: totalDeposits := total_deposits crystallizedState in
+  let: recentBlockHashes := recent_block_hashes activeState in
+  let: cycleLengthList := iota 0 cycleLength in
+  let: (lastJustifiedSlot', (justifiedStreak', lastFinalizedSlot')) :=
+     foldr
+       (fun i acc =>
+          let: slot := i + (lastStateRecalc - cycleLength) in
+          let: blockHash := nth dummyHash recentBlockHashes i in
+          (* TODO: block vote cache *)
+          let: voteBalance := 0 in
+          let: (acc'1, acc'2) := if 2 * totalDeposits <= 3 * voteBalance then
+                                   (max (fst acc) slot, (fst (snd acc)) + 1) else (0, 0) in
+          if cycleLength + 1 <= acc'1 then
+            (acc'1, (acc'2, max (snd (snd acc)) (slot - cycleLength - 1)))
+          else
+            (acc'1, (acc'2, snd (snd acc))))
+       (lastJustifiedSlot, (justifiedStreak, lastFinalizedSlot))
+       cycleLengthList in
+  let: crosslinkRecords := processUpdatedCrosslinks crystallizedState activeState blk in
+  let: pendingAtts := pending_attestations activeState in
+  let: newPendingAtts := filter (fun a => lastStateRecalc <= slot_ar a) pendingAtts in
+  let: validators := applyRewardsAndPenalties crystallizedState activeState blk in
+  let: SACForSlots := shard_and_committee_for_slots crystallizedState in
+  let: newSACForSlots := drop cycleLength SACForSlots ++ drop cycleLength SACForSlots in
+  let: crystallizedState'0 := {[ crystallizedState with validators := validators ]} in
+  let: crystallizedState'1 := {[ crystallizedState'0 with last_state_recalc := lastStateRecalc + cycleLength ]} in
+  let: crystallizedState'2 := {[ crystallizedState'1 with last_justified_slot := lastJustifiedSlot' ]} in
+  let: crystallizedState'3 := {[ crystallizedState'2 with justified_streak := justifiedStreak' ]} in
+  let: crystallizedState'4 := {[ crystallizedState'3 with last_finalized_slot := lastFinalizedSlot' ]} in
+  let: crystallizedState'5 := {[ crystallizedState'4 with crosslink_records := crosslinkRecords ]} in
+  let: activeState' := @mkAS [ordType of Hash] newPendingAtts recentBlockHashes in
+  (crystallizedState'5, activeState').
+
+Definition fillRecentBlockHashes (activeState : @ActiveState [ordType of Hash])
+           (parentBlk : block)
+           (blk : block) (* TODO: config paramter? *) : ActiveState :=
+  let: pendingAtts := pending_attestations activeState in
+  let: newRecentBlockHashes := getNewRecentBlockHashes
+                                 (recent_block_hashes activeState)
+                                 (slot_number parentBlk)
+                                 (slot_number blk)
+                                 (parent_hash blk) in
+  (* TODO: update activeState with newBlockVoteCache, chain *)
+  @mkAS [ordType of Hash] pendingAtts newRecentBlockHashes.
 
 Definition readyForDynastyTransition (crystallizedState : @CrystallizedState [ordType of Hash])
            (blk : block)
