@@ -89,6 +89,7 @@ Definition validateAttestation (crystallizedState : @CrystallizedState [ordType 
       if lastBit %% 8 == 0 then checkLastBits attBitfield lastBit
       else (* TODO: create pubKeys, message, call verify *) true.
 
+(* TODO: implement *)
 Definition getUpdatedBlockVoteCache (crystallizedState : @CrystallizedState [ordType of Hash])
            (activeState : @ActiveState [ordType of Hash])
            (attestation : @AttestationRecord [ordType of Hash])
