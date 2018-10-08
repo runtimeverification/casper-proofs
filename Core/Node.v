@@ -17,6 +17,7 @@ Parameter dummyHash : Hash.
 Parameter dummySAC : ShardAndCommittee.
 Parameter dummySACSeq : seq ShardAndCommittee.
 Parameter dummyCR : @CrosslinkRecord [ordType of Hash].
+Parameter dummyVal : @ValidatorRecord [ordType of Hash].
 
 Parameter BlockVoteCache : Type.
 
@@ -74,6 +75,11 @@ Definition checkLastBits (attBitfield : seq byte) (lastBit : nat) : bool := true
 
 (* state transition functions - see state_transition.py *)
 
+(* TODO: implement *)
+Definition getRewardContext (totalDeposits : nat) (* TODO: config parameter *) : nat * nat :=
+  if totalDeposits <= 0 then (* TODO: throw exception *) (0, 0) else
+    (0, 0).
+
 Definition validateAttestation (crystallizedState : @CrystallizedState [ordType of Hash])
            (activeState : @ActiveState [ordType of Hash])
            (attestation : @AttestationRecord [ordType of Hash])
@@ -118,17 +124,42 @@ Definition processUpdatedCrosslinks (crystallizedState : @CrystallizedState [ord
   let: crosslinks := crosslink_records crystallizedState in
   crosslinks.
 
-(* TODO: finish implementing *)
 Definition calculateFfgRewards (crystallizedState : @CrystallizedState [ordType of Hash])
            (activeState : @ActiveState [ordType of Hash])
-           (blk : block) (* TODO: config paramter? *) : seq nat :=
+           (blk : block)
+           (cycleLength : nat) (* TODO: config paramter? *) : seq nat :=
   let: validators := validators crystallizedState in
   let: activeValidatorIndices := getActiveValidatorIndices (current_dynasty crystallizedState) validators in
   let: rewardsAndPenalties := map (fun _ => 0) validators in
   let: timeSinceFinality := slot_number blk - last_finalized_slot crystallizedState in
   let: totalDeposits := total_deposits crystallizedState in
-  if totalDeposits <= 0 then (* TODO: throw exception *) [::] else
-    rewardsAndPenalties.
+  let: (rewardQuotient, quadraticPenaltyQuotient) := getRewardContext totalDeposits in
+  let: lastStateRecalc := last_state_recalc crystallizedState in
+  let: loopList := iota (lastStateRecalc - cycleLength) cycleLength in
+  let: newRewardsAndPenalties :=
+     foldr
+       (fun i acc =>
+          (* TODO: blockVoteCache, chain parameter in activeState *)
+          let: totalParticipatedDeposits := 0 in
+          let: voterIndices := [::] in
+          let: participatingValidatorIndices :=
+             filter (fun x => x \in voterIndices) activeValidatorIndices in
+          let: nonParticipatingValidatorIndices :=
+             filter (fun x => x \notin voterIndices) activeValidatorIndices in
+          map
+            (fun ind =>
+               let: curr := nth 0 rewardsAndPenalties ind in
+               let: valBal := balance (nth dummyVal validators ind) in
+               if timeSinceFinality <= 3 * cycleLength then
+                 if ind \in participatingValidatorIndices then
+                   curr + valBal %/ rewardQuotient * (2 * totalParticipatedDeposits - totalDeposits) %/ totalDeposits else
+                   curr - valBal %/ rewardQuotient
+               else
+                 curr - (valBal %/ rewardQuotient) + (valBal * timeSinceFinality %/ rewardQuotient))
+            acc)
+       rewardsAndPenalties
+       loopList in
+  newRewardsAndPenalties.
 
 (* TODO: unimplemented in beacon_chain repo *)
 Definition calculateCrosslinkRewards (crystallizedState : @CrystallizedState [ordType of Hash])
@@ -139,9 +170,10 @@ Definition calculateCrosslinkRewards (crystallizedState : @CrystallizedState [or
 
 Definition applyRewardsAndPenalties (crystallizedState : @CrystallizedState [ordType of Hash])
            (activeState : @ActiveState [ordType of Hash])
-           (blk : block) (* TODO: config paramter? *) : seq (@ValidatorRecord [ordType of Hash]) :=
+           (blk : block)
+           (cycleLength : nat) (* TODO: config paramter? *) : seq (@ValidatorRecord [ordType of Hash]) :=
   let: validators := validators crystallizedState in
-  let: ffgRewards := calculateFfgRewards crystallizedState activeState blk in
+  let: ffgRewards := calculateFfgRewards crystallizedState activeState blk cycleLength in
   let: crosslinkRewards := calculateCrosslinkRewards crystallizedState activeState blk in
   let: activeValidatorIndices := getActiveValidatorIndices (current_dynasty crystallizedState) validators in
   map
@@ -182,7 +214,7 @@ Definition initializeNewCycle (crystallizedState : @CrystallizedState [ordType o
   let: crosslinkRecords := processUpdatedCrosslinks crystallizedState activeState blk in
   let: pendingAtts := pending_attestations activeState in
   let: newPendingAtts := filter (fun a => lastStateRecalc <= slot_ar a) pendingAtts in
-  let: validators := applyRewardsAndPenalties crystallizedState activeState blk in
+  let: validators := applyRewardsAndPenalties crystallizedState activeState blk cycleLength in
   let: SACForSlots := shard_and_committee_for_slots crystallizedState in
   let: newSACForSlots := drop cycleLength SACForSlots ++ drop cycleLength SACForSlots in
   let: crystallizedState'0 := {[ crystallizedState with validators := validators ]} in
