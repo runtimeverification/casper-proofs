@@ -65,6 +65,15 @@ Definition getActiveValidatorIndices (dynasty : nat)
   let: filteredValidators := map (fun x => (start_dynasty x <= dynasty) && (dynasty < end_dynasty x)) validators in
   filter (fun x => nth false filteredValidators x == true) indices.
 
+(* helper function - see CrystallizedState.py *)
+
+Definition totalDeposits (crystallizedState : @CrystallizedState [ordType of Hash]) : nat :=
+  let: vals := validators crystallizedState in
+  let: currentDynasty := current_dynasty crystallizedState in
+  let: balances := map (fun x => balance (nth dummyVal vals x))
+                       (getActiveValidatorIndices currentDynasty vals) in
+  sumn balances.
+
 (* helper functions - see bitfield.py *)
 
 Definition getBitfieldLength (bitCount : nat) : nat :=
@@ -132,7 +141,7 @@ Definition calculateFfgRewards (crystallizedState : @CrystallizedState [ordType 
   let: activeValidatorIndices := getActiveValidatorIndices (current_dynasty crystallizedState) validators in
   let: rewardsAndPenalties := map (fun _ => 0) validators in
   let: timeSinceFinality := slot_number blk - last_finalized_slot crystallizedState in
-  let: totalDeposits := total_deposits crystallizedState in
+  let: totalDeposits := totalDeposits crystallizedState in
   let: (rewardQuotient, quadraticPenaltyQuotient) := getRewardContext totalDeposits in
   let: lastStateRecalc := last_state_recalc crystallizedState in
   let: loopList := iota (lastStateRecalc - cycleLength) cycleLength in
@@ -193,7 +202,7 @@ Definition initializeNewCycle (crystallizedState : @CrystallizedState [ordType o
   let: lastJustifiedSlot := last_justified_slot crystallizedState in
   let: lastFinalizedSlot := last_finalized_slot crystallizedState in
   let: justifiedStreak := justified_streak crystallizedState in
-  let: totalDeposits := total_deposits crystallizedState in
+  let: totalDeposits := totalDeposits crystallizedState in
   let: recentBlockHashes := recent_block_hashes activeState in
   let: cycleLengthList := iota 0 cycleLength in
   let: (lastJustifiedSlot', (justifiedStreak', lastFinalizedSlot')) :=

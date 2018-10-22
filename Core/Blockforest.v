@@ -135,12 +135,8 @@ Record CrystallizedState {Hash : ordType} :=
     last_finalized_slot: nat;
     (* The current dynasty *)
     current_dynasty: nat;
-    (* The next shard that crosslinking assignment will start from *)
-    crosslinking_start_shard: nat;
     (* Records about the most recent crosslink for each shard *)
     crosslink_records: seq (@CrosslinkRecord Hash);
-    (* Total balance of deposits *)
-    total_deposits: nat;
     (* Used to select the committees for each shard *)
     dynasty_seed: Hash;
     (* Last epoch the crosslink seed was reset *)
@@ -859,18 +855,16 @@ Definition all_chains bf := [seq compute_chain bf b | b <- all_blocks bf].
 
 (* HELPERS *)
 
-Definition set_crystallized_state_validators a v := @mkCS [ordType of Hash] v (last_state_recalc a) (shard_and_committee_for_slots a) (last_justified_slot a) (justified_streak a) (last_finalized_slot a) (current_dynasty a) (crosslinking_start_shard a) (crosslink_records a) (total_deposits a) (dynasty_seed a) (dynasty_start a).
-Definition set_crystallized_state_last_state_recalc a v := @mkCS [ordType of Hash] (validators a) v (shard_and_committee_for_slots a) (last_justified_slot a) (justified_streak a) (last_finalized_slot a) (current_dynasty a) (crosslinking_start_shard a) (crosslink_records a) (total_deposits a) (dynasty_seed a) (dynasty_start a).
-Definition set_crystallized_state_shard_and_committee_for_slots a v := @mkCS [ordType of Hash] (validators a) (last_state_recalc a) v (last_justified_slot a) (justified_streak a) (last_finalized_slot a) (current_dynasty a) (crosslinking_start_shard a) (crosslink_records a) (total_deposits a) (dynasty_seed a) (dynasty_start a).
-Definition set_crystallized_state_last_justified_slot a v := @mkCS [ordType of Hash] (validators a) (last_state_recalc a) (shard_and_committee_for_slots a) v (justified_streak a) (last_finalized_slot a) (current_dynasty a) (crosslinking_start_shard a) (crosslink_records a) (total_deposits a) (dynasty_seed a) (dynasty_start a).
-Definition set_crystallized_state_justified_streak a v := @mkCS [ordType of Hash] (validators a) (last_state_recalc a) (shard_and_committee_for_slots a) (last_justified_slot a) v (last_finalized_slot a) (current_dynasty a) (crosslinking_start_shard a) (crosslink_records a) (total_deposits a) (dynasty_seed a) (dynasty_start a).
-Definition set_crystallized_state_last_finalized_slot a v := @mkCS [ordType of Hash] (validators a) (last_state_recalc a) (shard_and_committee_for_slots a) (last_justified_slot a) (justified_streak a) v (current_dynasty a) (crosslinking_start_shard a) (crosslink_records a) (total_deposits a) (dynasty_seed a) (dynasty_start a).
-Definition set_crystallized_state_current_dynasty a v := @mkCS [ordType of Hash] (validators a) (last_state_recalc a) (shard_and_committee_for_slots a) (last_justified_slot a) (justified_streak a) (last_finalized_slot a) v (crosslinking_start_shard a) (crosslink_records a) (total_deposits a) (dynasty_seed a) (dynasty_start a).
-Definition set_crystallized_state_crosslinking_start_shard a v := @mkCS [ordType of Hash] (validators a) (last_state_recalc a) (shard_and_committee_for_slots a) (last_justified_slot a) (justified_streak a) (last_finalized_slot a) (current_dynasty a) v (crosslink_records a) (total_deposits a) (dynasty_seed a) (dynasty_start a).
-Definition set_crystallized_state_crosslink_records a v := @mkCS [ordType of Hash] (validators a) (last_state_recalc a) (shard_and_committee_for_slots a) (last_justified_slot a) (justified_streak a) (last_finalized_slot a) (current_dynasty a) (crosslinking_start_shard a) v (total_deposits a) (dynasty_seed a) (dynasty_start a).
-Definition set_crystallized_state_total_deposits a v := @mkCS [ordType of Hash] (validators a) (last_state_recalc a) (shard_and_committee_for_slots a) (last_justified_slot a) (justified_streak a) (last_finalized_slot a) (current_dynasty a) (crosslinking_start_shard a) (crosslink_records a) v (dynasty_seed a) (dynasty_start a).
-Definition set_crystallized_state_dynasty_seed a v := @mkCS [ordType of Hash] (validators a) (last_state_recalc a) (shard_and_committee_for_slots a) (last_justified_slot a) (justified_streak a) (last_finalized_slot a) (current_dynasty a) (crosslinking_start_shard a) (crosslink_records a) (total_deposits a) v (dynasty_start a).
-Definition set_crystallized_state_dynasty_start a v := @mkCS [ordType of Hash] (validators a) (last_state_recalc a) (shard_and_committee_for_slots a) (last_justified_slot a) (justified_streak a) (last_finalized_slot a) (current_dynasty a) (crosslinking_start_shard a) (crosslink_records a) (total_deposits a) (dynasty_seed a) v.
+Definition set_crystallized_state_validators a v := @mkCS [ordType of Hash] v (last_state_recalc a) (shard_and_committee_for_slots a) (last_justified_slot a) (justified_streak a) (last_finalized_slot a) (current_dynasty a) (crosslink_records a) (dynasty_seed a) (dynasty_start a).
+Definition set_crystallized_state_last_state_recalc a v := @mkCS [ordType of Hash] (validators a) v (shard_and_committee_for_slots a) (last_justified_slot a) (justified_streak a) (last_finalized_slot a) (current_dynasty a) (crosslink_records a) (dynasty_seed a) (dynasty_start a).
+Definition set_crystallized_state_shard_and_committee_for_slots a v := @mkCS [ordType of Hash] (validators a) (last_state_recalc a) v (last_justified_slot a) (justified_streak a) (last_finalized_slot a) (current_dynasty a) (crosslink_records a) (dynasty_seed a) (dynasty_start a).
+Definition set_crystallized_state_last_justified_slot a v := @mkCS [ordType of Hash] (validators a) (last_state_recalc a) (shard_and_committee_for_slots a) v (justified_streak a) (last_finalized_slot a) (current_dynasty a) (crosslink_records a) (dynasty_seed a) (dynasty_start a).
+Definition set_crystallized_state_justified_streak a v := @mkCS [ordType of Hash] (validators a) (last_state_recalc a) (shard_and_committee_for_slots a) (last_justified_slot a) v (last_finalized_slot a) (current_dynasty a) (crosslink_records a) (dynasty_seed a) (dynasty_start a).
+Definition set_crystallized_state_last_finalized_slot a v := @mkCS [ordType of Hash] (validators a) (last_state_recalc a) (shard_and_committee_for_slots a) (last_justified_slot a) (justified_streak a) v (current_dynasty a) (crosslink_records a) (dynasty_seed a) (dynasty_start a).
+Definition set_crystallized_state_current_dynasty a v := @mkCS [ordType of Hash] (validators a) (last_state_recalc a) (shard_and_committee_for_slots a) (last_justified_slot a) (justified_streak a) (last_finalized_slot a) v (crosslink_records a) (dynasty_seed a) (dynasty_start a).
+Definition set_crystallized_state_crosslink_records a v := @mkCS [ordType of Hash] (validators a) (last_state_recalc a) (shard_and_committee_for_slots a) (last_justified_slot a) (justified_streak a) (last_finalized_slot a) (current_dynasty a) v (dynasty_seed a) (dynasty_start a).
+Definition set_crystallized_state_dynasty_seed a v := @mkCS [ordType of Hash] (validators a) (last_state_recalc a) (shard_and_committee_for_slots a) (last_justified_slot a) (justified_streak a) (last_finalized_slot a) (current_dynasty a) (crosslink_records a) v (dynasty_start a).
+Definition set_crystallized_state_dynasty_start a v := @mkCS [ordType of Hash] (validators a) (last_state_recalc a) (shard_and_committee_for_slots a) (last_justified_slot a) (justified_streak a) (last_finalized_slot a) (current_dynasty a) (crosslink_records a) (dynasty_seed a) v.
 
 Notation "{[ a 'with' 'validators' := v ]}" := (set_crystallized_state_validators a v).
 Notation "{[ a 'with' 'last_state_recalc' := v ]}" := (set_crystallized_state_last_state_recalc a v).
@@ -879,9 +873,7 @@ Notation "{[ a 'with' 'last_justified_slot' := v ]}" := (set_crystallized_state_
 Notation "{[ a 'with' 'justified_streak' := v ]}" := (set_crystallized_state_justified_streak a v).
 Notation "{[ a 'with' 'last_finalized_slot' := v ]}" := (set_crystallized_state_last_finalized_slot a v).
 Notation "{[ a 'with' 'current_dynasty' := v ]}" := (set_crystallized_state_current_dynasty a v).
-Notation "{[ a 'with' 'crosslinking_start_shard' := v ]}" := (set_crystallized_state_crosslinking_start_shard a v).
 Notation "{[ a 'with' 'crosslink_records' := v ]}" := (set_crystallized_state_crosslink_records a v).
-Notation "{[ a 'with' 'total_deposits' := v ]}" := (set_crystallized_state_total_deposits a v).
 Notation "{[ a 'with' 'dynasty_seed' := v ]}" := (set_crystallized_state_dynasty_seed a v).
 Notation "{[ a 'with' 'dynasty_start' := v ]}" := (set_crystallized_state_dynasty_start a v).
 
@@ -892,9 +884,7 @@ Arguments set_crystallized_state_last_justified_slot  _ _/.
 Arguments set_crystallized_state_justified_streak  _ _/.
 Arguments set_crystallized_state_last_finalized_slot  _ _/.
 Arguments set_crystallized_state_current_dynasty  _ _/.
-Arguments set_crystallized_state_crosslinking_start_shard  _ _/.
 Arguments set_crystallized_state_crosslink_records  _ _/.
-Arguments set_crystallized_state_total_deposits  _ _/.
 Arguments set_crystallized_state_dynasty_seed  _ _/.
 Arguments set_crystallized_state_dynasty_start  _ _/.
 
