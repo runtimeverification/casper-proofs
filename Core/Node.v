@@ -711,8 +711,8 @@ Record State {Hash : ordType} :=
 Definition initCS := @mkCS [ordType of Hash] [::] 0 [::] 0 0 0 0 [::] dummyHash 0.
 Definition initAS := @mkAS [ordType of Hash] [::] [::].
 
-Definition Init (n : NodeId) (peers : seq NodeId) :=
-  Node n peers (#GenesisBlock \\-> GenesisBlock) initCS initAS.
+Definition Init (n : NodeId) (peers : seq NodeId) : State :=
+  Node n peers (#GenesisBlock \\-> GenesisBlock) initCS initAS 0.
 
 Definition procMsg (st: @State [ordType of Hash]) (from : NodeId) (msg: Message) (ts: Timestamp) :=
   let: Node n prs bf cst ast cl := st in
@@ -721,10 +721,10 @@ Definition procMsg (st: @State [ordType of Hash]) (from : NodeId) (msg: Message)
     let: parentBlock := get_block bf (parent_hash b) in
     let: (crystallizedState, activeState) := computeStateTransition cst ast parentBlock b cl in
     let: newBf := bfExtend bf b in
-    pair (Node n prs newBf crystallizedState activeState) emitZero
+    pair (Node n prs newBf crystallizedState activeState cl) emitZero
   | VoteMsg v =>
     (* process vote *)
-    pair (Node n prs bf cst ast) emitZero
+    pair (Node n prs bf cst ast cl) emitZero
   end.
 
 Definition procInt (st : @State [ordType of Hash]) (tr : InternalTransition) (ts : Timestamp) :=
@@ -734,8 +734,8 @@ Definition procInt (st : @State [ordType of Hash]) (tr : InternalTransition) (ts
    let: parentBlock := get_block bf (parent_hash b) in
    let: (crystallizedState, activeState) := computeStateTransition cst ast parentBlock b cl in
    let: newBf := bfExtend bf b in
-   pair (Node n prs newBf crystallizedState activeState) (emitBroadcast n prs (BlockMsg b))
+   pair (Node n prs newBf crystallizedState activeState cl) (emitBroadcast n prs (BlockMsg b))
  | VoteT v =>
    (* process vote *)
-   pair (Node n prs bf cst ast) (emitBroadcast n prs (VoteMsg v))
+   pair (Node n prs bf cst ast cl) (emitBroadcast n prs (VoteMsg v))
  end.

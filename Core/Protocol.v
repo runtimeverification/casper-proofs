@@ -9,7 +9,7 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-Definition StateMap := union_map NodeId_ordType State.
+Definition StateMap := union_map NodeId_ordType (@State [ordType of Hash]).
 
 Definition initState' s ps : StateMap := foldr (fun (a : [finType of NodeId_ordType]) m => (a \\-> Init a (ps a)) \+ m) Unit s.
 
@@ -167,14 +167,15 @@ Qed.
 Lemma procMsg_id_constant (s1 : State) from (m : Message) (ts : Timestamp) :
     id s1 = id (procMsg s1 from m ts).1.
 Proof.
-by case: s1 from m ts => n1 p1 b1 t1 []=>//=??.
+case: s1 from m ts.
+by move => n1 p1 b1 t1 a1 c1 n2 []=>//=??.
 Qed.
 
 (* procInt currently undefined *)
 Lemma procInt_id_constant : forall (s1 : State) (t : InternalTransition) (ts : Timestamp),
     id s1 = id (procInt s1 t ts).1.
 Proof.
-case=> n1 p1 b1 [] =>// ts; simpl.
+by case=> n1 p1 b1 a1 c1 n2 [] =>// ts; simpl.
 Qed.
 
 Lemma procMsg_valid :
@@ -244,7 +245,7 @@ Lemma procMsg_peers_uniq :
     let: s2 := (procMsg s1 from m ts).1 in
     uniq (peers s1) -> uniq (peers s2).
 Proof.
-case=> n1 p1 b1 t1; case; do? by []; simpl.
+case=> n1 p1 b1 t1 a1 c1 n2; case; do? by []; simpl.
 Qed.
 
 Lemma procInt_peers_uniq :
