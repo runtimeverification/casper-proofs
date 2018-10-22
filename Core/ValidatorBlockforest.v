@@ -13,33 +13,31 @@ Section ValBlock.
 
 Variable Validator : finType.
 
-Definition genesis : Hash := #GenesisBlock.
+Variable bf : Blockforest.
 
-Definition sState : Type := State Validator Hash.
-
-Definition validator_safety :=
-  @safety Validator Hash
-   (top_validators Validator)
-   (bot_validators Validator)
-   (@bot_top_validator_intersection Validator).
-
-Definition hash_parent_bf (bf : Blockforest) : rel Hash :=
-  [rel x y | [&& y != #GenesisBlock,
-   x \in dom bf, y \in dom bf &
-   if find y bf is Some b then parent_hash b == x else false] ].
+Definition hash_parent_bf : rel Hash :=
+ [rel x y | [&& x \in dom bf, y \in dom bf &
+  if find y bf is Some b then parent_hash b == x else false] ].
 
 Lemma hash_parent_bf_eq :
-  forall bf, valid bf -> validH bf ->
-  forall h1 h2 h3 : Hash, hash_parent_bf bf h2 h1 -> hash_parent_bf bf h3 h1 -> h2 = h3.
+  forall h1 h2 h3 : Hash, hash_parent_bf h2 h1 -> hash_parent_bf h3 h1 -> h2 = h3.
 Proof.
-move => bf Hv Hvh h1 h2 h3.
-rewrite /hash_parent_bf /= => Hh1 Hh2.
-Admitted.
+move => h1 h2 h3.
+move/and3P; case => H1 H2 Hf.
+move/and3P; case => H'1 H'2 H'f.
+move: Hf H'f.
+case: (find _ _) => //.
+by move => b; move/eqP =>-> /eqP.
+Qed.
+
+Lemma accountable_safety_bf :
+  forall s : State Validator Hash,
+    finalization_fork (top_validators Validator) hash_parent_bf (# GenesisBlock) s ->
+    misbehaving_slashed (bot_validators Validator) s.
+Proof.
+apply: accountable_safety.
+- exact: bot_top_validator_intersection.
+- exact: hash_parent_bf_eq.
+Qed.
 
 End ValBlock.
-
-(*
-(hash_parent : rel Hash) (genesis : Hash),
-(forall h1 h2 : Hash, hash_parent h1 h2 -> h1 <> h2) ->
-(forall h1 h2 h3 : Hash, hash_parent h2 h1 -> hash_parent h3 h1 -> h2 = h3) ->
-*)

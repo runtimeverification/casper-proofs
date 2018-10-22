@@ -54,7 +54,7 @@ Record AttestationRecord {Hash : ordType} :=
     aggregate_sig : seq nat
   }.
 
-Record Block {Hash : ordType} {Transaction VProof : eqType} :=
+Record Block {Hash : ordType} :=
   mkB {
     (* Hash of the parent block *)
     parent_hash : Hash;
@@ -206,13 +206,13 @@ Canonical AttestationRecord_eqMixin {H : ordType} :=
 Canonical AttestationRecord_eqType {H : ordType} :=
   Eval hnf in EqType (@AttestationRecord H) (@AttestationRecord_eqMixin H).
 
-Definition eq_block {H : ordType} {T P : eqType} (b b' : @Block H T P) :=
+Definition eq_block {H : ordType} (b b' : @Block H) :=
   match b, b' with
   | mkB ph sn rr ars pcr asr csr, mkB ph' sn' rr' ars' pcr' asr' csr' =>
     [&& ph == ph', sn == sn', rr == rr', ars == ars', pcr == pcr', asr == asr' & csr == csr']
   end.
       
-Lemma eq_blockP {H : ordType} {T P : eqType} : Equality.axiom (@eq_block H T P).
+Lemma eq_blockP {H : ordType} : Equality.axiom (@eq_block H).
 Proof.
 case=> ph sn rr ars pcr asr csr;
 case=> ph' sn' rr' ars' pcr' asr' csr'; rewrite /eq_block/=.
@@ -233,10 +233,10 @@ case H8: (csr == csr'); [move/eqP: H8=>?; subst csr'| constructor 2];
 by constructor 1. 
 Qed.
 
-Canonical Block_eqMixin {H : ordType} {T P : eqType} :=
-  Eval hnf in EqMixin (@eq_blockP H T P).
-Canonical Block_eqType {H : ordType} {T P : eqType} :=
-  Eval hnf in EqType (@Block H T P) (@Block_eqMixin H T P).
+Canonical Block_eqMixin {H : ordType} :=
+  Eval hnf in EqMixin (@eq_blockP H ).
+Canonical Block_eqType {H : ordType} :=
+  Eval hnf in EqType (@Block H) (@Block_eqMixin H).
 
 (* ------ *)
 (* CHAINS *)
@@ -687,7 +687,7 @@ Canonical Hash_finType := Eval hnf in OrdType Hash Hash_ordMixin.
 (* BLOCK FORESTS *)
 (* --------------*)
 
-Definition block := @Block [ordType of Hash] [eqType of Transaction] VProof.
+Definition block := @Block [ordType of Hash].
 
 Parameter GenesisBlock : block.
 
@@ -901,8 +901,7 @@ Arguments set_crystallized_state_dynasty_start  _ _/.
 Definition set_validator_record_pubkey a v := @mkVR [ordType of Hash] v (withdrawal_shard a) (withdrawal_address a) (randao_commitment a) (balance a) (start_dynasty a) (end_dynasty a).
 Definition set_validator_record_withdrawal_shard a v := @mkVR [ordType of Hash] (pubkey a) v (withdrawal_address a) (randao_commitment a) (balance a) (start_dynasty a) (end_dynasty a).
 Definition set_validator_record_withdrawal_address a v := @mkVR [ordType of Hash] (pubkey a) (withdrawal_shard a) v (randao_commitment a) (balance a) (start_dynasty a) (end_dynasty a).
-(* TODO: implicit parameter Hash *)
-(*Definition set_validator_record_randao_commitment a v := @mkVR [ordType of Hash] (pubkey a) (withdrawal_shard a) (withdrawal_address a) v (balance a) (start_dynasty a) (end_dynasty a).*)
+Definition set_validator_record_randao_commitment a v := @mkVR [ordType of Hash] (pubkey a) (withdrawal_shard a) (withdrawal_address a) v (balance a) (start_dynasty a) (@end_dynasty [ordType of Hash] a).
 Definition set_validator_record_balance a v := @mkVR [ordType of Hash] (pubkey a) (withdrawal_shard a) (withdrawal_address a) (randao_commitment a) v (start_dynasty a) (end_dynasty a).
 Definition set_validator_record_start_dynasty a v := @mkVR [ordType of Hash] (pubkey a) (withdrawal_shard a) (withdrawal_address a) (randao_commitment a) (balance a) v (end_dynasty a).
 Definition set_validator_record_end_dynasty a v := @mkVR [ordType of Hash] (pubkey a) (withdrawal_shard a) (withdrawal_address a) (randao_commitment a) (balance a) (start_dynasty a) v.

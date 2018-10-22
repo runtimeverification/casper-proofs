@@ -173,7 +173,7 @@ Inductive justified : State -> Hash -> nat -> Prop :=
 Definition finalized s q h v child :=
  h <~ child /\ justified s h v /\ justified_link s q h v child v.+1.
 
-Definition fork s :=
+Definition finalization_fork s :=
   exists h1 h2 q1 q2 v1 v2 c1 c2,
     finalized s q1 h1 v1 c1 /\
     finalized s q2 h2 v2 c2 /\
@@ -191,7 +191,7 @@ Definition slashed_surround s n :=
 Definition slashed s n : Prop :=
  slashed_dbl_vote s n \/ slashed_surround s n.
 
-Definition one_third_slashed s :=
+Definition misbehaving_slashed s :=
  exists q, q \in quorum_2 /\ forall n, n \in q -> slashed s n.
 
 Lemma l0 : forall s q1 h2 v2 h1 v1,
@@ -250,7 +250,7 @@ Lemma l01 : forall s q1 q2 h2 v2 h1 h3 v3 c3,
   justified_link s q1 h2 v2 h1 v3.+1 ->
   finalized s q2 h3 v3 c3 ->
   h3 </~* h1 -> v2 < v3 ->
-  one_third_slashed s.
+  misbehaving_slashed s.
 Proof.
 move => s q1 q2 h2 v2 h1 h3 v3 c3 Hl Hf Hh Hv.
 have Hq: exists q, q \in quorum_2 /\ forall n, n \in q -> slashed_dbl_vote s n.
@@ -259,7 +259,7 @@ have Hq: exists q, q \in quorum_2 /\ forall n, n \in q -> slashed_dbl_vote s n.
 		Reconstr.Empty.
 by Reconstr.hobvious (@Hq)
 		Reconstr.Empty
-		(@slashed, @one_third_slashed).
+		(@slashed, @misbehaving_slashed).
 Qed.
 
 Lemma l04 : forall s q1 q2 h2 v2 h1 v1 v3 h3 c3,
@@ -302,7 +302,7 @@ Lemma l03 : forall s q1 q2 h2 v2 h1 h3 v1 v3 c3,
   v1 > v3.+1 ->
   h3 </~* h1 ->
   v2 < v3 ->
-  one_third_slashed s.
+  misbehaving_slashed s.
 Proof.
 move => s q1 q2 h2 v2 h1 h3 v1 v3 c3 Hj Hf Hlt Ha Hlt'.
 have Hq: exists q, q \in quorum_2 /\ forall n, n \in q -> slashed_surround s n.
@@ -311,7 +311,7 @@ have Hq: exists q, q \in quorum_2 /\ forall n, n \in q -> slashed_surround s n.
 		Reconstr.Empty.
 by Reconstr.hobvious (@Hq)
 		Reconstr.Empty
-		(@slashed, @one_third_slashed).
+		(@slashed, @misbehaving_slashed).
 Qed.
 
 Lemma l00 : forall s q1 q2 h2 v2 h1 h3 v1 v3 c3,
@@ -320,7 +320,7 @@ Lemma l00 : forall s q1 q2 h2 v2 h1 h3 v1 v3 c3,
   v1 > v3 ->
   h3 </~* h1 ->
   v2 < v3 ->
-  one_third_slashed s.
+  misbehaving_slashed s.
 Proof.
 move => s q1 q2 h2 v2 h1 h3 v1 v3 c3 Hj Hf Hv Hh Hv'.
 case Hn: (v1 == v3.+1).
@@ -355,7 +355,7 @@ Qed.
 Lemma l5'' : forall s q q1 parent1 pre1 h1 v1 parent pre new now,
   justified_link s q parent pre new now ->
   justified_link s q1 parent1 pre1 h1 v1 ->
-  ~ one_third_slashed s ->
+  ~ misbehaving_slashed s ->
   now = v1 ->
   h1 = new.
 Proof.
@@ -367,14 +367,14 @@ have Hn: forall n, n \in q2 -> vote_msg s n new now pre /\ vote_msg s n h1 v1 pr
 case H1n: (h1 == new); first by move/eqP: H1n.
 move/eqP: H1n => H1n.
 have Hd: forall n, n \in q2 -> slashed_dbl_vote s n by Reconstr.rcrush Reconstr.Empty (@Coq.Init.Datatypes.is_true, @slashed_dbl_vote).
-by have Hs: one_third_slashed s by Reconstr.rcrush Reconstr.Empty (@slashed, @vote_msg, @one_third_slashed).
+by have Hs: misbehaving_slashed s by Reconstr.rcrush Reconstr.Empty (@slashed, @vote_msg, @misbehaving_slashed).
 Qed.
 
 Lemma l5' :
   forall s h1 v1 h2 v2,
   justified s h2 v2 ->
   justified s h1 v1 ->
-  ~ one_third_slashed s ->
+  ~ misbehaving_slashed s ->
   h1 <> h2 ->
   v2 <> v1.
 Proof.
@@ -388,7 +388,7 @@ Qed.
 
 Lemma l5 : forall s q2 h2 v2 xa parent pre,
   finalized s q2 h2 v2 xa ->
-  ~ one_third_slashed s ->
+  ~ misbehaving_slashed s ->
   justified s parent pre ->
   parent <> h2 ->
   v2 <> pre.
@@ -404,10 +404,10 @@ Lemma non_equal_case_ind : forall s h1 v1 q2 h2 v2 xa,
   h2 </~* h1 ->
   h1 <> h2 ->
   v1 > v2 ->
-  one_third_slashed s.
+  misbehaving_slashed s.
 Proof.
 move => s h1 v1 q2 h2 v2 xa Hj Hf Hh Hh' Hv.
-pose P (v1 : nat) (h1 : Hash) := justified s h1 v1 -> finalized s q2 h2 v2 xa -> h2 </~* h1 -> h1 <> h2 -> v2 < v1 -> one_third_slashed s.
+pose P (v1 : nat) (h1 : Hash) := justified s h1 v1 -> finalized s q2 h2 v2 xa -> h2 </~* h1 -> h1 <> h2 -> v2 < v1 -> misbehaving_slashed s.
 suff Hsuff: forall v1 h1, P v1 h1 by apply: Hsuff; eauto.
 apply (@strong_induction_sub v2).
 clear v1 h1 Hj Hh Hh' Hv Hf.
@@ -418,7 +418,7 @@ have Hor: (h1 = genesis /\ v1 = 0) \/
   right.
   by exists q, parent, pre.
 case: Hor => Hor; first by move: Hor => [H1 H2]; rewrite H2 in Hv.
-have Ho: one_third_slashed s \/ ~ one_third_slashed s by apply classic.
+have Ho: misbehaving_slashed s \/ ~ misbehaving_slashed s by apply classic.
 case: Ho => // Ho.
 move: Hor => [q [parent [pre [Hj1 Hj2]]]].
 have IH' := IH pre parent _ _ Hj1 Hf.
@@ -461,7 +461,7 @@ Lemma non_equal_case : forall s q1 q2 h1 v1 x h2 v2 xa,
   h2 </~* h1 ->
   h1 <> h2 ->
   v1 > v2 ->
-  one_third_slashed s.
+  misbehaving_slashed s.
 Proof.
 by Reconstr.hexhaustive 0 Reconstr.Empty
 		(@non_equal_case_ind)
@@ -472,7 +472,7 @@ Lemma equal_case : forall s q1 h1 v1 x q2 h2 xa,
   finalized s q1 h1 v1 x ->
   finalized s q2 h2 v1 xa ->
   h1 <> h2 ->
-  one_third_slashed s.
+  misbehaving_slashed s.
 Proof.
 move => s q1 h1 v1 x q2 h2 xa Hf Hf' Hh.
 have Hq1: q1 \in quorum_1 by Reconstr.scrush.
@@ -503,7 +503,7 @@ Lemma safety' : forall s q1 h1 v1 x q2 h2 v2 xa,
   h2 </~* h1 ->
   h1 </~* h2 ->
   h1 <> h2 ->
-  one_third_slashed s.
+  misbehaving_slashed s.
 Proof.
 move => s q1 h1 v1 x q2 h2 v2 xa Hf Hf' Hh Hh' Hn.
 case Hv: (v1 == v2).
@@ -524,11 +524,11 @@ move: Hgt.
 by apply: non_equal_case; eauto.
 Qed.
 
-Lemma safety : forall s, fork s -> one_third_slashed s.
+Lemma accountable_safety : forall s, finalization_fork s -> misbehaving_slashed s.
 Proof.
 by Reconstr.hobvious Reconstr.Empty
 		(@safety')
-		(@fork).
+		(@finalization_fork).
 Qed.
 
 End CasperOneMessage.
