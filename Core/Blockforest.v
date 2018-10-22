@@ -70,9 +70,6 @@ Record Block {Hash : ordType} {Transaction VProof : eqType} :=
     active_state_root : Hash;
     (* Hash of the crystallized state *)
     crystallized_state_root : Hash;
-    (* NOTE: transactions and proof not present in Danny's beacon_chain implementation *)
-    txs : seq Transaction;
-    proof : VProof
   }.
 
 Record ShardAndCommittee :=
@@ -211,15 +208,14 @@ Canonical AttestationRecord_eqType {H : ordType} :=
 
 Definition eq_block {H : ordType} {T P : eqType} (b b' : @Block H T P) :=
   match b, b' with
-  | mkB ph sn rr ars pcr asr csr txs p, mkB ph' sn' rr' ars' pcr' asr' csr' txs' p' =>
-    [&& ph == ph', sn == sn', rr == rr', ars == ars', pcr == pcr', asr == asr',
-     csr == csr', txs == txs' & p == p']
+  | mkB ph sn rr ars pcr asr csr, mkB ph' sn' rr' ars' pcr' asr' csr' =>
+    [&& ph == ph', sn == sn', rr == rr', ars == ars', pcr == pcr', asr == asr' & csr == csr']
   end.
       
 Lemma eq_blockP {H : ordType} {T P : eqType} : Equality.axiom (@eq_block H T P).
 Proof.
-case=> ph sn rr ars pcr asr csr txs p;
-case=> ph' sn' rr' ars' pcr' asr' csr' txs' p'; rewrite /eq_block/=.
+case=> ph sn rr ars pcr asr csr;
+case=> ph' sn' rr' ars' pcr' asr' csr'; rewrite /eq_block/=.
 case H2: (ph == ph'); [move/eqP: H2=>?; subst ph'| constructor 2];
   last by case=>?; subst ph';rewrite eqxx in H2.
 case H3: (sn == sn'); [move/eqP: H3=>?; subst sn'| constructor 2];
@@ -234,10 +230,6 @@ case H7: (asr == asr'); [move/eqP: H7=>?; subst asr'| constructor 2];
   last by case=>?; subst asr';rewrite eqxx in H7.
 case H8: (csr == csr'); [move/eqP: H8=>?; subst csr'| constructor 2];
   last by case=>?; subst csr';rewrite eqxx in H8.
-case H9: (txs == txs'); [move/eqP: H9=>?; subst txs'| constructor 2];
-  last by case=>?; subst txs';rewrite eqxx in H9.
-case H10: (p == p'); [move/eqP: H10=>?; subst p'| constructor 2];
-  last by case=>?; subst p';rewrite eqxx in H10.
 by constructor 1. 
 Qed.
 
@@ -778,8 +770,8 @@ rewrite domPt inE in Y; move/eqP: Y=>Y.
 by specialize (hashB_inj Y)=><-; rewrite Y findPt.
 Qed.
 
-Definition valid_chain_block bc (b : block) :=
-  [&& VAF (proof b) bc (txs b) & all [pred t | txValid t bc] (txs b)].
+(* Definition valid_chain_block bc (b : block) :=
+  [&& VAF (proof b) bc (txs b) & all [pred t | txValid t bc] (txs b)]. *)
 
 (* All paths/chains should start with the GenesisBlock *)
 Fixpoint compute_chain' (bf : Blockforest) b remaining n : Blockchain :=
@@ -847,23 +839,23 @@ Definition good_chain (bc : Blockchain) :=
   if bc is h :: _ then h == GenesisBlock else false.
 
 (* Transaction validity *)
-Fixpoint valid_chain' (bc prefix : seq block) :=
+(* Fixpoint valid_chain' (bc prefix : seq block) :=
   if bc is b :: bc'
   then [&& VAF (proof b) prefix (txs b) && all [pred t | txValid t prefix] (txs b) & valid_chain' bc' (rcons prefix b)]
-  else true.
+  else true. *)
 
-Definition valid_chain bc := valid_chain' bc [::].
+(* Definition valid_chain bc := valid_chain' bc [::]. *)
 
 Definition all_chains bf := [seq compute_chain bf b | b <- all_blocks bf].
 
-Definition good_chains bf := [seq c <- all_chains bf | good_chain c && valid_chain c].
+(* Definition good_chains bf := [seq c <- all_chains bf | good_chain c && valid_chain c]. *)
 
 (* Get the blockchain *)
-Definition take_better_bc bc2 bc1 :=
-  if (good_chain bc2 && valid_chain bc2) && (bc2 > bc1) then bc2 else bc1.
+(* Definition take_better_bc bc2 bc1 :=
+  if (good_chain bc2 && valid_chain bc2) && (bc2 > bc1) then bc2 else bc1. *)
 
-Definition bfChain bf : Blockchain :=
-  foldr take_better_bc [:: GenesisBlock] (all_chains bf).
+(* Definition bfChain bf : Blockchain :=
+  foldr take_better_bc [:: GenesisBlock] (all_chains bf). *)
 
 (* HELPERS *)
 
