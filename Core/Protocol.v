@@ -81,41 +81,36 @@ Definition Coh (w : World) :=
 
 Record Qualifier := Q { ts: Timestamp; allowed: NodeId; }.
 
-(* procInt currently undefined *)
-(* Inductive system_step (w w' : World) (q : Qualifier) : Prop :=
+Inductive system_step (w w' : World) (q : Qualifier) : Prop :=
 | Idle of Coh w /\ w = w'
 
 | Deliver (p : Packet) (st : State) of
       Coh w & (dst p) = allowed q &
       p \in inFlightMsgs w &
-      find (dst p) (localState w) = Some st &
+      @find NodeId_ordType _ _ (dst p) (localState w) = Some st &
       let: (st', ms) := procMsg st (src p) (msg p) (ts q) in
-      w' = mkW (upd (dst p) st' (localState w))
+      w' = mkW (@upd NodeId_ordType _ _  (dst p) st' (localState w))
                (seq.rem p (inFlightMsgs w) ++ ms)
                (rcons (consumedMsgs w) p)
 
 | Intern (proc : NodeId) (t : InternalTransition) (st : State) of
       Coh w & proc = allowed q &
-      find proc (localState w) = Some st &
+      @find NodeId_ordType _ _ proc (localState w) = Some st &
       let: (st', ms) := (procInt st t (ts q)) in
-      w' = mkW (upd proc st' (localState w))
+      w' = mkW (@upd NodeId_ordType _ _ proc st' (localState w))
                (ms ++ (inFlightMsgs w))
                (consumedMsgs w).
-*)
 
 Definition Schedule := seq Qualifier.
 
-(* system_step currently undefined *)
-(* Fixpoint reachable' (s : Schedule) (w w' : World) : Prop :=
+Fixpoint reachable' (s : Schedule) (w w' : World) : Prop :=
   if s is (ins :: insts)
   then exists via, reachable' insts w via /\ system_step via w' ins
   else w = w'.
-*)
 
 (* reachable' currently undefined *)
-(* Definition reachable (w w' : World) :=
+Definition reachable (w w' : World) :=
   exists s, reachable' s w w'.
-*)
 
 Definition initWorld := mkW (initState (fun _ => enum NodeId)) [::] [::].
 
@@ -172,46 +167,33 @@ Qed.
 Lemma procMsg_id_constant (s1 : State) from (m : Message) (ts : Timestamp) :
     id s1 = id (procMsg s1 from m ts).1.
 Proof.
-case: s1 from m ts=>n1 p1 b1 t1 from []=>//=??; case:ifP => //=.
-move/eqP => H_neq; case: ifP; move/eqP => //= H_eq.
-by case ohead.
+by case: s1 from m ts => n1 p1 b1 t1 []=>//=??.
 Qed.
 
 (* procInt currently undefined *)
-(* Lemma procInt_id_constant : forall (s1 : State) (t : InternalTransition) (ts : Timestamp),
+Lemma procInt_id_constant : forall (s1 : State) (t : InternalTransition) (ts : Timestamp),
     id s1 = id (procInt s1 t ts).1.
 Proof.
-case=> n1 p1 b1 t1 [] =>// ts; simpl.
-case hP: genProof => //.
-case tV: (valid_chain_block _ _)=>//.
+case=> n1 p1 b1 [] =>// ts; simpl.
 Qed.
-*)
 
 Lemma procMsg_valid :
    forall (s1 : State) from (m : Message) (ts : Timestamp),
     valid (blocks s1) -> valid (blocks (procMsg s1 from  m ts).1).
 Proof.
 move=> s1 from  m ts.
-case Msg: m=>[b|||];
+by case Msg: m=>[b|];
 destruct s1; rewrite/procMsg/=; do?by [|move: (bfExtendV blocks b)=><-].
-case:ifP => //=.
-move/eqP => H_neq; case: ifP; move/eqP => //= H_eq H_v.
-by case ohead.
 Qed.
 
-(* procInt currently undefined *)
-(* Lemma procInt_valid :
+Lemma procInt_valid :
   forall (s1 : State) (t : InternalTransition) (ts : Timestamp),
     valid (blocks s1) = valid (blocks (procInt s1 t ts).1).
 Proof.
 move=>s1 t ts.
-case Int: t; destruct s1; rewrite/procInt/=; first by [].
-case: (genProof _); last done.
-move=>Pf.
-case tV: (valid_chain_block _ _)=>//.
+case Int: t;destruct s1; rewrite/procInt//=.
 by rewrite/Node.blocks/=; apply bfExtendV.
 Qed.
-*)
 
 Lemma procMsg_validH :
    forall (s1 : State) from  (m : Message) (ts : Timestamp),
@@ -219,27 +201,20 @@ Lemma procMsg_validH :
      validH (blocks (procMsg s1 from  m ts).1).
 Proof.
 move=> s1 from  m ts.
-case Msg: m=>[b|||];
+case Msg: m=>[b|];
 destruct s1; rewrite/procMsg/=; do? by []; do? by case: ifP => //=.
-- by move=>v vh; apply bfExtendH.
-- move=>v vh; case: ifP => //=; move/eqP => H_neq; case: ifP; move/eqP => //= H_eq.
-  by case ohead.
+by move=>v vh; apply bfExtendH.
 Qed.
 
-(* procInt currently undefined *)
-(* Lemma procInt_validH :
+Lemma procInt_validH :
    forall (s1 : State) (t : InternalTransition) (ts : Timestamp),
      valid (blocks s1) -> validH (blocks s1) ->
      validH (blocks (procInt s1 t ts).1).
 Proof.
 move=>s1 t ts v vh.
-case Int: t; destruct s1; rewrite/procInt/=; first by [].
-case: (genProof _); last done.
-move=>Pf.
-case tV: (valid_chain_block _ _)=>//.
+case Int: t; destruct s1; rewrite/procInt//=.
 by rewrite/Node.blocks/=; apply bfExtendH.
 Qed.
-*)
 
 Lemma procMsg_has_init_block:
    forall (s1 : State) from (m : Message) (ts : Timestamp),
@@ -248,57 +223,43 @@ Lemma procMsg_has_init_block:
      has_init_block (blocks (procMsg s1 from m ts).1).
 Proof.
 move=> s1 from  m ts.
-case Msg: m=>[b|||];
+case Msg: m=>[b|];
 destruct s1; rewrite/procMsg/=; do? by []; do? by case:ifP.
-- by apply bfExtendIB.
-- move=>v vh; case: ifP => //=; move/eqP => H_neq; case: ifP; move/eqP => //= H_eq.
-  by case ohead.
+by apply bfExtendIB.
 Qed.
 
-(* procInt currently undefined *)
-(* Lemma procInt_has_init_block :
+Lemma procInt_has_init_block :
    forall (s1 : State) (t : InternalTransition) (ts : Timestamp),
      valid (blocks s1) -> validH (blocks s1) ->
      has_init_block (blocks s1) ->
      has_init_block (blocks (procInt s1 t ts).1).
 Proof.
 move=>s1 t ts v vh.
-case Int: t; destruct s1; rewrite/procInt/=; first by [].
-case: (genProof _); last done.
-move=>Pf.
-case tV: (valid_chain_block _ _)=>//.
+case Int: t; destruct s1; rewrite/procInt//=.
 by apply bfExtendIB.
 Qed.
-*)
 
 Lemma procMsg_peers_uniq :
   forall (s1 : State) from  (m : Message) (ts : Timestamp),
     let: s2 := (procMsg s1 from m ts).1 in
     uniq (peers s1) -> uniq (peers s2).
 Proof.
-case=> n1 p1 b1 t1 from; case; do? by []; simpl.
-move=>s _ U; case: ifP => //=.
-move/eqP => H_eq; case: ifP; move/eqP => //= H_eq'.
-by case ohead.
+case=> n1 p1 b1 t1; case; do? by []; simpl.
 Qed.
 
-(* procInt currently undefined *)
-(* Lemma procInt_peers_uniq :
+Lemma procInt_peers_uniq :
   forall (s1 : State) (t : InternalTransition) ts, let: s2 := (procInt s1 t ts).1 in
     uniq (peers s1) -> uniq (peers s2).
 Proof.
-move=>s1 t ts; case: s1=>n prs bf txp; rewrite /peers/procInt=>Up.
-case: t=>//; case hP: (genProof _)=>//.
-case tV: (valid_chain_block _ _)=>//.
+move=>s1 t ts; case: s1=>n prs bf; rewrite /peers/procInt=>Up.
+by case: t.
 Qed.
-*)
 
 (* most deifnitions in remainder of file rely on some combination of 
    system_step, reachable, etc. of which the definitions are currently
    commented out
 *)
 
-(*
 Lemma Coh_step w w' q:
   system_step w w' q -> Coh w'.
 Proof.
@@ -360,10 +321,10 @@ Lemma step_nodes w w' q :
 Proof.
 case: w w'=>sm f c [sm'] f' c'; case=>/=; first by case=>C; case=>->/=.
 - move=>p st1 C iq pf F; case: (procMsg st1 (src p) (msg p))=>st2 ms[]->{sm'}Z1 Z2.
-  subst f' c'=>z; rewrite domU inE/=; case: ifP=>///eqP->{z}.
+  subst f' c'=>z; rewrite (@domU NodeId_ordType) inE/=; case: ifP=>///eqP->{z}.
   by move/find_some: F->; case: C.
 move=>p t st1 C iq F; case: (procInt st1 t)=>st2 ms[]->{sm'}Z1 Z2.
-subst f' c'=>z; rewrite domU inE/=; case: ifP=>///eqP->{z}.
+subst f' c'=>z; rewrite (@domU NodeId_ordType) inE/=; case: ifP=>///eqP->{z}.
 by move/find_some: F->; case: C.
 Qed.
 
@@ -383,8 +344,8 @@ Inductive local_step (s1 s2 : State) : Prop :=
 Lemma system_step_local_step w w' q:
   forall (n : NodeId) (st st' : State),
     system_step w w' q ->
-    find n (localState w) = Some st ->
-    find n (localState w') = Some st' ->
+    @find NodeId_ordType _ _ n (localState w) = Some st ->
+    @find NodeId_ordType _ _ n (localState w') = Some st' ->
     local_step st st'.
 Proof.
 move=> n st st'.
@@ -422,10 +383,10 @@ case.
 Qed.
 
 Lemma no_change_still_holds (w w' : World) (n : NodeId) q st cond:
-  find n (localState w) = Some st ->
+  @find NodeId_ordType _ _ n (localState w) = Some st ->
   holds n w cond ->
   system_step w w' q ->
-  find n (localState w') = Some st ->
+  @find NodeId_ordType _ _ n (localState w') = Some st ->
   holds n w' cond.
 Proof.
 move=>f h S sF st' s'F; rewrite s'F in sF; case: sF=>->.
@@ -433,13 +394,12 @@ by move: (h st f).
 Qed.
 
 Lemma no_change_has_held (w w' : World) (n : NodeId) q st cond:
-  find n (localState w) = Some st ->
+  @find NodeId_ordType _ _ n (localState w) = Some st ->
   system_step w w' q->
   holds n w' cond ->
-  find n (localState w') = Some st ->
+  @find NodeId_ordType _ _ n (localState w') = Some st ->
   holds n w cond.
 Proof.
 move=> f S h sF st' s'F.
 by rewrite f in s'F; case: s'F=><-; move: (h st sF).
 Qed.
-*)

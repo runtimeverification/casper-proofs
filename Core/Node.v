@@ -625,24 +625,18 @@ Definition peers_t := seq NodeId.
 
 Inductive Message :=
 | BlockMsg of block
-| TxMsg of Transaction
-| InvMsg of seq Hash
-| GetDataMsg of Hash.
+| VoteMsg of Vote.
 
 Inductive InternalTransition :=
-  | TxT of Transaction
-  | MintT.
+  | BlockT of block
+  | VoteT of Vote.
 
 Definition eq_msg a b :=
  match a, b with
   | BlockMsg bA, BlockMsg bB => (bA == bB)
   | BlockMsg _, _ => false
-  | TxMsg tA, TxMsg tB => (tA == tB)
-  | TxMsg _, _ => false
-  | InvMsg hA, InvMsg hB => (hA == hB)
-  | InvMsg _, _ => false
-  | GetDataMsg hA, GetDataMsg hB => (hA == hB)
-  | GetDataMsg _, _ => false
+  | VoteMsg vA, VoteMsg vB => (vA == vB)
+  | VoteMsg _, _ => false
  end.
 
 Ltac simple_tactic mb n n' B :=
@@ -653,19 +647,13 @@ Ltac simple_tactic mb n n' B :=
 Lemma eq_msgP : Equality.axiom eq_msg.
 Proof.
 move=> ma mb. rewrite/eq_msg.
-case: ma=>[b|t|h|h].
-- case:mb=>////[b'|t'|h'|h']; do? [by constructor 2].
+case: ma=>[b|v].
+- case:mb=>////[b'|v']; do? [by constructor 2].
   case B: (b == b'); [by case/eqP:B=><-; constructor 1|constructor 2].
   by case=>Z; subst b'; rewrite eqxx in B.
-- case:mb=>////[b'|t'|h'|h']; do? [by constructor 2].
-  case B: (t == t'); [by case/eqP:B=><-; constructor 1|constructor 2].
-  by case=>Z; subst t'; rewrite eqxx in B.
-- case:mb=>////[b'|t'|h'|h']; do? [by constructor 2].
-  case B: (h == h'); [by case/eqP:B=><-; constructor 1|constructor 2].
-  by case=>Z; subst h'; rewrite eqxx in B.
-- case:mb=>////[b'|t'|h'|h']; do? [by constructor 2].
-  case B: (h == h'); [by case/eqP:B=><-; constructor 1|constructor 2].
-  by case=>Z; subst h'; rewrite eqxx in B.
+- case:mb=>////[b'|v']; do? [by constructor 2].
+  case B: (v == v'); [by case/eqP:B=><-; constructor 1|constructor 2].
+  by case=>Z; subst v'; rewrite eqxx in B.
 Qed.
   
 Canonical Msg_eqMixin := Eval hnf in EqMixin eq_msgP.
@@ -705,70 +693,29 @@ Record State :=
     id : NodeId;
     peers : peers_t;
     blocks : Blockforest;
-    txPool : TxPool;
   }.
 
 Definition Init (n : NodeId) (peers : seq NodeId) : State :=
-  Node n peers (#GenesisBlock \\-> GenesisBlock) [::].
+  Node n peers (#GenesisBlock \\-> GenesisBlock).
 
 Definition procMsg (st: State) (from : NodeId) (msg: Message) (ts: Timestamp) :=
-    let: Node n prs bf pool := st in
-    match msg with
-    | BlockMsg b =>
-      let: newBf := bfExtend bf b in
-      let: newPool := [seq t <- pool | txValid t (bfChain newBf)] in
-      let: ownHashes := dom newBf ++ [seq hashT t | t <- newPool] in
-      pair (Node n prs newBf newPool) (emitBroadcast n prs (InvMsg ownHashes))
+  let: Node n prs bf := st in
+  match msg with
+  | BlockMsg b =>
+    let: newBf := bfExtend bf b in
+    pair (Node n prs newBf) emitZero
+  | VoteMsg v =>
+    (* process vote *)
+    pair (Node n prs bf) emitZero
+  end.
 
-    | TxMsg tx =>
-      let: newPool := tpExtend pool bf tx in
-      let: ownHashes := dom bf ++ [seq hashT t | t <- newPool] in
-      pair (Node n prs bf newPool) (emitBroadcast n prs (InvMsg ownHashes))
-
-    | InvMsg peerHashes =>
-      let: ownHashes := dom bf ++ [seq hashT t | t <- pool] in
-      let: newH := [seq h <- peerHashes | h \notin ownHashes] in
-      let: gets := [seq mkP n from (GetDataMsg h) | h <- newH] in
-      pair st (emitMany gets)
-
-    | GetDataMsg h =>
-      (* Do not respond to yourself *)
-      if from == n then pair st emitZero else
-      let: matchingBlocks := [seq b <- [:: get_block bf h] | b != GenesisBlock] in
-      match ohead matchingBlocks with
-      | Some b => pair (Node n prs bf pool) (emitOne (mkP n from (BlockMsg b)))
-      | None =>
-        let: matchingTxs := [seq t <- pool | (hashT t) == h] in
-        match ohead matchingTxs with
-        | Some tx =>
-          pair (Node n prs bf pool) (emitOne (mkP n from (TxMsg tx)))
-        | None => pair st emitZero
-        end
-      end
-    end.
-
-(* Commented out because Block definition changed, mkB won't work *)
-(* Definition procInt (st : State) (tr : InternalTransition) (ts : Timestamp) :=
-    let: Node n prs bf pool := st in
-    match tr with
-    | TxT tx => pair st (emitBroadcast n prs (TxMsg tx))
-
-    (* Assumption: nodes broadcast to themselves as well! => simplifies logic *)
-    | MintT =>
-      let: bc := bfChain bf in
-      let: allowedTxs := [seq t <- pool | txValid t bc] in
-      match genProof n bc allowedTxs ts with
-      | Some pf =>
-        let: prevBlock := last GenesisBlock bc in
-        let: block := mkB (hashB prevBlock) allowedTxs pf in
-        if valid_chain_block bc block then
-          let: newBf := bfExtend bf block in
-          let: newPool := [seq t <- pool | txValid t (bfChain newBf)] in
-          let: ownHashes := dom newBf ++ [seq hashT t | t <- newPool] in
-          pair (Node n prs newBf newPool) (emitBroadcast n prs (BlockMsg block))
-        else
-          pair st emitZero
-      | None => pair st emitZero
-      end
-    end.
-*)
+Definition procInt (st : State) (tr : InternalTransition) (ts : Timestamp) :=
+ let: Node n prs bf := st in
+ match tr with
+ | BlockT b =>
+   let: newBf := bfExtend bf b in
+   pair (Node n prs newBf) (emitBroadcast n prs (BlockMsg b))
+ | VoteT v =>
+   (* process vote *)
+   pair (Node n prs bf) (emitBroadcast n prs (VoteMsg v))
+ end.
