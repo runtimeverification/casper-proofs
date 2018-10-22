@@ -708,10 +708,11 @@ Record State {Hash : ordType} :=
     cycleLength : nat;
   }.
 
-Definition Init (n : NodeId) (peers : seq NodeId)
-           (crystallizedState : @CrystallizedState [ordType of Hash])
-           (activeState : @ActiveState [ordType of Hash])  :=
-  Node n peers (#GenesisBlock \\-> GenesisBlock) crystallizedState activeState.
+Definition initCS := @mkCS [ordType of Hash] [::] 0 [::] 0 0 0 0 [::] dummyHash 0.
+Definition initAS := @mkAS [ordType of Hash] [::] [::].
+
+Definition Init (n : NodeId) (peers : seq NodeId) :=
+  Node n peers (#GenesisBlock \\-> GenesisBlock) initCS initAS.
 
 Definition procMsg (st: @State [ordType of Hash]) (from : NodeId) (msg: Message) (ts: Timestamp) :=
   let: Node n prs bf cst ast cl := st in
