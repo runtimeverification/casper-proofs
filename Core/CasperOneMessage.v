@@ -105,6 +105,14 @@ Inductive nth_ancestor : nat -> Hash -> Hash -> Prop :=
     nth_ancestor n h1 h2 -> h2 <~ h3 ->
     nth_ancestor n.+1 h1 h3.
 
+Example parent_ancestor : forall h1 h2,
+  h1 <~ h2 -> nth_ancestor 1 h1 h2.
+Proof.
+move => h1 h2 Hp.
+apply: nth_ancestor_nth; eauto.
+exact: nth_ancestor_0.
+Qed.
+
 Definition justified_link s q parent pre new now :=
   q \in quorum_1 /\
   (forall n, n \in q -> vote_msg s n new now pre) /\
