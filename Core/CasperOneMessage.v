@@ -49,10 +49,7 @@ Notation "h1 <~ h2" := (hash_parent h1 h2) (at level 50).
 
 Variable genesis : Hash.
 
-Hypothesis hash_at_most_one_parent_1 :
-  forall h1 h2, h1 <~ h2 -> h1 <> h2.
-
-Hypothesis hash_at_most_one_parent_2 :
+Hypothesis hash_at_most_one_parent :
   forall h1 h2 h3, h2 <~ h1 -> h3 <~ h1 -> h2 = h3.
 
 Definition hash_ancestor h1 h2 :=
@@ -490,7 +487,7 @@ have Hx: x <> xa.
   rewrite Hx in Hf.
   move: Hf => [Hf1 [Hf2 Hf3]].
   move: Hf' => [Hf'1 [Hf'2 Hf'3]].
-  by have Hp := hash_at_most_one_parent_2 Hf1 Hf'1.
+  by have Hp := hash_at_most_one_parent Hf1 Hf'1.
 have Hnn: forall n, vote_msg s n x v1.+1 v1 -> vote_msg s n xa v1.+1 v1 -> slashed_dbl_vote s n.
   move => n Hv1 Hv2.
   rewrite /slashed_dbl_vote.
