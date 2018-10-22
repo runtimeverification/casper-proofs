@@ -12,7 +12,7 @@ Unset Printing Implicit Defensive.
 Definition NodeId_ordMixin := fin_ordMixin NodeId.
 Canonical NodeId_ordType := Eval hnf in OrdType NodeId NodeId_ordMixin.
 
-(* Parameter of type Hash *)
+(* Parameters *)
 Parameter dummyHash : Hash.
 Parameter dummySAC : ShardAndCommittee.
 Parameter dummySACSeq : seq ShardAndCommittee.
@@ -608,14 +608,14 @@ Definition procContractCallBlock_aux (block_number : nat) (t: Transaction) (ps :
   let: ps' := procContractCallTx block_number t ps.1 in
   (ps'.1, ps.2 ++ ps'.2).
 
-Definition procContractCallBlock (b : block) (ps : CasperData * seq SendAccount) : CasperData * seq SendAccount :=
+(* Definition procContractCallBlock (b : block) (ps : CasperData * seq SendAccount) : CasperData * seq SendAccount :=
   foldr (procContractCallBlock_aux (blockNumber b)) ps b.(txs).
 
 Definition casper_state_bc (init : CasperData) (bc : Blockchain) : CasperData * seq SendAccount :=
   foldr procContractCallBlock (init, [::]) bc.
 
 Definition casper_state_bc_init (bc : Blockchain) : CasperData * seq SendAccount :=
-  casper_state_bc InitCasperData bc.
+  casper_state_bc InitCasperData bc. *)
 
 (* ------------------*)
 (* PROTOCOL MESSAGES *)
@@ -688,34 +688,44 @@ Definition emitBroadcast (from : NodeId) (dst : seq NodeId) (msg : Message) :=
 (* NODE STATE & CODE *)
 (* ------------------*)
 
-Record State :=
+Record State {Hash : ordType} :=
   Node {
     id : NodeId;
     peers : peers_t;
     blocks : Blockforest;
+    cstate : @CrystallizedState Hash;
+    astate : @ActiveState Hash;
+    (* TODO: does cycleLength belong here? *)
+    cycleLength : nat;
   }.
 
-Definition Init (n : NodeId) (peers : seq NodeId) : State :=
-  Node n peers (#GenesisBlock \\-> GenesisBlock).
+Definition Init (n : NodeId) (peers : seq NodeId)
+           (crystallizedState : @CrystallizedState [ordType of Hash])
+           (activeState : @ActiveState [ordType of Hash])  :=
+  Node n peers (#GenesisBlock \\-> GenesisBlock) crystallizedState activeState.
 
-Definition procMsg (st: State) (from : NodeId) (msg: Message) (ts: Timestamp) :=
-  let: Node n prs bf := st in
+Definition procMsg (st: @State [ordType of Hash]) (from : NodeId) (msg: Message) (ts: Timestamp) :=
+  let: Node n prs bf cst ast cl := st in
   match msg with
   | BlockMsg b =>
+    let: parentBlock := get_block bf (parent_hash b) in
+    let: (crystallizedState, activeState) := computeStateTransition cst ast parentBlock b cl in
     let: newBf := bfExtend bf b in
-    pair (Node n prs newBf) emitZero
+    pair (Node n prs newBf crystallizedState activeState) emitZero
   | VoteMsg v =>
     (* process vote *)
-    pair (Node n prs bf) emitZero
+    pair (Node n prs bf cst ast) emitZero
   end.
 
-Definition procInt (st : State) (tr : InternalTransition) (ts : Timestamp) :=
- let: Node n prs bf := st in
+Definition procInt (st : @State [ordType of Hash]) (tr : InternalTransition) (ts : Timestamp) :=
+ let: Node n prs bf cst ast cl := st in
  match tr with
  | BlockT b =>
+   let: parentBlock := get_block bf (parent_hash b) in
+   let: (crystallizedState, activeState) := computeStateTransition cst ast parentBlock b cl in
    let: newBf := bfExtend bf b in
-   pair (Node n prs newBf) (emitBroadcast n prs (BlockMsg b))
+   pair (Node n prs newBf crystallizedState activeState) (emitBroadcast n prs (BlockMsg b))
  | VoteT v =>
    (* process vote *)
-   pair (Node n prs bf) (emitBroadcast n prs (VoteMsg v))
+   pair (Node n prs bf cst ast) (emitBroadcast n prs (VoteMsg v))
  end.
