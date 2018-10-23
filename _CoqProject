@@ -8,3 +8,4 @@ Core/CasperOneMessage.v
 Core/ValidatorQuorum.v
 Core/ValidatorBlockforest.v
 Core/StrongInductionLtn.v
+Core/ValidatorDepositQuorum.v
