@@ -2,10 +2,8 @@
 -arg "-w -notation-overridden,-local-declaration,-redundant-canonical-projection,-projection-no-head-constant"
 
 Core/Blockforest.v
-Core/Casper.v
 Core/Node.v
 Core/Protocol.v
-Core/Behavior.v
 Core/CasperOneMessage.v
 Core/ValidatorQuorum.v
 Core/ValidatorBlockforest.v
