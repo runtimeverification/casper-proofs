@@ -1,4 +1,5 @@
-Require Import mathcomp.ssreflect.all_ssreflect.
+From mathcomp
+Require Import all_ssreflect.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
