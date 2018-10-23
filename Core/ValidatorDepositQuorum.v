@@ -54,10 +54,12 @@ Variable deposit : Validator -> nat.
 
 Definition deposit_ge_bot_validators :=
  ((\sum_(v : Validator) (deposit v)) %/ 3).+1.
+
 Definition deposit_ge_top_validators :=
  ((2 * \sum_(v : Validator) (deposit v)) %/ 3).+1.
 
 Definition deposit_bot_validators := gt_dset deposit deposit_ge_bot_validators.
+
 Definition deposit_top_validators := gt_dset deposit deposit_ge_top_validators.
 
 Lemma Validators_deposit_constr_thirds :
