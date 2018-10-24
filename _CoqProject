@@ -5,6 +5,7 @@ Core/Blockforest.v
 Core/Node.v
 Core/Protocol.v
 Core/CasperOneMessage.v
+Core/PlausibleLiveness.v
 Core/ValidatorQuorum.v
 Core/ValidatorBlockforest.v
 Core/StrongInductionLtn.v
