@@ -8,6 +8,96 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
+Lemma subeq_tin : forall (T : finType) (q : {set T}) F,
+ \sum_(t in q) (F t) = \sum_(t in q) (if t \in q then F t else 0).
+Proof.
+move => T q F.
+apply eq_big => //.
+by move => t; case: ifP.
+Qed.
+
+Lemma subeq_tinn (T : finType) (q : {set T}) F :
+ \sum_(t in ~: q) (if t \in q then F t else 0) = 0.
+Proof.
+elim/big_ind: _ => //.
+- by move => x y =>->->.
+- move => t; case: ifP => //=.
+  move => Ht.
+  by move/setCP.
+Qed.
+
+Lemma all_sum_or (T : finType) (q : {set T}) F :
+ \sum_(t in q :|: ~: q) F t =     
+ \sum_(t : T | ((t \in q) || (t \in ~: q))) F t.
+Proof.
+apply: eq_big => //.
+by move => x; rewrite in_setU.
+Qed.
+
+Lemma subeq (T : finType) (q : {set T}) F :
+ \sum_(t in q) (F t) = \sum_(t : T) (if t \in q then F t else 0).
+Proof.
+by rewrite big_mkcond.
+Qed.
+
+Lemma all_sum_or_all (T : finType) (q : {set T}) F :
+  \sum_(t in q :|: ~: q) F t =
+  \sum_(t : T) F t.
+Proof.
+rewrite subeq.
+elim/big_ind2: _ => //=; first by move => x1 x2 y1 y2 =>->->.
+move => t Ht.
+case: ifP => Hf //.
+move/negP: Hf.
+case.
+by rewrite setUCr.
+Qed.
+
+Lemma all_sum_or_a (T : finType) (q : {set T}) F :
+  \sum_(t in q :|: ~: q) F t =
+  \sum_(t in q) F t + \sum_(t in ~: q) F t.
+Proof.
+rewrite big_mkcond /=.
+set s := \sum_i _.
+rewrite big_mkcond /=.
+set s1 := \sum_i _.
+rewrite big_mkcond /=.
+rewrite /s /s1 {s s1}.
+elim/big_ind3: _ => //=.
+- move => x1 x2 x3 y1 y2 y3 Hx Hy.
+  set s := _ + _.
+  rewrite addnC addnA.
+  rewrite -addnC.
+  rewrite -addnA.
+  rewrite addnC.
+  have ->: y1 + x2 = x2 + y1 by rewrite addnC.
+  rewrite addnA.
+  have ->: x1 + x2 = x2 + x1 by rewrite addnC.
+  rewrite -Hx.
+  rewrite addnC.
+  rewrite addnA.
+  rewrite addnC.
+  rewrite addnA.
+  have ->: y1 + y2 = y2 + y1 by rewrite addnC.
+  rewrite -Hy.
+  by rewrite addnC.
+- move => t Ht.
+  case: ifP; case: ifP; case: ifP => //=.
+  * by move/setCP.
+  * move/negP => Hn.
+    move/negP => Hn'.
+    by move/setUP; case.
+  * move => Hn Hn'.
+    move/setUP.
+    by case; left.
+  * move => Hn Hn'.
+    move/setUP.
+    by case; left.
+  * move => Hn Hn'.
+    move/setUP.
+    by case; right.
+Qed.
+
 Section DT.
 
 Variable T : finType.
@@ -24,6 +114,24 @@ rewrite inE andb_idl // => Hn.
 by rewrite powersetE.
 Qed.
 
+(*
+Lemma all_sum_split : forall (q : {set T}) F, 
+ \sum_(t : T) F t = \sum_(t in q :|: ~: q) F t.
+Proof.
+move => q F.
+*)
+
+(*
+Lemma subeq : forall (q : {set T}),
+ \sum_(t in q) (d t) = \sum_(t : T) (if t \in q then d t else 0).
+Proof.
+move => q.  
+rewrite subeq_tin.
+elim/big_rec2: _.
+apply: congr_big => //.
+move => x0.
+*)
+      
 Variable x y z : nat.
 
 Local Notation bot := (((x * \sum_(t : T) (d t)) %/ y).+1).
