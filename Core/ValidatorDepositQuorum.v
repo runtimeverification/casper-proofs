@@ -113,24 +113,6 @@ move => n s.
 rewrite inE andb_idl // => Hn.
 by rewrite powersetE.
 Qed.
-
-(*
-Lemma all_sum_split : forall (q : {set T}) F, 
- \sum_(t : T) F t = \sum_(t in q :|: ~: q) F t.
-Proof.
-move => q F.
-*)
-
-(*
-Lemma subeq : forall (q : {set T}),
- \sum_(t in q) (d t) = \sum_(t : T) (if t \in q then d t else 0).
-Proof.
-move => q.  
-rewrite subeq_tin.
-elim/big_rec2: _.
-apply: congr_big => //.
-move => x0.
-*)
       
 Variable x y z : nat.
 
@@ -144,13 +126,117 @@ Lemma d_disjoint_leq : forall (q1 q2 : {set T}),
  [disjoint q1 & q2] ->
  \sum_(t in q1) (d t) + \sum_(t in q2) (d t) <= \sum_(t : T) (d t).
 Proof.
+move => q1 q2 Hd.
+rewrite -bigU //=.
+rewrite big_mkcond /=.
+apply: leq_sum.
+move => t Ht.
+by case: ifP.
+Qed.
+
+Lemma sum_all_gt_0_intersect :
+  forall (q1 q2 : {set T}) n,
+    0 < \sum_(t in q1) d t + \sum_(t in q2) d t ->
+    n + \sum_(t in T) d t < \sum_(t in q1) d t + \sum_(t in q2) d t ->
+    0 < \sum_(t in q1 :&: q2) (d t).
+Proof.
 Admitted.
 
+Lemma sumU : forall (q1 q2 : {set T}),
+    \sum_(t in (q1 :|: q2)) d t =
+    \sum_(t in q1) (d t) + \sum_(t in q2) (d t) - \sum_(t in q1 :&: q2) (d t).
+Proof.
+Admitted.
+
+Lemma sumI : forall (q1 q2 : {set T}),
+  \sum_(t in q1 :&: q2) (d t) =
+  \sum_(t in q1) (d t) + \sum_(t in q2) (d t) - \sum_(t in (q1 :|: q2)) d t.
+Proof.
+Admitted.
+  
 Lemma d_bot_top_intersection :
   forall q1 q2, q1 \in gt_dset top -> q2 \in gt_dset top ->
   exists q3, q3 \in gt_dset bot /\ q3 \subset q1 /\ q3 \subset q2.
 Proof.
-Admitted.
+move => q1 q2 Hq1 Hq2.
+have Hq1': \sum_(t in q1) (d t) >= top by rewrite gt_dset_in.
+have Hq2': \sum_(t in q2) (d t) >= top by rewrite gt_dset_in.
+exists (q1 :&: q2).
+split; last by split; [apply subsetIl|apply subsetIr].
+suff Hsuff: \sum_(t in q1 :&: q2) (d t) >= bot by rewrite inE; apply/andP; split => //; rewrite inE.
+clear Hq1 Hq2.
+have Hq: 2 * ((z * \sum_(t in T) (d t)) %/ y).+1 <= \sum_(t in q1) (d t) + \sum_(t in q2) (d t).
+  by rewrite mul2n -addnn; apply leq_add.
+have Hle: ((x * \sum_(t in T) (d t)) %/ y).+1 + \sum_(t in T) (d t) <= \sum_(t in q1) (d t) + \sum_(t in q2) (d t) by eapply leq_trans; eauto.
+have Hlt: (x * \sum_(t in T) (d t)) %/ y + \sum_(t in T) (d t) < \sum_(t in q1) (d t) + \sum_(t in q2) (d t) by [].
+clear Hle Hq Hq1' Hq2'.
+move: Hlt.
+set lhs := _ %/ _.
+move: lhs => n.
+move => Hlt.
+have Hlt': 0 < \sum_(t in q1) (d t) + \sum_(t in q2) (d t).
+  by move:Hlt; case Hq: (\sum_(t in q1) (d t) + \sum_(t in q2) (d t)).
+case Hc: ([disjoint q1 & q2]).
+  move: Hlt.
+  move/d_disjoint_leq: Hc => Hc Hn.
+  move: Hc.
+  rewrite leqNgt.
+  case/negP.  
+  eapply leq_ltn_trans in Hn; eauto.
+  by apply leq_addl.
+have Hlt'' := sum_all_gt_0_intersect Hlt' Hlt.
+move: Hlt.  
+have Hltt: \sum_(t in q1) (d t) + \sum_(t in q2) (d t) - \sum_(t in q1 :&: q2) (d t) <
+  \sum_(t in q1) (d t) + \sum_(t in q2) (d t).
+  move: Hlt' Hlt''.
+  set n1 := \sum_(t in q1) (d t) + _.
+  set n2 := \sum_(_ in _ :&: _) _.
+  move: n1 n2.
+  move => n1 n2 Hltn1 Htln2.
+  case Heq: (n1 == n2); first by move/eqP: Heq =>->; rewrite subnn.
+  move/orP: (leq_total n1 n2).
+  case => Hn12; first by move: Hn12; rewrite -subn_eq0; move/eqP =>->.
+  move: Hn12.
+  rewrite leq_eqVlt.
+  move/orP.
+  case; first by rewrite eq_sym Heq.
+  clear Heq Hltn1.
+  move: n1 n2 Htln2.
+  elim => //=.
+  move => n0 IH.
+  case => //=.
+  case => //=; first by move => Hlt Hlt'; rewrite subnS.
+  move => n1 Hlt Hltn.
+  have Hlt0: 0 < n1.+1 by [].
+  have Hlt1: n1.+1 < n0 by rewrite -(ltn_add2l 1) /=; rewrite 2!add1n.
+  have IH' := IH n1.+1 Hlt0 Hlt1.
+  rewrite subSn //=.
+  have ->: n0.+1 = 1 + n0 by rewrite add1n.
+  have ->: (n0 - n1.+2).+1 = 1 + (n0 - n1.+2) by rewrite add1n.
+  rewrite ltn_add2l.
+  suff Hsuff: n0 - n1.+2 <= n0 - n1.+1 by eapply leq_ltn_trans in Hsuff; eauto.
+  by apply leq_sub2l.
+move/(@ltn_sub2r (\sum_(t in q1 :|: q2) (d t))).
+rewrite {1}sumU => Hlt.
+move/Hlt: Hltt.
+rewrite -sumI.
+have Hle: \sum_(t in q1 :|: q2) (d t) <= \sum_(t in T) (d t).
+  rewrite big_mkcond /=.
+  apply: leq_sum.
+  move => t Ht.
+  by case: ifP.
+rewrite -addnBA //.
+set k := _ - _.
+set l := \sum_(_ in _) _.
+move: k l.
+clear Hlt.
+elim => //=; first by move => l; rewrite addn0.
+move => k IH l Hnk.
+apply: IH.
+move: Hnk.
+rewrite addnS.
+by move/ltnW.
+Qed.
 
 End DT.
 
