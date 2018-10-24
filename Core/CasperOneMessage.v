@@ -2,7 +2,7 @@ From mathcomp
 Require Import all_ssreflect.
 
 From Hammer
-Require Import Reconstr.
+Require Reconstr.
 
 From CasperToychain
 Require Import StrongInductionLtn.
