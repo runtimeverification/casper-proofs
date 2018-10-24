@@ -4,7 +4,7 @@ Require Import Eqdep Relations.
 From fcsl
 Require Import pred prelude ordtype pcm finmap unionmap heap.
 From CasperToychain
-Require Import Blockforest Casper Node.
+Require Import Blockforest Node.
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
