@@ -1,11 +1,8 @@
-From mathcomp
+From mathcomp.ssreflect
 Require Import all_ssreflect.
 
-From Hammer
-Require Import Hammer Reconstr.
-
-From mathcomp
-     Require Import finmap.
+From mathcomp.finmap
+Require Import finmap.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -205,7 +202,7 @@ Definition sources_justified st v :=
     vote_msg st v s t s_h t_h ->
     epoch_start <~* s /\ justified_this_epoch st s s_h.
 
-Definition one_third_slahsed st :=
+Definition one_third_slashed st :=
   exists q, q \in quorum_2 /\ forall v, v \in q -> slashed st v.
 
 Definition one_third_bad st :=
@@ -224,8 +221,7 @@ Definition blocks_exist_high_over (base : Hash) : Prop :=
   forall n, exists block, nth_ancestor n base block.
 
 Definition highest_justified st b b_h : Prop :=
-  forall b' b_h', b_h' >= b_h -> justified_this_epoch st b' b_h' ->
-                  b' == b /\ b_h' == b_h.
+  forall b' b_h', b_h' >= b_h -> justified_this_epoch st b' b_h' -> b' = b /\ b_h' = b_h.
 
 Lemma highest_exists: forall st,
     ~one_third_bad st ->
@@ -237,38 +233,25 @@ Admitted.
 Definition highest (A : {fset nat}) : nat :=
   \max_(i : [finType of A]) (val i).
 
-Lemma max_nat : forall (s : {fset nat}) (n : nat),
- n \in s ->
- n <= \max_(i : s) (val i).
+Lemma highest_ub:
+  forall (A : {fset nat}) (x:nat), x \in A -> x <= highest A.
 Proof.
-intro s.
-move => n Hn.
-case (insubP [subType of s] n) => /=; last by move: Hn =>->.
+move => A x Hx.
+case (insubP [subType of A] x) => /=; last by move: Hx =>->.
 move => k Hk =><-.
 exact: leq_bigmax_cond.
-Qed.
-
-
-Lemma highest_ub:
-  forall (A : {fset nat}) (x:nat),
-    x \in A -> x <= highest A.
-Proof.
-  apply max_nat.
 Qed.
 
 Lemma two_thirds_good: forall st,
     ~one_third_bad st ->
     exists (q : {set Validator}), q \in quorum_1 /\ forall v, v \in q ->
      (~slashed st v /\ sources_justified st v).
+Proof.
 Admitted.
 
 Lemma ltSnn: forall n, (n.+1 < n) = false.
 Proof.
-  intro n.
-  generalize (ltnn n).
-  apply contraFF.
-  intro.
-  apply ltn_trans with n.+1. apply ltnSn. assumption.
+by move => n; apply/negP/negP; rewrite leqNgt; apply/negP; case/negP.
 Qed.
 
 Lemma plausible_liveness :
@@ -419,7 +402,8 @@ Proof.
   clear -Hjust_max_max Hst2_justified Hstarts.
   apply Hjust_max_max in Hst2_justified;[|apply ltnW;assumption].
   destruct Hst2_justified.
-  contradict Hstarts. case/eqP: H0 =><-. rewrite ltnn. trivial.
+  contradict Hstarts.
+  rewrite -H0. rewrite ltnn. trivial.
 
   new_vote_mem_tac Houter.
   new_vote_mem_tac Hinner.
