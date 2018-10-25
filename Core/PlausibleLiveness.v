@@ -32,36 +32,6 @@ Hypothesis quorum_2_nonempty:
 Hypothesis quorum_1_nonempty:
   forall q, q \in quorum_1 -> exists v, v \in q.
 
-(*
-Lemma quorum_1_nonempty:
-  forall q, q \in quorum_1 -> exists v, v \in q.
-Proof.
-  intros.
-  destruct (quorums_intersection H H) as (q2 & Hq2 & Hsub & _).
-  clear H.
-  apply quorum_2_nonempty in Hq2.
-  destruct Hq2. exists x.
-  revert H.
-  apply (subsetP Hsub).
-Qed.
- *)
-
-(*
-Lemma quorums_property :
- forall q1 q2, q1 \in quorum_1 -> q2 \in quorum_1 ->
- exists q3, q3 \in quorum_2 /\ forall n, n \in q3 -> n \in q1 /\ n \in q2.
-Proof.
-move => q1 q2 Hq1 Hq2.
-have [q3 [Hq3 [Hq13 Hq23]]] := (quorums_intersection Hq1 Hq2).
-exists q3.
-split => //.
-move => n Hn.
-split.
-- by apply/(subsetP Hq13).
-- by apply/(subsetP Hq23).
-Qed.
-*)
-
 (* Each vote names source and target nodes by giving hash and height,
    and is signed by a particular validator *)
 Definition Vote := (Validator * Hash * Hash * nat * nat)%type.
@@ -85,13 +55,6 @@ Notation "h1 <~ h2" := (hash_parent h1 h2) (at level 50).
 (* The genesis block. Usually less interesting than
    the block which started the current epoch *)
 Variable genesis : Hash.
-
-(* This looks like a very weak fragment of acylic? *)
-Hypothesis hash_at_most_one_parent_1 :
-  forall h1 h2, h1 <~ h2 -> h1 <> h2.
-
-Hypothesis hash_at_most_one_parent_2 :
-  forall h1 h2 h3, h2 <~ h1 -> h3 <~ h1 -> h2 = h3.
 
 Definition hash_ancestor h1 h2 :=
  connect hash_parent h1 h2.
@@ -144,12 +107,6 @@ Inductive nth_ancestor : nat -> Hash -> Hash -> Prop :=
 | nth_ancestor_nth : forall n h1 h2 h3,
     nth_ancestor n h1 h2 -> h2 <~ h3 ->
     nth_ancestor n.+1 h1 h3.
-
-Hypothesis hash_at_most_one_level:
-  forall h n1 n2,
-    nth_ancestor n1 genesis h ->
-    nth_ancestor n2 genesis h ->
-    n1 = n2.
 
 (* A validator may not make two votes with different target hashes at the same
   target height (whatever the source blocks)
@@ -207,12 +164,12 @@ Definition one_third_slashed st :=
 
 Definition one_third_bad st :=
   exists q, q \in quorum_2 /\ forall v, v \in q ->
-   (slashed st v \/ ~sources_justified st v).
+   (slashed st v \/ ~ sources_justified st v).
 
 Definition unslashed_can_extend st st' : Prop :=
   forall v s t s_h t_h,
     vote_msg st' v s t s_h t_h = true ->
-    vote_msg st v s t s_h t_h = true \/ ~slashed st v.
+    vote_msg st v s t s_h t_h = true \/ ~ slashed st v.
 
 Definition no_new_slashed st st' :=
   forall v, slashed st' v -> slashed st v.
@@ -224,7 +181,7 @@ Definition highest_justified st b b_h : Prop :=
   forall b' b_h', b_h' >= b_h -> justified_this_epoch st b' b_h' -> b' = b /\ b_h' = b_h.
 
 Lemma highest_exists: forall st,
-    ~one_third_bad st ->
+    ~ one_third_bad st ->
     exists b b_h,
       justified_this_epoch st b b_h /\
       highest_justified st b b_h.
@@ -243,9 +200,9 @@ exact: leq_bigmax_cond.
 Qed.
 
 Lemma two_thirds_good: forall st,
-    ~one_third_bad st ->
+    ~ one_third_bad st ->
     exists (q : {set Validator}), q \in quorum_1 /\ forall v, v \in q ->
-     (~slashed st v /\ sources_justified st v).
+     (~ slashed st v /\ sources_justified st v).
 Proof.
 Admitted.
 
@@ -441,4 +398,5 @@ Proof.
   contradict Hstarts. clear.
   rewrite ltnn. trivial.
 Qed.
+
 End Liveness.
