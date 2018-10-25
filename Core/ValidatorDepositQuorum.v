@@ -2,7 +2,7 @@ From mathcomp
 Require Import all_ssreflect.
 
 From CasperToychain
-Require Import ValidatorQuorum.
+Require Import ValidatorQuorum ssrAC.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -64,23 +64,9 @@ set s1 := \sum_i _.
 rewrite big_mkcond /=.
 rewrite /s /s1 {s s1}.
 elim/big_ind3: _ => //=.
-- move => x1 x2 x3 y1 y2 y3 Hx Hy.
-  set s := _ + _.
-  rewrite addnC addnA.
-  rewrite -addnC.
-  rewrite -addnA.
-  rewrite addnC.
-  have ->: y1 + x2 = x2 + y1 by rewrite addnC.
-  rewrite addnA.
-  have ->: x1 + x2 = x2 + x1 by rewrite addnC.
-  rewrite -Hx.
-  rewrite addnC.
-  rewrite addnA.
-  rewrite addnC.
-  rewrite addnA.
-  have ->: y1 + y2 = y2 + y1 by rewrite addnC.
-  rewrite -Hy.
-  by rewrite addnC.
+- move => x1 x2 x3 y1 y2 y3 =>->->.
+  rewrite 2!addnA.
+  by rewrite (ACl addn (0 * 2 * 1 * 3)).
 - move => t Ht.
   case: ifP; case: ifP; case: ifP => //=.
   * by move/setCP.
@@ -134,23 +120,174 @@ move => t Ht.
 by case: ifP.
 Qed.
 
+Lemma sum_rec4 :
+ forall (K : nat -> nat -> nat -> nat -> Type),
+ K 0 0 0 0 ->
+ forall I r (P : pred I) F1 F2 F3 F4,
+ (forall i y1 y2 y3 y4, P i -> K y1 y2 y3 y4 ->
+   K ((F1 i) + y1) ((F2 i) + y2) ((F3 i) + y3) ((F4 i) + y4)) ->
+  K (\sum_(i <- r | P i) F1 i)
+    (\sum_(i <- r | P i) F2 i)
+    (\sum_(i <- r | P i) F3 i)
+    (\sum_(i <- r | P i) F4 i).
+Proof.
+move => K Kid I r P F1 F2 F3 F4 K_F.
+by rewrite unlock; elim: r => //= i r; case: ifP => //; apply: K_F.
+Qed.
+
+Lemma sum_ind4
+  : forall (K : nat -> nat -> nat -> nat -> Type),
+      K 0 0 0 0 ->
+      (forall x1 x2 x3 x4 y1 y2 y3 y4,
+          K x1 x2 x3 x4 -> K y1 y2 y3 y4 -> K (x1 + y1) (x2 + y2) (x3 + y3) (x4 + y4)) ->
+      forall (I : Type) (r : seq I) (P : pred I) (F1 : I -> nat) 
+         (F2 : I -> nat) (F3 : I -> nat) (F4 : I -> nat),
+       (forall i : I, P i -> K (F1 i) (F2 i) (F3 i) (F4 i)) ->         
+       K (\sum_(i <- r | P i) F1 i) (\sum_(i <- r | P i) F2 i)
+         (\sum_(i <- r | P i) F3 i) (\sum_(i <- r | P i) F4 i).
+Proof.
+move => K Kid Kop.
+move => I r P F1 F2 F3 F4 K_F.
+apply: sum_rec4 => // i x1 x2 x3 x4 /K_F; apply: Kop.
+Qed.
+
+Lemma sum_intersect_le_1 : forall (q1 q2 : {set T}),
+  \sum_(t in q1 :&: q2) (d t) <= \sum_(t in q1) d t.
+Proof.
+move => q1 q2.
+rewrite big_mkcond /=.
+set s1 := \sum_i _.
+rewrite big_mkcond /= /s1 {s1}.
+apply: leq_sum.
+move => t Ht.
+case: ifP; case: ifP => //=.
+move/negP => Hq1.
+by move/setIP => [Hq Hq'].
+Qed.
+
+Lemma sum_intersect_le_2 : forall (q1 q2 : {set T}),
+  \sum_(t in q1 :&: q2) (d t) <= \sum_(t in q2) d t.
+Proof.
+move => q1 q2.
+rewrite setIC.  
+exact: sum_intersect_le_1.
+Qed.
+
+Lemma sumU_if : forall (q1 q2 : {set T}) (i : T),
+ (if i \in q1 :|: q2 then d i else 0) =
+ (if i \in q1 then d i else 0) + (if i \in q2 then d i else 0) - (if i \in q1 :&: q2 then d i else 0).
+Proof.
+move => q1 q2 t.  
+case: ifP; case: ifP; case: ifP; case: ifP => //=.
+* move => Hq12 Hq2 Hq1 Hq.
+  by rewrite addKn.
+* move/setIP => Hq.
+  move => Hq2 Hq1.
+  by case: Hq.
+* move/setIP => [Hq1 Hq2].
+  by case/negP.
+* move => Hq12 Hq2 Hq1 Hq.
+  by rewrite subn0 addn0.
+* move/setIP => [Hq1 Hq2] H'q2.
+  by case/negP.
+* move => Hq12 Hq2 Hq1 Hq.
+  by rewrite add0n subn0.
+* move/setIP => [Hq1 Hq2].
+  by case/negP.
+* move/setIP => Hq12 H'q1 H'q2.
+  case/setUP => Hq.
+  + by case/negP: H'q2.
+  + by case/negP: H'q1.
+* move/setIP => [Hq1 Hq2] H'q2 H'q1.
+  case/setUP.
+  by left.
+* move/setIP => Hq Hq2 Hq1.
+  by case: Hq.
+* move/setIP => [Hq1 Hq2].
+  by case/negP.
+* move => Hq Hq2 Hq1.
+  case/setUP.
+  by left.
+* move/setIP => [Hq1 Hq2] H'q2.
+  by case/negP.
+* move => Hq Hq2 Hq1.
+  move/setUP.
+  by case; right.
+Qed.
+
+Lemma sumUI : forall (q1 q2 : {set T}),
+    \sum_(t in (q1 :|: q2)) d t + \sum_(t in q1 :&: q2) (d t) =
+    \sum_(t in q1) (d t) + \sum_(t in q2) (d t).
+Proof.
+move => q1 q2.
+rewrite big_mkcond /=.
+set s1 := \sum_i _.
+rewrite big_mkcond /=.
+set s2 := \sum_i _.
+rewrite big_mkcond /=.
+set s3 := \sum_i _.
+rewrite big_mkcond /=.
+set s4 := \sum_i _.
+rewrite /s1 /s2 /s3 /s4 {s1 s2 s3 s4}.
+elim/sum_rec4: _ => //=.
+move => i y1 y2 y3 y4 Hi Hx.
+case: ifP => //=; case: ifP => //=; case: ifP => //=; case: ifP => //=.
+- move => _ _ _ _.
+  set n := d i.
+  move: n => n.
+  rewrite addnA.
+  rewrite (ACl addn (1 * 3 * 0 * 2)) Hx.  
+  by rewrite (ACl addn (3 * 0 * (2 * 1))).
+- move/negP => Hq1 Hq2.
+  by move/setIP => [H1 H2].
+- move => Hq2 /negP => Hq1.
+  by move/setIP => [H1 H2].
+- move/negP => Hq2 Hq1.
+  by move/setIP => [H1 H2].
+- move => Hq2 Hq1.
+  by case/setIP.
+- move => _ _ _ _.
+  by rewrite 2!add0n -addnA Hx addnA.
+- move => _ _ _ _.
+  rewrite 2!add0n -addnA Hx.
+  set n := d i.
+  move: n => n.
+  rewrite 2!addnA.
+  by rewrite (ACl addn (1 * 0 * 2)).
+- move/negP => Hq2 /negP => Hq1 Hq.
+  by case/setUP.
+- move => Hq2 Hq1 Hq.
+  by case/setUP; left.
+- move => Hq2 Hq1 Hq.
+  by case/setUP; left.
+- by move => Hq2 /negP => Hq1 /setIP => [[H1 H2]].
+- by move/negP => Hq2 Hq1 /setIP => [[H1 H2]].
+- by move => Hq2 Hq1; case/setIP.
+- by move => Hq2 Hq1 _; case/setUP; left.
+- by move => Hq2 _ _; case/setUP; right.
+Qed.  
+  
+Lemma sumU : forall (q1 q2 : {set T}),
+    \sum_(t in (q1 :|: q2)) d t =
+    \sum_(t in q1) (d t) + \sum_(t in q2) (d t) - \sum_(t in q1 :&: q2) (d t).
+Proof.
+move => q1 q2.
+by rewrite -sumUI addnK.
+Qed.
+
+Lemma sumI : forall (q1 q2 : {set T}),
+  \sum_(t in q1 :&: q2) (d t) =
+  \sum_(t in q1) (d t) + \sum_(t in q2) (d t) - \sum_(t in (q1 :|: q2)) d t.
+Proof.
+move => q1 q2.
+by rewrite -sumUI addKn.
+Qed.
+
 Lemma sum_all_gt_0_intersect :
   forall (q1 q2 : {set T}) n,
     0 < \sum_(t in q1) d t + \sum_(t in q2) d t ->
     n + \sum_(t in T) d t < \sum_(t in q1) d t + \sum_(t in q2) d t ->
     0 < \sum_(t in q1 :&: q2) (d t).
-Proof.
-Admitted.
-
-Lemma sumU : forall (q1 q2 : {set T}),
-    \sum_(t in (q1 :|: q2)) d t =
-    \sum_(t in q1) (d t) + \sum_(t in q2) (d t) - \sum_(t in q1 :&: q2) (d t).
-Proof.
-Admitted.
-
-Lemma sumI : forall (q1 q2 : {set T}),
-  \sum_(t in q1 :&: q2) (d t) =
-  \sum_(t in q1) (d t) + \sum_(t in q2) (d t) - \sum_(t in (q1 :|: q2)) d t.
 Proof.
 Admitted.
   
