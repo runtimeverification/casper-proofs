@@ -182,9 +182,10 @@ Lemma procMsg_valid :
    forall (s1 : State) from (m : Message) (ts : Timestamp),
     valid (blocks s1) -> valid (blocks (procMsg s1 from  m ts).1).
 Proof.
-move=> s1 from  m ts.
-by case Msg: m=>[b|];
-destruct s1; rewrite/procMsg/=; do?by [|move: (bfExtendV blocks b)=><-].
+move=> s1 from m ts.
+case Msg: m=>[b];
+destruct s1; rewrite/procMsg/=. 
+by move: (bfExtendV blocks b)=><-.
 Qed.
 
 Lemma procInt_valid :
@@ -202,7 +203,7 @@ Lemma procMsg_validH :
      validH (blocks (procMsg s1 from  m ts).1).
 Proof.
 move=> s1 from  m ts.
-case Msg: m=>[b|];
+case Msg: m=>[b];
 destruct s1; rewrite/procMsg/=; do? by []; do? by case: ifP => //=.
 by move=>v vh; apply bfExtendH.
 Qed.
@@ -224,7 +225,7 @@ Lemma procMsg_has_init_block:
      has_init_block (blocks (procMsg s1 from m ts).1).
 Proof.
 move=> s1 from  m ts.
-case Msg: m=>[b|];
+case Msg: m=>[b];
 destruct s1; rewrite/procMsg/=; do? by []; do? by case:ifP.
 by apply bfExtendIB.
 Qed.

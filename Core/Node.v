@@ -302,36 +302,28 @@ Definition computeStateTransition (crystallizedState : @CrystallizedState [ordTy
 Definition peers_t := seq NodeId.
 
 Inductive Message :=
-| BlockMsg of block
-| VoteMsg of Vote.
+| BlockMsg of block.
 
 Inductive InternalTransition :=
-  | BlockT of block
-  | VoteT of Vote.
+  | BlockT of block.
 
 Definition eq_msg a b :=
  match a, b with
   | BlockMsg bA, BlockMsg bB => (bA == bB)
-  | BlockMsg _, _ => false
-  | VoteMsg vA, VoteMsg vB => (vA == vB)
-  | VoteMsg _, _ => false
  end.
 
 Ltac simple_tactic mb n n' B :=
-  (case: mb=>//[b'|t'|p'|p']; do? [by constructor 2];
+  (case: mb=>//b'; do? [by constructor 2];
    case B: (n == n'); [by case/eqP:B=><-; constructor 1|constructor 2];
    case=>E; subst n'; rewrite eqxx in B).
 
 Lemma eq_msgP : Equality.axiom eq_msg.
 Proof.
 move=> ma mb. rewrite/eq_msg.
-case: ma=>[b|v].
-- case:mb=>////[b'|v']; do? [by constructor 2].
-  case B: (b == b'); [by case/eqP:B=><-; constructor 1|constructor 2].
-  by case=>Z; subst b'; rewrite eqxx in B.
-- case:mb=>////[b'|v']; do? [by constructor 2].
-  case B: (v == v'); [by case/eqP:B=><-; constructor 1|constructor 2].
-  by case=>Z; subst v'; rewrite eqxx in B.
+case: ma=>b.
+case:mb=>////b'; do? [by constructor 2].
+case B: (b == b'); [by case/eqP:B=><-; constructor 1|constructor 2].
+by case=>Z; subst b'; rewrite eqxx in B.
 Qed.
   
 Canonical Msg_eqMixin := Eval hnf in EqMixin eq_msgP.
@@ -391,9 +383,6 @@ Definition procMsg (st: @State [ordType of Hash]) (from : NodeId) (msg: Message)
     let: (crystallizedState, activeState) := computeStateTransition cst ast parentBlock b cl in
     let: newBf := bfExtend bf b in
     pair (Node n prs newBf crystallizedState activeState cl) emitZero
-  | VoteMsg v =>
-    (* process vote *)
-    pair (Node n prs bf cst ast cl) emitZero
   end.
 
 Definition procInt (st : @State [ordType of Hash]) (tr : InternalTransition) (ts : Timestamp) :=
@@ -404,7 +393,4 @@ Definition procInt (st : @State [ordType of Hash]) (tr : InternalTransition) (ts
    let: (crystallizedState, activeState) := computeStateTransition cst ast parentBlock b cl in
    let: newBf := bfExtend bf b in
    pair (Node n prs newBf crystallizedState activeState cl) (emitBroadcast n prs (BlockMsg b))
- | VoteT v =>
-   (* process vote *)
-   pair (Node n prs bf cst ast cl) (emitBroadcast n prs (VoteMsg v))
  end.
