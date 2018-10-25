@@ -231,7 +231,7 @@ Lemma highest_exists: forall st,
 Admitted.
 
 Definition highest (A : {fset nat}) : nat :=
-  \max_(i : [finType of A]) (val i).
+  \max_(i : A) (val i).
 
 Lemma highest_ub:
   forall (A : {fset nat}) (x:nat), x \in A -> x <= highest A.
