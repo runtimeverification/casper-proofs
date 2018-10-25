@@ -8,49 +8,48 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-Lemma subeq_tin : forall (T : finType) (q : {set T}) F,
- \sum_(t in q) (F t) = \sum_(t in q) (if t \in q then F t else 0).
+Lemma sum_rec4 :
+ forall (K : nat -> nat -> nat -> nat -> Type),
+ K 0 0 0 0 ->
+ forall I r (P : pred I) F1 F2 F3 F4,
+ (forall i y1 y2 y3 y4, P i -> K y1 y2 y3 y4 ->
+   K ((F1 i) + y1) ((F2 i) + y2) ((F3 i) + y3) ((F4 i) + y4)) ->
+  K (\sum_(i <- r | P i) F1 i)
+    (\sum_(i <- r | P i) F2 i)
+    (\sum_(i <- r | P i) F3 i)
+    (\sum_(i <- r | P i) F4 i).
 Proof.
-move => T q F.
-apply eq_big => //.
-by move => t; case: ifP.
-Qed.
-
-Lemma subeq_tinn (T : finType) (q : {set T}) F :
- \sum_(t in ~: q) (if t \in q then F t else 0) = 0.
-Proof.
-elim/big_ind: _ => //.
-- by move => x y =>->->.
-- move => t; case: ifP => //=.
-  move => Ht.
-  by move/setCP.
-Qed.
-
-Lemma all_sum_or (T : finType) (q : {set T}) F :
- \sum_(t in q :|: ~: q) F t =     
- \sum_(t : T | ((t \in q) || (t \in ~: q))) F t.
-Proof.
-apply: eq_big => //.
-by move => x; rewrite in_setU.
-Qed.
-
-Lemma subeq (T : finType) (q : {set T}) F :
- \sum_(t in q) (F t) = \sum_(t : T) (if t \in q then F t else 0).
-Proof.
-by rewrite big_mkcond.
+move => K Kid I r P F1 F2 F3 F4 K_F.
+by rewrite unlock; elim: r => //= i r; case: ifP => //; apply: K_F.
 Qed.
 
 Lemma all_sum_or_all (T : finType) (q : {set T}) F :
   \sum_(t in q :|: ~: q) F t =
   \sum_(t : T) F t.
 Proof.
-rewrite subeq.
+rewrite big_mkcond /=.
 elim/big_ind2: _ => //=; first by move => x1 x2 y1 y2 =>->->.
 move => t Ht.
 case: ifP => Hf //.
 move/negP: Hf.
 case.
 by rewrite setUCr.
+Qed.
+
+Lemma sum_ind4 :
+ forall (K : nat -> nat -> nat -> nat -> Type),
+ K 0 0 0 0 ->
+ (forall x1 x2 x3 x4 y1 y2 y3 y4,
+     K x1 x2 x3 x4 -> K y1 y2 y3 y4 -> K (x1 + y1) (x2 + y2) (x3 + y3) (x4 + y4)) ->
+ forall (I : Type) (r : seq I) (P : pred I) (F1 : I -> nat) 
+   (F2 : I -> nat) (F3 : I -> nat) (F4 : I -> nat),
+   (forall i : I, P i -> K (F1 i) (F2 i) (F3 i) (F4 i)) ->
+   K (\sum_(i <- r | P i) F1 i) (\sum_(i <- r | P i) F2 i)
+     (\sum_(i <- r | P i) F3 i) (\sum_(i <- r | P i) F4 i).
+Proof.
+move => K Kid Kop.
+move => I r P F1 F2 F3 F4 K_F.
+apply: sum_rec4 => // i x1 x2 x3 x4 /K_F; apply: Kop.
 Qed.
 
 Lemma all_sum_or_a (T : finType) (q : {set T}) F :
@@ -81,7 +80,7 @@ elim/big_ind3: _ => //=.
     by case; left.
   * move => Hn Hn'.
     move/setUP.
-    by case; right.
+    by case; right.  
 Qed.
 
 Section DT.
@@ -118,101 +117,6 @@ rewrite big_mkcond /=.
 apply: leq_sum.
 move => t Ht.
 by case: ifP.
-Qed.
-
-Lemma sum_rec4 :
- forall (K : nat -> nat -> nat -> nat -> Type),
- K 0 0 0 0 ->
- forall I r (P : pred I) F1 F2 F3 F4,
- (forall i y1 y2 y3 y4, P i -> K y1 y2 y3 y4 ->
-   K ((F1 i) + y1) ((F2 i) + y2) ((F3 i) + y3) ((F4 i) + y4)) ->
-  K (\sum_(i <- r | P i) F1 i)
-    (\sum_(i <- r | P i) F2 i)
-    (\sum_(i <- r | P i) F3 i)
-    (\sum_(i <- r | P i) F4 i).
-Proof.
-move => K Kid I r P F1 F2 F3 F4 K_F.
-by rewrite unlock; elim: r => //= i r; case: ifP => //; apply: K_F.
-Qed.
-
-Lemma sum_ind4
-  : forall (K : nat -> nat -> nat -> nat -> Type),
-      K 0 0 0 0 ->
-      (forall x1 x2 x3 x4 y1 y2 y3 y4,
-          K x1 x2 x3 x4 -> K y1 y2 y3 y4 -> K (x1 + y1) (x2 + y2) (x3 + y3) (x4 + y4)) ->
-      forall (I : Type) (r : seq I) (P : pred I) (F1 : I -> nat) 
-         (F2 : I -> nat) (F3 : I -> nat) (F4 : I -> nat),
-       (forall i : I, P i -> K (F1 i) (F2 i) (F3 i) (F4 i)) ->         
-       K (\sum_(i <- r | P i) F1 i) (\sum_(i <- r | P i) F2 i)
-         (\sum_(i <- r | P i) F3 i) (\sum_(i <- r | P i) F4 i).
-Proof.
-move => K Kid Kop.
-move => I r P F1 F2 F3 F4 K_F.
-apply: sum_rec4 => // i x1 x2 x3 x4 /K_F; apply: Kop.
-Qed.
-
-Lemma sum_intersect_le_1 : forall (q1 q2 : {set T}),
-  \sum_(t in q1 :&: q2) (d t) <= \sum_(t in q1) d t.
-Proof.
-move => q1 q2.
-rewrite big_mkcond /=.
-set s1 := \sum_i _.
-rewrite big_mkcond /= /s1 {s1}.
-apply: leq_sum.
-move => t Ht.
-case: ifP; case: ifP => //=.
-move/negP => Hq1.
-by move/setIP => [Hq Hq'].
-Qed.
-
-Lemma sum_intersect_le_2 : forall (q1 q2 : {set T}),
-  \sum_(t in q1 :&: q2) (d t) <= \sum_(t in q2) d t.
-Proof.
-move => q1 q2.
-rewrite setIC.  
-exact: sum_intersect_le_1.
-Qed.
-
-Lemma sumU_if : forall (q1 q2 : {set T}) (i : T),
- (if i \in q1 :|: q2 then d i else 0) =
- (if i \in q1 then d i else 0) + (if i \in q2 then d i else 0) - (if i \in q1 :&: q2 then d i else 0).
-Proof.
-move => q1 q2 t.  
-case: ifP; case: ifP; case: ifP; case: ifP => //=.
-* move => Hq12 Hq2 Hq1 Hq.
-  by rewrite addKn.
-* move/setIP => Hq.
-  move => Hq2 Hq1.
-  by case: Hq.
-* move/setIP => [Hq1 Hq2].
-  by case/negP.
-* move => Hq12 Hq2 Hq1 Hq.
-  by rewrite subn0 addn0.
-* move/setIP => [Hq1 Hq2] H'q2.
-  by case/negP.
-* move => Hq12 Hq2 Hq1 Hq.
-  by rewrite add0n subn0.
-* move/setIP => [Hq1 Hq2].
-  by case/negP.
-* move/setIP => Hq12 H'q1 H'q2.
-  case/setUP => Hq.
-  + by case/negP: H'q2.
-  + by case/negP: H'q1.
-* move/setIP => [Hq1 Hq2] H'q2 H'q1.
-  case/setUP.
-  by left.
-* move/setIP => Hq Hq2 Hq1.
-  by case: Hq.
-* move/setIP => [Hq1 Hq2].
-  by case/negP.
-* move => Hq Hq2 Hq1.
-  case/setUP.
-  by left.
-* move/setIP => [Hq1 Hq2] H'q2.
-  by case/negP.
-* move => Hq Hq2 Hq1.
-  move/setUP.
-  by case; right.
 Qed.
 
 Lemma sumUI : forall (q1 q2 : {set T}),
@@ -283,13 +187,94 @@ move => q1 q2.
 by rewrite -sumUI addKn.
 Qed.
 
+Lemma add_ltn : forall n m p,
+  n + m < p ->
+  m < p.
+Proof.
+elim => //=.
+move => n IH m p.
+have Hn: n.+1 + m = n + m.+1 by rewrite addnS.
+rewrite Hn => Hlt.
+apply IH in Hlt.
+move: Hlt.
+by apply ltnW.
+Qed.
+
+Lemma sum_all_gt_0_intersect' :
+  forall (q1 q2 : {set T}),
+    \sum_(t in T) d t < \sum_(t in q1) d t + \sum_(t in q2) d t ->
+    0 < \sum_(t in q1 :&: q2) (d t).
+Proof.
+move => q1 q2.  
+rewrite -(all_sum_or_all q1) all_sum_or_a.
+rewrite big_mkcond /=.
+set s1 := \sum_i _.
+rewrite big_mkcond /=.
+set s2 := \sum_i _.
+rewrite big_mkcond /=.
+set s3 := \sum_i _.
+rewrite big_mkcond /=.
+rewrite /s1 /s2 /s3 {s1 s2 s3}.
+elim/sum_rec4: _ => //=.
+move => i y1 y2 y3 y4 Ht.
+rewrite ltn_add2l => Hlt.
+case: ifP => //=; case: ifP => //=; case: ifP => //=; case: ifP => //=.
+- move => _ _ Hq1 Hq1'.
+  by move/setCP: Hq1.
+- move => _ _ Hq1 Hq1'.
+  by move/setCP: Hq1.
+- move/setIP => [H1 H2].
+  by move/negP.
+- move => _ _ Hq1 Hq2.
+  by move/setCP: Hq1.
+- move => _ _ _ _.
+  rewrite add0n ltn_add2l.
+  by case (d i).
+- move/negP => Hq Hq2 _ Hq1.
+  case: Hq.
+  exact/setIP.
+- move/setIP => [H1 H2].
+  by move/negP.
+- move => _ _ _ _.
+  by rewrite 3!add0n ltn_add2l.
+- move/setIP => [H1 H2] Hq2 _.
+  by move/negP.
+- move => _ _ _ _.
+  by rewrite 2!add0n 2!ltn_add2l.
+- move/setIP => [H1 H2].
+  by move/negP.
+- move => _ _ _ _.
+  rewrite 3!add0n ltn_add2l => Hlt'.
+  apply: Hlt.
+  move: Hlt'.  
+  exact: add_ltn.
+- move/setIP => [H1 H2].
+  move => _ _.
+  by move/negP.
+- move => _ _.
+  move/setCP => Hq.
+  move/negP => Hq'.
+  by case: Hq.
+- move => _ _.
+  move/setCP => Hq.
+  move/negP => Hq'.
+  by case: Hq.
+- move => _ _.
+  move/setCP => Hq.
+  move/negP => Hq'.
+  by case: Hq.
+Qed.
+
 Lemma sum_all_gt_0_intersect :
   forall (q1 q2 : {set T}) n,
-    0 < \sum_(t in q1) d t + \sum_(t in q2) d t ->
     n + \sum_(t in T) d t < \sum_(t in q1) d t + \sum_(t in q2) d t ->
     0 < \sum_(t in q1 :&: q2) (d t).
 Proof.
-Admitted.
+move => q1 q2 n Hlt.
+apply sum_all_gt_0_intersect' => //.
+move: Hlt.
+exact: add_ltn.
+Qed.
   
 Lemma d_bot_top_intersection :
   forall q1 q2, q1 \in gt_dset top -> q2 \in gt_dset top ->
@@ -321,7 +306,7 @@ case Hc: ([disjoint q1 & q2]).
   case/negP.  
   eapply leq_ltn_trans in Hn; eauto.
   by apply leq_addl.
-have Hlt'' := sum_all_gt_0_intersect Hlt' Hlt.
+have Hlt'' := sum_all_gt_0_intersect Hlt.
 move: Hlt.  
 have Hltt: \sum_(t in q1) (d t) + \sum_(t in q2) (d t) - \sum_(t in q1 :&: q2) (d t) <
   \sum_(t in q1) (d t) + \sum_(t in q2) (d t).
