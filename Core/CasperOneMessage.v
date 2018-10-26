@@ -41,7 +41,7 @@ Qed.
 
 (* vote_msg node hash view view_src *)
 Record State :=
- { vote_msg : Validator -> Hash -> nat -> nat -> bool }.
+ mkSt { vote_msg : Validator -> Hash -> nat -> nat -> bool }.
 
 Variable hash_parent : rel Hash.
 

@@ -11,3 +11,4 @@ Core/ValidatorBlockforest.v
 Core/StrongInductionLtn.v
 Core/ValidatorDepositQuorum.v
 Core/ssrAC.v
+Core/Beacon.v
