@@ -2,10 +2,10 @@ opam-version: "1.2"
 version: "dev"
 maintainer: "palmskog@gmail.com"
 
-homepage: "https://github.com/palmskog/caspertoychain"
-dev-repo: "https://github.com/palmskog/caspertoychain.git"
-bug-reports: "https://github.com/palmskog/caspertoychain/issues"
-license: "BSD"
+homepage: "https://github.com/runtimeverification/casper-proofs"
+dev-repo: "https://github.com/runtimeverification/casper-proofs.git"
+bug-reports: "https://github.com/runtimeverification/casper-proofs/issues"
+license: "UIUC"
 
 build: [
   [ make "-j%{jobs}%" ]
