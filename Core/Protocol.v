@@ -3,7 +3,7 @@ Require Import ssreflect ssrbool ssrnat eqtype ssrfun seq fintype path.
 Require Import Eqdep Relations.
 From fcsl
 Require Import pred prelude ordtype pcm finmap unionmap heap.
-From CasperToychain
+From Casper
 Require Import Node.
 Set Implicit Arguments.
 Unset Strict Implicit.

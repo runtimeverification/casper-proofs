@@ -1,4 +1,4 @@
--Q Core CasperToychain
+-Q Core Casper
 -arg "-w -notation-overridden,-local-declaration,-redundant-canonical-projection,-projection-no-head-constant"
 
 Core/Blockforest.v

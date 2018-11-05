@@ -1,7 +1,7 @@
 From mathcomp
 Require Import all_ssreflect.
 
-From CasperToychain
+From Casper
 Require Import ValidatorQuorum ssrAC.
 
 Set Implicit Arguments.

@@ -4,7 +4,7 @@ Require Import all_ssreflect.
 From Hammer
 Require Reconstr.
 
-From CasperToychain
+From Casper
 Require Import StrongInductionLtn.
 
 Require Import Classical.
