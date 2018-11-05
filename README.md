@@ -1,15 +1,13 @@
-Casper Toychain
-===============
+Casper Proofs
+=============
 
-[![Build Status](https://travis-ci.org/palmskog/caspertoychain.svg?branch=master)](https://travis-ci.org/palmskog/caspertoychain)
-
-Minimalistic set of definitions and lemmas for verification of Casper beacon chain nodes, extracted from [Toychain](https://github.com/certichain/toychain).
+Minimalistic set of Coq definitions and lemmas for verification of the Casper blockchain finality system.
 
 Requirements
 ------------
 
-* [Coq 8.7 or 8.8](https://coq.inria.fr)
-* [Mathematical Components 1.6.4 or 1.7.0](http://math-comp.github.io/math-comp/) (`ssreflect`)
+* [Coq 8.8](https://coq.inria.fr)
+* [Mathematical Components 1.7.0](http://math-comp.github.io/math-comp/) (`ssreflect`)
 * [FCSL PCM library 1.0.0](https://github.com/imdea-software/fcsl-pcm)
 * [CoqHammer 1.0.9](https://github.com/lukaszcz/coqhammer)
 * [finmap 1.1.0](https://github.com/math-comp/finmap)
