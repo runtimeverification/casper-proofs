@@ -85,7 +85,7 @@ elim/big_ind3: _ => //=.
     by case; right.  
 Qed.
 
-(* general proof without reference 
+(* general proof without reference to 1/3 and 2/3 *)
 Section DT.
 
 Variable T : finType.
@@ -365,6 +365,7 @@ Qed.
 
 End DT.
 
+(* instantiate above proof with 1/3 and 2/3 *)
 Section DTThirds.
 
 Variable Validator : finType.
