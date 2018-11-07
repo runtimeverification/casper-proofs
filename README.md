@@ -43,6 +43,6 @@ Casper-related files:
 - [ValidatorBlockforest.v](Core/ValidatorBlockforest.v): instantiation of all assumptions in abstract safety model for block trees
 - [ValidatorBlockforest.v](Core/ValidatorBlockforest.v): instantiation of all assumptions in abstract safety model for block trees
 - [TransitionSystemSpec.v](Core/TransitionSystemSpec.v): simple transition system with validator-attested blocks with instantiated accountable safety
-- [Node.v](Core/Node.v): Coq model of Beacon chain data structures
-- [Protocol.v](Core/Protocol.v): Coq model of Beacon chain state updates
+- [Node.v](Core/Node.v): Coq representations of Beacon chain data structures
+- [Protocol.v](Core/Protocol.v): Coq representation of Beacon chain state updates
 
