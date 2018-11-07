@@ -41,7 +41,6 @@ Casper-related files:
 - [ValidatorDepositQuorum.v](Core/ValidatorDepositQuorum.v): instantiation of quorum (honest node) assumptions using _sums of validator set deposits_ in the abstract model for safety
 - [Blockforest.v](Core/Blockforest.v): definitions and utility lemmas related to block trees and blockchains
 - [ValidatorBlockforest.v](Core/ValidatorBlockforest.v): instantiation of all assumptions in abstract safety model for block trees
-- [ValidatorBlockforest.v](Core/ValidatorBlockforest.v): instantiation of all assumptions in abstract safety model for block trees
 - [TransitionSystemSpec.v](Core/TransitionSystemSpec.v): simple transition system with validator-attested blocks with instantiated accountable safety
 - [Node.v](Core/Node.v): Coq representations of Beacon chain data structures
 - [Protocol.v](Core/Protocol.v): Coq representation of Beacon chain state updates

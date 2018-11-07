@@ -5,6 +5,10 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
+(* Proof of validator set intersection assumption for Casper accountable safety
+   with 1/3 and 2/3 or more of all validators by set cardinality
+   (effectively assumes all validators have a deposit of 1). *)
+
 Section Thirds.
 
 Variable n : nat.
