@@ -1,7 +1,7 @@
 Casper Proofs
 =============
 
-Minimalistic set of Coq definitions and lemmas for verification of the Casper blockchain finality system.
+Coq definitions and proofs for verification of the Casper blockchain finality system.
 
 Requirements
 ------------
