@@ -23,3 +23,20 @@ opam install coq coq-mathcomp-ssreflect coq-fcsl-pcm coq-hammer coq-mathcomp-fin
 ```
 
 Then, run `make` in the project root directory to check all definitions and proofs.
+
+
+Files
+------
+
+Utility modules:
+
+- [StrongInductionLtn.v](Core/StrongInductionLtn.v): some strong induction principles on natural numbers, adapted from work by Tej Chajed
+- [ssrAC.v](Core/ssrAC.v): rewriting tactics modulo associativity and commutativity, by Cyril Cohen
+
+Casper-related modules:
+
+- [CasperOneMessage.v](Core/CasperOneMessage.v): abstract model of Casper proving accountable safety, based on Isabelle/HOL proof by Hirai
+- [ValidatorQuorum.v](Core/ValidatorQuorum.v): instantiation of quorum (honest node) assumptions using _validator set cardinality_ in the abstract model for safety
+- [ValidatorDepositQuorum.v](Core/ValidatorDepositQuorum.v): instantiation of quorum (honest node) assumptions using _sums of validator set deposits_ in the abstract model for safety
+- [Blockforest.v](Core/Blockforest.v): definitions and utility lemmas related to block trees and blockchains
+- [ValidatorBlockforest.v](Core/ValidatorBlockforest.v): instantiation of all assumptions in abstract safety model for block trees
