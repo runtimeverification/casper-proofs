@@ -3,6 +3,8 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
+(* Source: https://github.com/CohenCyril/ssrAC *)
+
 (* Usage :
 
 rewrite (ACl operator reordering)

@@ -1,6 +1,10 @@
 From mathcomp
 Require Import all_ssreflect.
 
+(* Two strong induction principles over natural numbers,
+   as represented in the MathComp library.
+   Adapted from work by Tej Chajed. *)
+
 Section StrongInductionLtn.
 
   Variable P:nat -> Prop.
