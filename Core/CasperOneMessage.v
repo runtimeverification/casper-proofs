@@ -1,26 +1,31 @@
 From mathcomp
 Require Import all_ssreflect.
-
 From Hammer
 Require Reconstr.
-
 From Casper
 Require Import StrongInductionLtn.
-
 Require Import Classical.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
+(* Abstract model of Casper for proving accountable safety. 
+   Assumes a static set of validators.
+   Based on CasperOneMessage.thy by Yiochi Hirai.
+*)
+
 Section CasperOneMessage.
 
-Variable Validator : finType.
+Variable Validator : finType.  
 Variable Hash : finType.
 
+(* all sets containing "1/3" of all validators or more *)
 Variable quorum_1 : {set {set Validator}}.
+(* all sets containing "2/3" of all validators or more *)
 Variable quorum_2 : {set {set Validator}}.
 
+(* generalized assumption on validator sets containing fractions of all validators *)
 Hypothesis quorums_intersection :
   forall q1 q2, q1 \in quorum_1 -> q2 \in quorum_1 ->
   exists q3, q3 \in quorum_2 /\ q3 \subset q1 /\ q3 \subset q2.
@@ -39,14 +44,18 @@ split.
 - by apply/(subsetP Hq23).
 Qed.
 
-(* vote_msg node hash view view_src *)
+(* global state is a function defining the votes cast (and not cast) by validators *)
+(* first natural number is hash (target) distance from genesis hash *)
+(* second natural number is (implicit) source hash distance from genesis hash *)
 Record State :=
  mkSt { vote_msg : Validator -> Hash -> nat -> nat -> bool }.
 
+(* abstract representation of a block tree *)
 Variable hash_parent : rel Hash.
 
 Notation "h1 <~ h2" := (hash_parent h1 h2) (at level 50).
 
+(* hash for genesis block *)
 Variable genesis : Hash.
 
 Hypothesis hash_at_most_one_parent :
@@ -98,7 +107,7 @@ move: Hp H1.
 by apply/connect_trans.
 Qed.
 
-(* steps to ancestor is at least n *)
+(* predicate stating first hash is ancestor of second hash at the indicated distance *)
 Inductive nth_ancestor : nat -> Hash -> Hash -> Prop :=
 | nth_ancestor_0 : forall h1, nth_ancestor 0 h1 h1
 | nth_ancestor_nth : forall n h1 h2 h3,
@@ -113,6 +122,7 @@ apply: nth_ancestor_nth; eauto.
 exact: nth_ancestor_0.
 Qed.
 
+(* "1/3" or more of validators have voted for a justified link *)
 Definition justified_link s q parent pre new now :=
   q \in quorum_1 /\
   (forall n, n \in q -> vote_msg s n new now pre) /\
@@ -171,6 +181,7 @@ apply: connect_trans; eauto.
 by apply/connect1.
 Qed.
 
+(* genesis block is justified, and blocks reachable by a justified link are justified *)
 Inductive justified : State -> Hash -> nat -> Prop :=
 | orig : forall s, justified s genesis 0
 | follow : forall s parent pre q new now,
@@ -199,6 +210,7 @@ Definition slashed_surround s n :=
 Definition slashed s n : Prop :=
  slashed_dbl_vote s n \/ slashed_surround s n.
 
+(* "2/3" or more of validators are slashed *)
 Definition misbehaving_slashed s :=
  exists q, q \in quorum_2 /\ forall n, n \in q -> slashed s n.
 
