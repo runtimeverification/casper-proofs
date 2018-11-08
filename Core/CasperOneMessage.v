@@ -189,15 +189,18 @@ Inductive justified : State -> Hash -> nat -> Prop :=
     justified_link s q parent pre new now ->
     justified s new now.
 
+(* finalized blocks are children of justified blocks and have a justified link *)
 Definition finalized s q h v child :=
  h <~ child /\ justified s h v /\ justified_link s q h v child v.+1.
 
+(* a state has a fork when blocks in different branches are both finalized *)
 Definition finalization_fork s :=
   exists h1 h2 q1 q2 v1 v2 c1 c2,
     finalized s q1 h1 v1 c1 /\
     finalized s q2 h2 v2 c2 /\
-     h2 </~* h1 /\ h1 </~* h2 /\ h1 <> h2.
+    h2 </~* h1 /\ h1 </~* h2 /\ h1 <> h2.
 
+(* validator slashing conditions *)
 Definition slashed_dbl_vote s n :=
  exists h1 h2, h1 <> h2 /\ exists v s1 s2, vote_msg s n h1 v s1 /\ vote_msg s n h2 v s2.
 
@@ -210,7 +213,7 @@ Definition slashed_surround s n :=
 Definition slashed s n : Prop :=
  slashed_dbl_vote s n \/ slashed_surround s n.
 
-(* "2/3" or more of validators are slashed *)
+(* "1/3" or more of validators are slashed *)
 Definition misbehaving_slashed s :=
  exists q, q \in quorum_2 /\ forall n, n \in q -> slashed s n.
 
