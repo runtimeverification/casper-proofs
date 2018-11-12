@@ -19,7 +19,7 @@ We recommend installing dependencies via [OPAM](http://opam.ocaml.org/doc/Instal
 
 ```
 opam repo add coq-released https://coq.inria.fr/opam/released
-opam install coq coq-mathcomp-ssreflect coq-fcsl-pcm coq-hammer coq-mathcomp-finmap
+opam install coq.8.8.2 coq-mathcomp-ssreflect.1.7.0 coq-fcsl-pcm.1.0.0 coq-hammer.1.0.9+8.8.1 coq-mathcomp-finmap.1.1.0
 ```
 
 Then, run `make` in the project root directory to check all definitions and proofs.
