@@ -365,14 +365,14 @@ Parameter BlockVoteCache : Type.
 
 Definition getShardsAndCommitteesForSlot (crystallizedState : @CrystallizedState [ordType of Hash])
            (slot : nat)
-           (cycleLength : nat) (* TODO: config paramter? *) : seq ShardAndCommittee :=
+           (cycleLength : nat) : seq ShardAndCommittee :=
   let: start := (last_state_recalc crystallizedState) - cycleLength in
   if (slot < start) || (start + cycleLength * 2 <= slot) then (* TODO: throw exception *) [::] else
     nth dummySACSeq (shard_and_committee_for_slots crystallizedState) (slot - start).
 
 Definition getAttestationIndices (crystallizedState : @CrystallizedState [ordType of Hash])
            (attestation : @AttestationRecord [ordType of Hash])
-           (cycleLength : nat) (* TODO: config paramter? *) : seq nat :=
+           (cycleLength : nat) : seq nat :=
   let: attSlot := slot_ar attestation in
   let: SACForSlot := getShardsAndCommitteesForSlot crystallizedState attSlot cycleLength in
   let: shardId := shard_id attestation in
@@ -387,7 +387,6 @@ Definition getAttestationIndices (crystallizedState : @CrystallizedState [ordTyp
 Definition getNewShuffling (seed : Hash)
            (validators : seq (@ValidatorRecord [ordType of Hash]))
            (dynasty : nat) (crosslinkingStartShard : nat) : seq (seq ShardAndCommittee) :=
-  (* TODO: config parameter? *)
   [::].
 
 Definition getNewRecentBlockHashes (oldBlockHashes : seq Hash) (parentSlot : nat)
@@ -421,7 +420,7 @@ Definition checkLastBits (attBitfield : seq byte) (lastBit : nat) : bool := true
 (* state transition functions - see state_transition.py *)
 
 (* TODO: implement *)
-Definition getRewardContext (totalDeposits : nat) (* TODO: config parameter *) : nat * nat :=
+Definition getRewardContext (totalDeposits : nat) : nat * nat :=
   if totalDeposits <= 0 then (* TODO: throw exception *) (0, 0) else
     (0, 0).
 
@@ -429,7 +428,7 @@ Definition validateAttestation (crystallizedState : @CrystallizedState [ordType 
            (activeState : @ActiveState [ordType of Hash])
            (attestation : @AttestationRecord [ordType of Hash])
            (blk : block)
-           (cycleLength : nat) (* TODO: config paramter? *) : bool :=
+           (cycleLength : nat) : bool :=
   if slot_number blk <= slot_ar attestation then (* TODO: throw exception *) false
   else
     let: attestationIndices := getAttestationIndices crystallizedState attestation cycleLength in
@@ -445,13 +444,13 @@ Definition getUpdatedBlockVoteCache (crystallizedState : @CrystallizedState [ord
            (activeState : @ActiveState [ordType of Hash])
            (attestation : @AttestationRecord [ordType of Hash])
            (blk : block)
-           (blkVoteCache : BlockVoteCache) (* TODO: config paramter? *) : BlockVoteCache :=
+           (blkVoteCache : BlockVoteCache) : BlockVoteCache :=
   blkVoteCache.
 
 Definition processBlock (crystallizedState : @CrystallizedState [ordType of Hash])
            (activeState : @ActiveState [ordType of Hash])
            (blk : block)
-           (cycleLength : nat) (* TODO: config paramter? *) : ActiveState :=
+           (cycleLength : nat) : ActiveState :=
   if all (fun x => validateAttestation crystallizedState activeState x blk cycleLength) (attestations blk) then
     (* TODO: throw exception *) activeState
   else
@@ -472,7 +471,7 @@ Definition processUpdatedCrosslinks (crystallizedState : @CrystallizedState [ord
 Definition calculateFfgRewards (crystallizedState : @CrystallizedState [ordType of Hash])
            (activeState : @ActiveState [ordType of Hash])
            (blk : block)
-           (cycleLength : nat) (* TODO: config paramter? *) : seq nat :=
+           (cycleLength : nat) : seq nat :=
   let: validators := validators crystallizedState in
   let: activeValidatorIndices := getActiveValidatorIndices (current_dynasty crystallizedState) validators in
   let: rewardsAndPenalties := map (fun _ => 0) validators in
@@ -509,14 +508,14 @@ Definition calculateFfgRewards (crystallizedState : @CrystallizedState [ordType 
 (* TODO: unimplemented in beacon_chain repo *)
 Definition calculateCrosslinkRewards (crystallizedState : @CrystallizedState [ordType of Hash])
            (activeState : @ActiveState [ordType of Hash])
-           (blk : block) (* TODO: config paramter? *) : seq nat :=
+           (blk : block) : seq nat :=
   let: validators := validators crystallizedState in
   map (fun _ => 0) validators.
 
 Definition applyRewardsAndPenalties (crystallizedState : @CrystallizedState [ordType of Hash])
            (activeState : @ActiveState [ordType of Hash])
            (blk : block)
-           (cycleLength : nat) (* TODO: config paramter? *) : seq (@ValidatorRecord [ordType of Hash]) :=
+           (cycleLength : nat) : seq (@ValidatorRecord [ordType of Hash]) :=
   let: validators := validators crystallizedState in
   let: ffgRewards := calculateFfgRewards crystallizedState activeState blk cycleLength in
   let: crosslinkRewards := calculateCrosslinkRewards crystallizedState activeState blk in
@@ -533,7 +532,7 @@ Definition applyRewardsAndPenalties (crystallizedState : @CrystallizedState [ord
 Definition initializeNewCycle (crystallizedState : @CrystallizedState [ordType of Hash])
            (activeState : @ActiveState [ordType of Hash])
            (blk : block)
-           (cycleLength : nat) (* TODO: config paramter? *) : CrystallizedState * ActiveState :=
+           (cycleLength : nat) : CrystallizedState * ActiveState :=
   let: lastStateRecalc := last_state_recalc crystallizedState in
   let: lastJustifiedSlot := last_justified_slot crystallizedState in
   let: lastFinalizedSlot := last_finalized_slot crystallizedState in
@@ -573,7 +572,7 @@ Definition initializeNewCycle (crystallizedState : @CrystallizedState [ordType o
 
 Definition fillRecentBlockHashes (activeState : @ActiveState [ordType of Hash])
            (parentBlk : block)
-           (blk : block) (* TODO: config paramter? *) : ActiveState :=
+           (blk : block) : ActiveState :=
   let: pendingAtts := pending_attestations activeState in
   let: newRecentBlockHashes := getNewRecentBlockHashes
                                  (recent_block_hashes activeState)
@@ -585,7 +584,7 @@ Definition fillRecentBlockHashes (activeState : @ActiveState [ordType of Hash])
 
 Definition readyForDynastyTransition (crystallizedState : @CrystallizedState [ordType of Hash])
            (blk : block)
-           (minDynastyLength : nat) (* TODO: config paramter? *) : bool :=
+           (minDynastyLength : nat) : bool :=
   let: dynastyStart := dynasty_start crystallizedState in
   let: slotsSinceLastDynastyChange := (slot_number blk) - dynastyStart in
   if slotsSinceLastDynastyChange < minDynastyLength then false else
@@ -600,7 +599,7 @@ Definition readyForDynastyTransition (crystallizedState : @CrystallizedState [or
 Definition computeDynastyTransition (crystallizedState : @CrystallizedState [ordType of Hash])
            (blk : block)
            (shardCount : nat)
-           (cycleLength : nat) (* TODO: config paramter? *) : CrystallizedState :=
+           (cycleLength : nat) : CrystallizedState :=
   let: newDynasty := current_dynasty crystallizedState + 1 in
   let: lastShardSeq := last [::] (shard_and_committee_for_slots crystallizedState) in
   let: nextShard := last dummySAC lastShardSeq in
@@ -619,14 +618,14 @@ Definition computeDynastyTransition (crystallizedState : @CrystallizedState [ord
 Definition computeCycleTransitions (crystallizedState : @CrystallizedState [ordType of Hash])
            (activeState : @ActiveState [ordType of Hash])
            (blk : block)
-           (cycleLength : nat) (* TODO: config paramter? *) : CrystallizedState * ActiveState :=
+           (cycleLength : nat) : CrystallizedState * ActiveState :=
   (crystallizedState, activeState).
 
 Definition computeStateTransition (crystallizedState : @CrystallizedState [ordType of Hash])
            (activeState : @ActiveState [ordType of Hash])
            (parentBlk : block)
            (blk : block)
-           (cycleLength : nat) (* TODO: config paramter? *) : CrystallizedState * ActiveState :=
+           (cycleLength : nat) : CrystallizedState * ActiveState :=
   let: activeState'0 := fillRecentBlockHashes activeState parentBlk blk in
   let: activeState'1 := processBlock crystallizedState activeState blk in
   computeCycleTransitions crystallizedState activeState blk cycleLength.
