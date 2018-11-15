@@ -8,41 +8,56 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
+(*
+This file contains the proof of plausible liveness.
+ *)
+
 Section Liveness.
 
+(*
+The background definitions of the block and validator structure
+are based off of those from CasperOneMessage.v
+ *)
 Variable Validator : finType.
 Variable Hash : finType.
 
-(* "2/3", quorums sufficient to "justify" a link *)
+(* The sets of "2/3 weight", these quorums are sufficient to justify a link *)
 Variable quorum_1 : {set {set Validator}}.
-(* "1/3" we will assume each of these sets contains at least one good node *)
+(* The sets of "1/3 weight", proofs of safety show that a problem cannot
+occur without a set of validators of this size getting slashed
+ *)
 Variable quorum_2 : {set {set Validator}}.
 
-(* The essential property behind 2/3+1/3 - any two sets from quoroum_1
-   have as common members the entire contents of some quorum_2 set,
-   so any two decisions each with quorum_1-set have overlapping support
-   of at least some quorum_2-set, and then of one good node *)
+(* The essential intersection property that comes from the
+   numeric choices 2/3 and 1/3 - and two sets from quorum_1
+   have an intersection containing a quorum_2 set. *)
 Hypothesis quorums_intersection :
   forall q1 q2, q1 \in quorum_1 -> q2 \in quorum_1 ->
   exists q3, q3 \in quorum_2 /\ q3 \subset q1 /\ q3 \subset q2.
 
-Hypothesis quorum_2_nonempty:
-  forall q, q \in quorum_2 -> exists v, v \in q.
-
+(* For liveness proof we use additional assumptions that
+   a supermajority quorum is nonempty, and that adding
+   more validators to a supermajority leaves a supermajority
+ *)
 Hypothesis quorum_1_nonempty:
   forall q, q \in quorum_1 -> exists v, v \in q.
+Hypothesis quorum_1_upclosed:
+  forall (q1 q2:{set Validator}), q1 \subset q2 -> q1 \in quorum_1 -> q2 \in quorum_1.
 
 (* Each vote names source and target nodes by giving hash and height,
-   and is signed by a particular validator *)
+   and is signed by a particular validator.
+
+   This definition is different from votes in CasperOneMessage.v,
+   this is taken directly from the way votes are expressed in the
+   Casper paper.
+ *)
 Definition Vote := (Validator * Hash * Hash * nat * nat)%type.
-(* A state includes a finite set of Votes cast in the current epoch *)
+(* A State is described by the set of votes case in the current epoch.
+   For liveness we insist that this be a finite set of votes.
+ *)
 Definition State := {fset Vote}.
-
-Definition vote_target_height (v:Vote) : nat :=
-  match v with
-    (_,_,_,_,t_h) => t_h
-  end.
-
+(* A boolean vote_msg predicate is then a definition rather than
+   a field of State as in CasperOneMessage.v *)
 Definition vote_msg (st:State) v s t (s_h t_h:nat) : bool
   := (v,s,t,s_h,t_h) \in st.
 
@@ -52,10 +67,6 @@ Variable hash_parent : rel Hash.
 
 Notation "h1 <~ h2" := (hash_parent h1 h2) (at level 50).
 
-(* The genesis block. Usually less interesting than
-   the block which started the current epoch *)
-Variable genesis : Hash.
-
 Definition hash_ancestor h1 h2 :=
  connect hash_parent h1 h2.
 
@@ -63,12 +74,16 @@ Notation "h1 <~* h2" := (hash_ancestor h1 h2) (at level 50).
 
 Notation "h1 </~* h2" := (~ hash_ancestor h1 h2) (at level 50).
 
+(* We will need to use several property of ancestry
+   inherited from the transitive closure operation "connect".
+   We define these lemmas rather than unfolding the hash_ancestor
+   definition inside other proofs.
+ *)
 Lemma hash_ancestor_base : forall h1 h2,
   h1 <~ h2 -> h1 <~* h2.
 Proof.
 by apply/connect1.
 Qed.
-
 Lemma hash_ancestor_step : forall h1 h2 h3,
  h1 <~ h2 -> h2 <~* h3 -> h1 <~* h3.
 Proof.
@@ -76,7 +91,6 @@ move => h1 h2 h3.
 move/connect1.
 by apply/connect_trans.
 Qed.
-
 Lemma hash_ancestor_intro' :
   forall h1 h2 h3, h1 <~* h2 -> h2 <~ h3 -> h1 <~* h3.
 Proof.
@@ -84,14 +98,12 @@ move => h1 h2 h3 H1 H2.
 apply: connect_trans; eauto.
 by apply/connect1.
 Qed.
-
 Lemma hash_ancestor_concat :
   forall h1 h2 h3, h2 <~* h3 -> h1 <~* h2 -> h1 <~* h3.
 Proof.
 move => h1 h2 h3 H2 H1.
 by apply: connect_trans; eauto.
 Qed.
-
 Lemma hash_ancestor_other:
   forall h1 h2 p, h1 <~* h2 -> p </~* h2 -> p </~* h1.
 Proof.
@@ -101,13 +113,22 @@ move: Hp H1.
 by apply/connect_trans.
 Qed.
 
-(* steps to ancestor is at least n *)
+(* This definition of ancestry makes the exact number of steps explicit *)
 Inductive nth_ancestor : nat -> Hash -> Hash -> Prop :=
 | nth_ancestor_0 : forall h1, nth_ancestor 0 h1 h1
 | nth_ancestor_nth : forall n h1 h2 h3,
     nth_ancestor n h1 h2 -> h2 <~ h3 ->
     nth_ancestor n.+1 h1 h3.
 
+Lemma nth_ancestor_ancestor : forall n s t,
+    nth_ancestor n s t -> (s <~* t).
+Proof.
+  induction 1.
+  apply connect0.
+  apply connect_trans with h2;[|apply connect1];assumption.
+Qed.
+
+(* Definitions of the slashing conditions *)
 (* A validator may not make two votes with different target hashes at the same
   target height (whatever the source blocks)
  *)
@@ -128,23 +149,59 @@ Definition slashed_surround st v :=
 Definition slashed st v : Prop :=
  slashed_dbl_vote st v \/ slashed_surround st v.
 
-(* The finalized node at which the current epoch started *)
+(* The genesis block. Usually less interesting than
+   the block which started the current epoch *)
+Variable genesis : Hash.
+(* The finalized node at which the current epoch started. *)
 Variable epoch_start : Hash.
 Variable epoch_height : nat.
 Hypothesis epoch_ancestry : nth_ancestor epoch_height genesis epoch_start.
 
+(* Now we define justification *)
+(* First a definition of supermajority links *)
 Definition link_supporters st s t s_h t_h : {set Validator} :=
   [set v | vote_msg st v s t s_h t_h ].
-Definition justified_link (st:State) (s t : Hash) (s_h t_h : nat) : bool :=
+Definition supermajority_link (st:State) (s t : Hash) (s_h t_h : nat) : bool :=
   link_supporters st s t s_h t_h \in quorum_1.
 
+Lemma supermajority_weaken: forall (st st':State)
+  (HSub:forall (v: Vote), v \in st -> v \in st'),
+    forall s t s_h t_h,
+      supermajority_link st s t s_h t_h
+      -> supermajority_link st' s t s_h t_h.
+Proof.
+  move=> st st' Hsub s t s_h t_h.
+  unfold supermajority_link, link_supporters, vote_msg.
+  apply quorum_1_upclosed.
+  apply/subsetP. intro. rewrite in_set. rewrite in_set.
+  apply Hsub.
+Qed.
+
+(* We define justification in terms of a path from the epoch start,
+   because the liveness proof is only concerned with with finalizing
+   a further block.
+ *)
 Inductive justified_this_epoch (st:State) : Hash -> nat -> Prop :=
 | epoch_justified : justified_this_epoch st epoch_start epoch_height
-| justfied_link : forall s s_h t t_h,
+| justified_link : forall s s_h t t_h,
     justified_this_epoch st s s_h ->
     s <~* t ->
-    justified_link st s t s_h t_h ->
+    supermajority_link st s t s_h t_h ->
     justified_this_epoch st t t_h.
+
+(* Some properties of justification *)
+Lemma justified_weaken: forall (st st':State)
+    (HSub:forall (v: Vote), v \in st -> v \in st'),
+  forall t t_h, justified_this_epoch st t t_h -> justified_this_epoch st' t t_h.
+Proof.
+  move=> st st' Hsub t t_h.
+  induction 1. constructor.
+  apply (justified_link IHjustified_this_epoch).
+  assumption.
+  revert H1.
+  apply supermajority_weaken.
+  assumption.
+Qed.
 
 Lemma justified_is_descendant st n n_h:
   justified_this_epoch st n n_h -> epoch_start <~* n.
@@ -154,39 +211,72 @@ Proof.
     eapply connect_trans; eassumption].
 Defined.
 
+(* Now we begin making definitions used in the statement and proof of
+   the plausible liveness theorem *)
+
+(* The liveness theorem will assume that will assume that 2/3 of validators
+   have not behaved badly. For liveness it is not sufficient to merely
+   say they are unslashed.
+
+   Votes with unjustified sources do not violate any slashing conditions
+   themselves, but can prevent a validator from contributing to progress,
+   because votes spanning over the unjustified vote would violate
+   slashing condition II.
+   No correct validator should ever make such a vote.
+
+   We also simplify the problem by forbidding good validators from
+   having votes with sources higher than the start of the current epoch
+   but not descended from the current epoch.
+   In the older casper design with Prepare/Commit messages this was
+   prevented by slashing conditions.
+ *)
 Definition sources_justified st v :=
   forall s t s_h t_h,
     vote_msg st v s t s_h t_h ->
     epoch_start <~* s /\ justified_this_epoch st s s_h.
 
-Definition one_third_slashed st :=
-  exists q, q \in quorum_2 /\ forall v, v \in q -> slashed st v.
+(* This assumption says 2/3 of the validators have behaved well *)
+Definition two_thirds_good (st : State) :=
+   exists (good_validators : {set Validator}), good_validators \in quorum_1 /\
+  forall v, v \in good_validators -> (~ slashed st v /\ sources_justified st v).
 
-Definition one_third_bad st :=
-  exists q, q \in quorum_2 /\ forall v, v \in q ->
-   (slashed st v \/ ~ sources_justified st v).
 
-Definition unslashed_can_extend st st' : Prop :=
-  forall v s t s_h t_h,
-    vote_msg st' v s t s_h t_h = true ->
-    vote_msg st v s t s_h t_h = true \/ ~ slashed st v.
-
-Definition no_new_slashed st st' :=
-  forall v, slashed st' v -> slashed st v.
-
+(* We also need to assume block proposals continue.
+   In particular, our proof requires that blocks exist
+   sufficiently high over the highest justified block *)
 Definition blocks_exist_high_over (base : Hash) : Prop :=
   forall n, exists block, nth_ancestor n base block.
-
+(* We also define the property of being the highest justified block *)
 Definition highest_justified st b b_h : Prop :=
-  forall b' b_h', b_h' >= b_h -> justified_this_epoch st b' b_h' -> b' = b /\ b_h' = b_h.
+  forall b' b_h', b_h' >= b_h
+  -> justified_this_epoch st b' b_h'
+  -> b' = b /\ b_h' = b_h.
 
+(* We assume a highest justified block exists.
+   This is left as an unproved assumption for now,
+   becasue proving there is only one justified block
+   of maximum height would require depending on
+   the accountable safety theorem and assumptions of
+   good behavior. *)
 Lemma highest_exists: forall st,
-    ~ one_third_bad st ->
     exists b b_h,
       justified_this_epoch st b b_h /\
       highest_justified st b b_h.
 Admitted.
 
+(** Now we have some defintions used to state the conclusion of the theorem **)
+(* First, the solution only calls for votes from unslashed validators. *)
+Definition unslashed_can_extend st st' : Prop :=
+  forall v s t s_h t_h,
+    vote_msg st' v s t s_h t_h = true ->
+    vote_msg st v s t s_h t_h = true \/ ~ slashed st v.
+(* Second, making the new votes does not cause any previously unslashed
+   validator to be slashed *)
+Definition no_new_slashed st st' :=
+  forall v, slashed st' v -> slashed st v.
+
+
+(** Now a few minor lemmas and definitions used in the proof **)
 Definition highest (A : {fset nat}) : nat :=
   \max_(i : A) (val i).
 
@@ -199,28 +289,31 @@ move => k Hk =><-.
 exact: leq_bigmax_cond.
 Qed.
 
-Lemma two_thirds_good: forall st,
-    ~ one_third_bad st ->
-    exists (q : {set Validator}), q \in quorum_1 /\ forall v, v \in q ->
-     (~ slashed st v /\ sources_justified st v).
-Proof.
-Admitted.
-
 Lemma ltSnn: forall n, (n.+1 < n) = false.
 Proof.
 by move => n; apply/negP/negP; rewrite leqNgt; apply/negP; case/negP.
 Qed.
 
+Definition vote_target_height (v:Vote) : nat :=
+  match v with
+    (_,_,_,_,t_h) => t_h
+  end.
+
+(** And finally, the overall plausible liveness theorem **)
 Lemma plausible_liveness :
-  forall st, ~ one_third_bad st ->
+  forall st, two_thirds_good st ->
   (forall b b_h, highest_justified st b b_h -> blocks_exist_high_over b) ->
-  exists st', unslashed_can_extend st st' /\ no_new_slashed st st'.
+  exists st', unslashed_can_extend st st' /\ no_new_slashed st st' /\
+              exists (new_finalized new_final_parent:Hash) new_height,
+                justified_this_epoch st' new_final_parent new_height
+                  /\ new_final_parent <~ new_finalized
+                  /\ supermajority_link st' new_final_parent new_finalized
+                                              new_height new_height.+1.
 Proof.
   intros st Hgood Hheight.
-  destruct (highest_exists Hgood) as (just_max & just_max_h & [Hjust_max_just Hjust_max_max]).
+  destruct (highest_exists st) as (just_max & just_max_h & [Hjust_max_just Hjust_max_max]).
   specialize (Hheight _ _ Hjust_max_max).
 
-  apply two_thirds_good in Hgood.
   destruct Hgood as (good_quorum & Hgood_is_quorum & Hgood).
 
   pose targets := (epoch_height |` [ fset vote_target_height vote | vote in st])%fset;
@@ -235,9 +328,10 @@ Proof.
                      | v in good_quorum]%fset; change {fset Vote} in (type of new_votes2).
 
   exists (st `|` new_votes1 `|` new_votes2)%fset.
-  split.
-  unfold unslashed_can_extend.
+  split;[|split].
 
+  *
+  unfold unslashed_can_extend.
   clear -Hgood.
   unfold vote_msg.
   intros v s t s_h t_h.
@@ -253,6 +347,7 @@ Proof.
    (clear;intros;apply highest_ub;
     apply/fsetUP;right;revert H;apply in_imfset).
 
+  *
   Local Ltac new_vote_mem_tac Hvote :=
     let x := fresh "x" in
     let x_good := fresh "x_good" in
@@ -376,10 +471,10 @@ Proof.
 
   new_vote_mem_tac Houter.
   apply Hgood in x_good. destruct x_good as [_ x_good].
-  apply x_good in Hinner. destruct Hinner as [_ Hinner].
-  apply Hjust_le_target in Hinner.
-  clear -Hstarts Hinner.
-  rewrite <- ltnS in Hinner.
+  apply x_good in Hinner. destruct Hinner as [_ Hs2_justified].
+  apply Hjust_le_target in Hs2_justified.
+  clear -Hstarts Hs2_justified.
+  rewrite <- ltnS in Hs2_justified.
   assert (s2_h < s2_h). apply ltn_trans with highest_target.+1;assumption.
   contradict H. rewrite ltnn. trivial.
 
@@ -397,6 +492,36 @@ Proof.
   new_vote_mem_tac Hinner.
   contradict Hstarts. clear.
   rewrite ltnn. trivial.
+
+  * exists new_finalized. exists new_final_parent. exists (highest_target.+1).
+    split.
+
+    apply (@justified_link _ just_max just_max_h).
+      revert Hjust_max_just. apply justified_weaken.
+      apply/fsubsetP. by eapply fsubset_trans;apply fsubsetUl.
+
+    revert H0. by apply nth_ancestor_ancestor.
+
+    unfold supermajority_link, link_supporters, vote_msg.
+    apply quorum_1_upclosed with good_quorum;[|assumption].
+    apply /subsetP.
+    intros v Hv_good.
+    rewrite in_set. rewrite in_fsetU.
+    apply/orP. left. rewrite in_fsetU.
+    apply/orP. right. unfold new_votes1.
+    apply/imfsetP. exists v.
+      assumption. reflexivity.
+
+    split. assumption.
+
+    unfold supermajority_link, link_supporters, vote_msg.
+    apply quorum_1_upclosed with good_quorum;[|assumption].
+    apply /subsetP.
+    intros v Hv_good.
+    rewrite in_set. rewrite in_fsetU.
+    apply/orP. right. unfold new_votes2.
+    apply/imfsetP. exists v.
+      assumption. reflexivity.
 Qed.
 
 End Liveness.
