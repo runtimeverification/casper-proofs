@@ -168,14 +168,16 @@ Lemma procMsg_id_constant (s1 : State) from (m : Message) (ts : Timestamp) :
     id s1 = id (procMsg s1 from m ts).1.
 Proof.
 case: s1 from m ts.
-by move => n1 p1 b1 t1 a1 c1 n2 []=>//=??.
+move => n1 p1 b1 t1 a1 c1 d1 n2 []=>//=??.
+unfold computeStateTransition. destruct computeCycleTransitions; auto.
 Qed.
 
 (* procInt currently undefined *)
 Lemma procInt_id_constant : forall (s1 : State) (t : InternalTransition) (ts : Timestamp),
     id s1 = id (procInt s1 t ts).1.
 Proof.
-by case=> n1 p1 b1 a1 c1 n2 [] =>// ts; simpl.
+case => n1 p1 b1 a1 c1 d1 n2 []=>//=??.
+unfold computeStateTransition. destruct computeCycleTransitions; auto.
 Qed.
 
 Lemma procMsg_valid :
@@ -184,7 +186,8 @@ Lemma procMsg_valid :
 Proof.
 move=> s1 from m ts.
 case Msg: m=>[b];
-destruct s1; rewrite/procMsg/=. 
+destruct s1; rewrite/procMsg/=.
+unfold computeStateTransition. destruct computeCycleTransitions.
 by move: (bfExtendV blocks b)=><-.
 Qed.
 
@@ -194,6 +197,7 @@ Lemma procInt_valid :
 Proof.
 move=>s1 t ts.
 case Int: t;destruct s1; rewrite/procInt//=.
+unfold computeStateTransition. destruct computeCycleTransitions.
 by rewrite/Node.blocks/=; apply bfExtendV.
 Qed.
 
@@ -205,6 +209,7 @@ Proof.
 move=> s1 from  m ts.
 case Msg: m=>[b];
 destruct s1; rewrite/procMsg/=; do? by []; do? by case: ifP => //=.
+unfold computeStateTransition. destruct computeCycleTransitions.
 by move=>v vh; apply bfExtendH.
 Qed.
 
@@ -215,6 +220,7 @@ Lemma procInt_validH :
 Proof.
 move=>s1 t ts v vh.
 case Int: t; destruct s1; rewrite/procInt//=.
+unfold computeStateTransition. destruct computeCycleTransitions.
 by rewrite/Node.blocks/=; apply bfExtendH.
 Qed.
 
@@ -227,6 +233,7 @@ Proof.
 move=> s1 from  m ts.
 case Msg: m=>[b];
 destruct s1; rewrite/procMsg/=; do? by []; do? by case:ifP.
+unfold computeStateTransition. destruct computeCycleTransitions.
 by apply bfExtendIB.
 Qed.
 
@@ -238,6 +245,7 @@ Lemma procInt_has_init_block :
 Proof.
 move=>s1 t ts v vh.
 case Int: t; destruct s1; rewrite/procInt//=.
+unfold computeStateTransition. destruct computeCycleTransitions.
 by apply bfExtendIB.
 Qed.
 
@@ -246,15 +254,17 @@ Lemma procMsg_peers_uniq :
     let: s2 := (procMsg s1 from m ts).1 in
     uniq (peers s1) -> uniq (peers s2).
 Proof.
-case=> n1 p1 b1 t1 a1 c1 n2; case; do? by []; simpl.
+case => n1 p1 b1 t1 a1 c1 d1 n2 []=>//=??.
+unfold computeStateTransition. destruct computeCycleTransitions; auto.
 Qed.
 
 Lemma procInt_peers_uniq :
   forall (s1 : State) (t : InternalTransition) ts, let: s2 := (procInt s1 t ts).1 in
     uniq (peers s1) -> uniq (peers s2).
 Proof.
-move=>s1 t ts; case: s1=>n prs bf; rewrite /peers/procInt=>Up.
-by case: t.
+move=>s1 t ts. case: s1=>n prs bf; rewrite /peers/procInt=>Up.
+case: t. move=> b s sc cl.
+unfold computeStateTransition. destruct computeCycleTransitions; auto.
 Qed.
 
 (* most deifnitions in remainder of file rely on some combination of 

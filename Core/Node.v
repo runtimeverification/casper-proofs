@@ -613,22 +613,31 @@ Definition computeDynastyTransition (crystallizedState : @CrystallizedState [ord
   let: crystallizedState'2 := {[ crystallizedState with current_dynasty := newDynasty ]} in
   crystallizedState'2.
 
-(* TODO: implement *)
-(* TODO: how do we emulate the while loop? How can Coq know a parameter is decreasing? *)
+(* TODO: should emulate while loop ideally instead of initializing cycle once *)
 Definition computeCycleTransitions (crystallizedState : @CrystallizedState [ordType of Hash])
            (activeState : @ActiveState [ordType of Hash])
            (blk : block)
+           (shardCount : nat)
            (cycleLength : nat) : CrystallizedState * ActiveState :=
-  (crystallizedState, activeState).
+  if slot_number blk < (last_state_recalc crystallizedState + cycleLength) then
+    let: (crystallizedState'0, activeState') :=
+       initializeNewCycle crystallizedState activeState blk cycleLength in
+    if readyForDynastyTransition crystallizedState blk cycleLength then
+      let crystallizedState'1 :=
+          computeDynastyTransition crystallizedState blk shardCount cycleLength in
+      (crystallizedState'1, activeState')
+    else (crystallizedState'0, activeState')
+  else (crystallizedState, activeState).
 
 Definition computeStateTransition (crystallizedState : @CrystallizedState [ordType of Hash])
            (activeState : @ActiveState [ordType of Hash])
            (parentBlk : block)
            (blk : block)
+           (shardCount : nat)
            (cycleLength : nat) : CrystallizedState * ActiveState :=
   let: activeState'0 := fillRecentBlockHashes activeState parentBlk blk in
   let: activeState'1 := processBlock crystallizedState activeState blk in
-  computeCycleTransitions crystallizedState activeState blk cycleLength.
+  computeCycleTransitions crystallizedState activeState blk shardCount cycleLength.
 
 (* ------------------*)
 (* PROTOCOL MESSAGES *)
@@ -700,7 +709,8 @@ Record State {Hash : ordType} :=
     blocks : Blockforest;
     cstate : @CrystallizedState Hash;
     astate : @ActiveState Hash;
-    (* TODO: does cycleLength belong here? *)
+    (* TODO: do shardCount, cycleLength belong here? *)
+    shardCount : nat;
     cycleLength : nat;
   }.
 
@@ -708,24 +718,24 @@ Definition initCS := @mkCS [ordType of Hash] [::] 0 [::] 0 0 0 0 [::] dummyHash 
 Definition initAS := @mkAS [ordType of Hash] [::] [::].
 
 Definition Init (n : NodeId) (peers : seq NodeId) : State :=
-  Node n peers (#GenesisBlock \\-> GenesisBlock) initCS initAS 0.
+  Node n peers (#GenesisBlock \\-> GenesisBlock) initCS initAS 1024 64.
 
 Definition procMsg (st: @State [ordType of Hash]) (from : NodeId) (msg: Message) (ts: Timestamp) :=
-  let: Node n prs bf cst ast cl := st in
+  let: Node n prs bf cst ast sc cl := st in
   match msg with
   | BlockMsg b =>
     let: parentBlock := get_block bf (parent_hash b) in
-    let: (crystallizedState, activeState) := computeStateTransition cst ast parentBlock b cl in
+    let: (crystallizedState, activeState) := computeStateTransition cst ast parentBlock b sc cl in
     let: newBf := bfExtend bf b in
-    pair (Node n prs newBf crystallizedState activeState cl) emitZero
+    pair (Node n prs newBf crystallizedState activeState sc cl) emitZero
   end.
 
 Definition procInt (st : @State [ordType of Hash]) (tr : InternalTransition) (ts : Timestamp) :=
- let: Node n prs bf cst ast cl := st in
+ let: Node n prs bf cst ast sc cl := st in
  match tr with
  | BlockT b =>
    let: parentBlock := get_block bf (parent_hash b) in
-   let: (crystallizedState, activeState) := computeStateTransition cst ast parentBlock b cl in
+   let: (crystallizedState, activeState) := computeStateTransition cst ast parentBlock b sc cl in
    let: newBf := bfExtend bf b in
-   pair (Node n prs newBf crystallizedState activeState cl) (emitBroadcast n prs (BlockMsg b))
+   pair (Node n prs newBf crystallizedState activeState sc cl) (emitBroadcast n prs (BlockMsg b))
  end.
