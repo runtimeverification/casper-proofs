@@ -48,8 +48,8 @@ Definition NodeState_State (ns : NodeState) : State Validator Hash :=
 
 Lemma accountable_safety_NodeState_deposit :
   forall (deposit : Validator -> nat) (ns : NodeState),
-    finalization_fork (deposit_top_validators deposit) (hash_parent_bf (blocks ns)) (# GenesisBlock) (NodeState_State ns) ->
-    misbehaving_slashed (deposit_bot_validators deposit) (NodeState_State ns).
+    finalization_fork (deposit_top deposit) (hash_parent_bf (blocks ns)) (# GenesisBlock) (NodeState_State ns) ->
+    quorum_slashed (deposit_bot deposit) (NodeState_State ns).
 Proof.
 move => deposit ns.
 exact: accountable_safety_bf_deposit.

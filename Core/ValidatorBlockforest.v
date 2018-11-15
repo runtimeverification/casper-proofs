@@ -35,7 +35,7 @@ Qed.
 Lemma accountable_safety_bf_card :
   forall s : State Validator Hash,
     finalization_fork (top_validators Validator) hash_parent_bf (# GenesisBlock) s ->
-    misbehaving_slashed (bot_validators Validator) s.
+    quorum_slashed (bot_validators Validator) s.
 Proof.
 apply: accountable_safety.
 - exact: bot_top_validator_intersection.
@@ -44,8 +44,8 @@ Qed.
 
 Lemma accountable_safety_bf_deposit :
   forall s : State Validator Hash,
-    finalization_fork (deposit_top_validators deposit) hash_parent_bf (# GenesisBlock) s ->
-    misbehaving_slashed (deposit_bot_validators deposit) s.
+    finalization_fork (deposit_top deposit) hash_parent_bf (# GenesisBlock) s ->
+    quorum_slashed (deposit_bot deposit) s.
 Proof.
 apply: accountable_safety.
 - exact: deposit_bot_top_validator_intersection.

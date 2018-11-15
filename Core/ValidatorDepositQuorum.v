@@ -92,10 +92,10 @@ Variable T : finType.
 
 Variable d : T -> nat.
 
-Definition gt_dset n : {set {set T}} :=
+Definition gdset n : {set {set T}} :=
  [set x in powerset [set: T] | \sum_(t in x) (d t) >= n].
 
-Lemma gt_dset_in : forall n (s : {set T}), \sum_(t in s) (d t) >= n = (s \in gt_dset n).
+Lemma gt_dset_in : forall n (s : {set T}), \sum_(t in s) (d t) >= n = (s \in gdset n).
 Proof.
 move => n s.
 rewrite inE andb_idl // => Hn.
@@ -280,8 +280,8 @@ exact: add_ltn.
 Qed.
   
 Lemma d_bot_top_intersection :
-  forall q1 q2, q1 \in gt_dset top -> q2 \in gt_dset top ->
-  exists q3, q3 \in gt_dset bot /\ q3 \subset q1 /\ q3 \subset q2.
+  forall q1 q2, q1 \in gdset top -> q2 \in gdset top ->
+  exists q3, q3 \in gdset bot /\ q3 \subset q1 /\ q3 \subset q2.
 Proof.
 move => q1 q2 Hq1 Hq2.
 have Hq1': \sum_(t in q1) (d t) >= top by rewrite gt_dset_in.
@@ -372,15 +372,11 @@ Variable Validator : finType.
 
 Variable deposit : Validator -> nat.
 
-Definition deposit_ge_bot_validators :=
- ((\sum_(v : Validator) (deposit v)) %/ 3).+1.
+Definition deposits := \sum_(v : Validator) (deposit v).
 
-Definition deposit_ge_top_validators :=
- ((2 * \sum_(v : Validator) (deposit v)) %/ 3).+1.
+Definition deposit_bot := gdset deposit (deposits %/ 3).+1.
 
-Definition deposit_bot_validators := gt_dset deposit deposit_ge_bot_validators.
-
-Definition deposit_top_validators := gt_dset deposit deposit_ge_top_validators.
+Definition deposit_top := gdset deposit ((2 * deposits) %/ 3).+1.
 
 Lemma Validators_deposit_constr_thirds :
   ((1 * \sum_(v : Validator) (deposit v)) %/ 3).+1 + \sum_(v : Validator) (deposit v) <=
@@ -391,8 +387,8 @@ exact: constr_thirds.
 Qed.
 
 Lemma deposit_bot_top_validator_intersection :
-  forall q1 q2, q1 \in deposit_top_validators -> q2 \in deposit_top_validators ->
-  exists q3, q3 \in deposit_bot_validators /\ q3 \subset q1 /\ q3 \subset q2.
+  forall q1 q2, q1 \in deposit_top -> q2 \in deposit_top ->
+  exists q3, q3 \in deposit_bot /\ q3 \subset q1 /\ q3 \subset q2.
 Proof.
 move => q1 q2 Hq1 Hq2.
 have [q3 [Hq3 Hq3']] := d_bot_top_intersection Validators_deposit_constr_thirds Hq1 Hq2.
