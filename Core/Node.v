@@ -394,6 +394,7 @@ Definition getNewRecentBlockHashes (oldBlockHashes : seq Hash) (parentSlot : nat
   let: d := currentSlot - parentSlot in
   drop d oldBlockHashes ++ nseq (min d (size oldBlockHashes)) parentHash.
 
+(* Return validators who are currently participating *)
 Definition getActiveValidatorIndices (dynasty : nat)
            (validators : seq (@ValidatorRecord [ordType of Hash])) : seq nat :=
   let: indices := iota 0 (size validators) in
@@ -402,6 +403,7 @@ Definition getActiveValidatorIndices (dynasty : nat)
 
 (* helper function - see CrystallizedState.py *)
 
+(* Calculate total deposits of all active validators in a crystallized state *)
 Definition totalDeposits (crystallizedState : @CrystallizedState [ordType of Hash]) : nat :=
   let: vals := validators crystallizedState in
   let: currentDynasty := current_dynasty crystallizedState in
@@ -419,11 +421,13 @@ Definition checkLastBits (attBitfield : seq byte) (lastBit : nat) : bool := true
 
 (* state transition functions - see state_transition.py *)
 
+(* Return reward context: tuple of reward quotient, quadratic penalty quotient *)
 (* TODO: implement *)
 Definition getRewardContext (totalDeposits : nat) : nat * nat :=
   if totalDeposits <= 0 then (* TODO: throw exception *) (0, 0) else
     (0, 0).
 
+(* Validate slot number, justified slot and justified block hash *)
 Definition validateAttestation (crystallizedState : @CrystallizedState [ordType of Hash])
            (activeState : @ActiveState [ordType of Hash])
            (attestation : @AttestationRecord [ordType of Hash])
@@ -447,6 +451,7 @@ Definition getUpdatedBlockVoteCache (crystallizedState : @CrystallizedState [ord
            (blkVoteCache : BlockVoteCache) : BlockVoteCache :=
   blkVoteCache.
 
+(* Process block, return new active state *)
 Definition processBlock (crystallizedState : @CrystallizedState [ordType of Hash])
            (activeState : @ActiveState [ordType of Hash])
            (blk : block)
@@ -461,13 +466,32 @@ Definition processBlock (crystallizedState : @CrystallizedState [ordType of Hash
     (* TODO: update activeState with newBlockVoteCache, chain *)
     @mkAS [ordType of Hash] newAtts recentBlockHashes.
 
-(* TODO: implement *)
+(* Process crosslinks from crystallized state *)
 Definition processUpdatedCrosslinks (crystallizedState : @CrystallizedState [ordType of Hash])
            (activeState : @ActiveState [ordType of Hash])
-           (blk : block) (* TODO: config paramter? *) : seq (@CrosslinkRecord [ordType of Hash]) :=
+           (blk : block) (cycleLength : nat) : seq (@CrosslinkRecord [ordType of Hash]) :=
+  let: totalAttestationBalance := Nil ((nat * Hash) * nat) in
   let: crosslinks := crosslink_records crystallizedState in
+  let: pendingAtts := pending_attestations activeState in
+  let: (newAttBalance, newCrosslinks) :=
+     foldr
+       (fun i acc =>
+          let: shardTuple := (shard_id i, shard_block_hash i) in
+          let: acc'0 :=
+             if shardTuple \notin (map fst (fst acc)) then
+               cons (shardTuple, 0) (fst acc) else
+               fst acc in
+          let: attIndices := getAttestationIndices crystallizedState i cycleLength in
+          let: totalCommitteeBalance :=
+             foldr (fun j ps => balance (nth dummyVal (validators crystallizedState) j) + ps) 0 attIndices in
+          (* TODO: finish implementing: if 2/3 of committee voted on crosslink and do not
+             yet have crosslink for this shard, for this dynasty, add updated crosslink *)
+       (acc'0, snd acc))
+       (totalAttestationBalance, crosslinks)
+       pendingAtts in
   crosslinks.
 
+(* Balance recalculations related to ffg rewards *)
 Definition calculateFfgRewards (crystallizedState : @CrystallizedState [ordType of Hash])
            (activeState : @ActiveState [ordType of Hash])
            (blk : block)
@@ -505,13 +529,15 @@ Definition calculateFfgRewards (crystallizedState : @CrystallizedState [ordType 
        loopList in
   newRewardsAndPenalties.
 
-(* TODO: unimplemented in beacon_chain repo *)
+(* Balance recalculations related to crosslink rewards *)
+(* TODO: implement *)
 Definition calculateCrosslinkRewards (crystallizedState : @CrystallizedState [ordType of Hash])
            (activeState : @ActiveState [ordType of Hash])
            (blk : block) : seq nat :=
   let: validators := validators crystallizedState in
   map (fun _ => 0) validators.
 
+(* Apply rewards and penalties for all validators in crystallized state *)
 Definition applyRewardsAndPenalties (crystallizedState : @CrystallizedState [ordType of Hash])
            (activeState : @ActiveState [ordType of Hash])
            (blk : block)
@@ -529,6 +555,8 @@ Definition applyRewardsAndPenalties (crystallizedState : @CrystallizedState [ord
        else id x)
     validators.
 
+(* Initialize new cycle: cycle corresponds to a span of slots during which all validators
+   get exactly one chance to make an attestation *)
 Definition initializeNewCycle (crystallizedState : @CrystallizedState [ordType of Hash])
            (activeState : @ActiveState [ordType of Hash])
            (blk : block)
@@ -555,7 +583,7 @@ Definition initializeNewCycle (crystallizedState : @CrystallizedState [ordType o
             (acc'1, (acc'2, snd (snd acc))))
        (lastJustifiedSlot, (justifiedStreak, lastFinalizedSlot))
        cycleLengthList in
-  let: crosslinkRecords := processUpdatedCrosslinks crystallizedState activeState blk in
+  let: crosslinkRecords := processUpdatedCrosslinks crystallizedState activeState blk cycleLength in
   let: pendingAtts := pending_attestations activeState in
   let: newPendingAtts := filter (fun a => lastStateRecalc <= slot_ar a) pendingAtts in
   let: validators := applyRewardsAndPenalties crystallizedState activeState blk cycleLength in
@@ -582,6 +610,7 @@ Definition fillRecentBlockHashes (activeState : @ActiveState [ordType of Hash])
   (* TODO: update activeState with newBlockVoteCache, chain *)
   @mkAS [ordType of Hash] pendingAtts newRecentBlockHashes.
 
+(* Check if crystallized state should transition to next dynasty *)
 Definition readyForDynastyTransition (crystallizedState : @CrystallizedState [ordType of Hash])
            (blk : block)
            (minDynastyLength : nat) : bool :=
@@ -596,6 +625,7 @@ Definition readyForDynastyTransition (crystallizedState : @CrystallizedState [or
       let: newList := filter (fun x => x \in requiredShards) indices in
       all (fun x => dynastyStart < slot (nth dummyCR crosslinkRecords x)) indices.
 
+(* State transition corresponding to new dynasty *)
 Definition computeDynastyTransition (crystallizedState : @CrystallizedState [ordType of Hash])
            (blk : block)
            (shardCount : nat)
@@ -629,6 +659,7 @@ Definition computeCycleTransitions (crystallizedState : @CrystallizedState [ordT
     else (crystallizedState'0, activeState')
   else (crystallizedState, activeState).
 
+(* State transition function: update crystallized and active states *)
 Definition computeStateTransition (crystallizedState : @CrystallizedState [ordType of Hash])
            (activeState : @ActiveState [ordType of Hash])
            (parentBlk : block)
@@ -714,9 +745,12 @@ Record State {Hash : ordType} :=
     cycleLength : nat;
   }.
 
+(* Initial values defined in beacon chain repo *)
 Definition initCS := @mkCS [ordType of Hash] [::] 0 [::] 0 0 0 0 [::] dummyHash 0.
 Definition initAS := @mkAS [ordType of Hash] [::] [::].
 
+(* Initial values for crystallized state, active state, shardCount, and cycleLength
+   are defined in the beacon chain repo. *)
 Definition Init (n : NodeId) (peers : seq NodeId) : State :=
   Node n peers (#GenesisBlock \\-> GenesisBlock) initCS initAS 1024 64.
 
