@@ -284,9 +284,8 @@ block tree.
 New blocks are minted through a \emph{proposal} mechanism, which could be an
 underlying blockchain using proof-of-work~\cite{Nakamoto2008} or
 proof-of-stake~\cite{proof-of-stake} to regulate block creation.
-Participating nodes use a local \emph{fork choice rule} to decide whether to
-append a new block to one among several leaf blocks to the current special block
-tree.
+Participating nodes use a local \emph{fork choice rule} to decide where
+to construct a new block onto the current block tree.
 Due to, e.g., delays or adversarial behavior, there may be competing leaf blocks
 of similar tree height, defining different blockchain \emph{forks}.
 
@@ -295,7 +294,7 @@ of autonomous \emph{validators} who attest to, by broadcasted votes, that
 certain blocks in the special tree belong to the designated canonical
 blockchain.
 To participate, validators must demonstrate that they have a stake in the
-blockchain system by making a \emph{deposit} of the blockchain's cryptocurrency.
+blockchain system by locking up a \emph{deposit} of the blockchain's cryptocurrency.
 The deposit will be \emph{slashed} if the validator is verifiably reported by
 other validators to be behaving adversarially.
 
@@ -313,8 +312,8 @@ validators follow the protocol.
 
 Yoichi Hirai formalized and verified several earlier variants of Casper in the
 Isabelle/HOL proof assistant~\cite{pos}.
-These formalizations are highly abstract, in the sense that they elide most
-details on the structure of hashes, blocks, and validators.
+These formalizations are highly abstract, in the sense that they ignore most
+details of the structure of hashes, blocks, and validators.
 For example, the requirements on the fractions of honest validators is captured,
 via Isabelle's locale mechanism~\cite{Ballarin2014}, by postulating abstract
 types $'q_1$ and $'q_2$ to represent collections of sets of validators of
@@ -331,18 +330,18 @@ the subscripted operator $v \in_1 q$ means that validator $v$ is a member of a
 set $q$ which belongs to the type $'q_1$ that represents sets of weight at least
 $\frac{2}{3}$,
 and the subscripted operator $v \in_2 q$ means that validator $v$ is a member of a set $q$ which belongs to the type $'q_2$ that represents sets of weight at least $\frac{1}{3}$.
-In this proposition $q_1$ and $q_2$ have type $'q_1$ and $q_3$ has type $q_2$
-(this use of numbered ``q''s as both types and variables is confusing,
-but exactly follows Isabelle definition).
+In this proposition $q_1$ and $q_2$ have type $'q_1$ and $q_3$ has type $q_2$.
+This use of numbered ``q''s as both types and variables is confusing,
+but exactly follows the Isabelle definition.
 While accountable safety is verified for the most recent Casper, plausible
 liveness is only proven for an earlier variant with different inter-validator
 messages.
-In addition, these proofs were developed in an older version of Isabelle and
+Moreover, these proofs were developed in an older version of Isabelle and
 already the proof of accountable safety cannot be checked with Isabelle2017.
 
 \subsection{Mathematical Components and Toychain}
-We use several existing Coq libraries which already formalized most
-of the mathematics we need to define and reason about Casper.
+We employ several existing Coq libraries which already formalized
+the majority of the mathematics we need to define and reason about Casper.
 Mathematical Components~\cite{MathComp} is a Coq library based on packaging
 mathematical structures and results in the form of Coq \emph{canonical
   structures}, which can be reused and specialized when
@@ -622,12 +621,16 @@ The proof works with the same model of checkpoint blocks as the accountable
 safety proof.
 We are given a set of checkpoint block hashes, a parent relationship giving each
 hash at most one parent, and a hash of the genesis block.
-The system state is just a set of votes, because we do not model
-block proposals or dynamic validator sets.
+The changing part of the system states is only the set of votes,
+because we do not model the block proposal process or dynamic validator sets.
 
-Finalization of new blocks is an essential part of the Casper design for
-dynamic validator sets and the system of epochs, so we state the theorem
-in terms of parameters giving the hash and height of the most recent finalized block.
+
+Finalization is an essential part of the Casper design for dynamic validator sets,
+which uses finalized blocks as the boundary of the ``epochs'' where the validator
+set can change.
+Because of this essential role we state and prove liveness in terms of
+a hash and height of the most recent previously-finalized block, even though
+we are not yet proving liveness in the presence of dynamic validator sets.
 \begin{lstlisting}
 Variable epoch_start : Hash.
 Variable epoch_height : nat.
@@ -638,7 +641,7 @@ Here \lstinline{epoch_start} is the hash of that block, \lstinline{epoch_height}
 is its height, and \lstinline{epoch_ancestry} is a proof that the epoch start block
 is actually at the claimed height over the genesis block.
 
-For showing a further block can be finalized we only need to consider justification
+To demonstrate a further block can be finalized we only need to consider justification
 of blocks descending from the start of this epoch.
 We define justification within the epoch as having a path of super-majority links
 from the epoch start up to a block.
@@ -653,30 +656,30 @@ Inductive justified_this_epoch (st:State)
     supermajority_link st s t s_h t_h ->
     justified_this_epoch st t t_h.
 \end{lstlisting}
-This definition defines that inductively, a hash and height
-describe a block justified since the start of this epoch if
-that is the epoch start block, or if the described block
-has an ancestor which was justified since the epoch and
-a supermajority of validators have voted for the link.
+This definition defines justification inductively, from two cases.
+A block is justified if it is the epoch start block,
+or if it has a justified ancestor and a supermajority of validators
+have voted for a link to this block from that ancestor.
 
 Besides the parameterization over the epoch start block,
 we do not actually consider the history of any past epochs.
 In particular, we assume that the well-behaved nodes have not made any
-votes with sources outside the current epoch (we could drop that
-assumption at the cost of needing part of the accountable safety
-theorem to prove that good validators could not have past votes
-that interfere with the construction in our proof).
+votes with sources outside the current epoch.
+We could work without that assumption, but we would need to repeat
+part of the accountable safety proof to argue that an unslashed
+validator's votes from past epochs cannot prevent them from
+safely making the votes chosen in out proof.
 
 \subsection{Theorem}
 To formalize a statement of plausible liveness, we follow our examples and
 abstract away from any implementation details of ``following the protocol'',
-and just require that our $\frac{2}{3}$ good validators have not made certain
+and simply require that our $\frac{2}{3}$ good validators have not made certain
 sorts of bad votes.
 For the conclusion we also ignore the details of how validators decide to make
 votes, and simply show that there is some set of votes which the good validators
 could make that would finalize a further block and not violate slashing conditions.
 
-In Hirai's proof for the previous Casper design it was sufficient to require simply
+In Hirai's proof for the previous Casper design it was sufficient to simply require
 that the good validators were unslashed.
 The current Casper design intentionally removed any slashing conditions that required
 knowing the state of the chain when the votes were made.
@@ -729,22 +732,23 @@ Lemma plausible_liveness :
      -> blocks_exist_high_over b) ->
   exists st', unslashed_can_extend st st'
    /\ no_new_slashed st st'
-   /\ exists (new_finalized new_final_parent:Hash) new_height,
-        justified_this_epoch st' new_final_parent new_height
-         /\ hash_parent new_final_parent new_finalized
-         /\ supermajority_link st' new_final_parent new_finalized
-                                     new_height new_height.+1.
+   /\ exists (new_finalized new_final_child:Hash) new_height,
+        justified_this_epoch st' new_finalized new_height
+         /\ epoch_height < new_height
+         /\ new_finalized <~ new_final_child
+         /\ supermajority_link st' new_finalized new_final_child
+                                   new_height new_height.+1.
 \end{lstlisting}
 
-The conclusion says there exists an extended set of votes \lstinline{st'} which finalizes
-a further block.
-The property \lstinline{unslashed_can_extend} says that the new state \lstinline{st'}
-contains additional votes only from unslashed validators and the
-the property \lstinline{no_new_slashed} says that no previously-unslashed validators
-are slashed in \lstinline{st'}.
-The rest of the conclusion says that some block \lstinline{new_finalized}
-is a strict descendant of the \lstinline{epoch_start} and is finalized under votes
-\lstinline{st'}.
+The desired conclusion of the theorem is expressed by stating that
+there exists a set of votes \lstinline{st'},
+such that any votes which were not already in \lstinline{st} were
+made by unslashed validators,
+that no validators that were unslashed in \lstinline{st}
+are slashed in \lstinline{st'},
+and that there is a block \lstinline{new_finalized} which is
+finalized under votes \lstinline{st'} and is higher than
+the previous finalized block.
 
 The proof proceeds as outlined in~\cite{Buterin2017}:
 We take the highest justified checkpoint J which is a descendant of the most
@@ -911,7 +915,7 @@ generate a correct-by-construction implementation from the specification.
 \subsection{Beacon Node}
 The state of the beacon chain~\cite{Beacon} is split into two main parts, an
 active state and a crystallized state. The active state is updated every block,
-while the crystallized state is only updated corresponding to a cycle length
+while the crystallized state is only updated according to a cycle length
 parameter of the protocol, which is set to 64 slots in the beacon chain
 implementation~\cite{Beacon}.
 

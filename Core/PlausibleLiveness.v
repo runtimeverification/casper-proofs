@@ -304,12 +304,14 @@ Definition vote_target_height (v:Vote) : nat :=
 Lemma plausible_liveness :
   forall st, two_thirds_good st ->
   (forall b b_h, highest_justified st b b_h -> blocks_exist_high_over b) ->
-  exists st', unslashed_can_extend st st' /\ no_new_slashed st st' /\
-              exists (new_finalized new_final_parent:Hash) new_height,
-                justified_this_epoch st' new_final_parent new_height
-                  /\ new_final_parent <~ new_finalized
-                  /\ supermajority_link st' new_final_parent new_finalized
-                                              new_height new_height.+1.
+  exists st', unslashed_can_extend st st'
+   /\ no_new_slashed st st'
+   /\ exists (new_finalized new_final_child:Hash) new_height,
+        justified_this_epoch st' new_finalized new_height
+         /\ epoch_height < new_height
+         /\ new_finalized <~ new_final_child
+         /\ supermajority_link st' new_finalized new_final_child
+                                   new_height new_height.+1.
 Proof.
   intros st Hgood Hheight.
   destruct (highest_exists st) as (just_max & just_max_h & [Hjust_max_just Hjust_max_max]).
@@ -320,12 +322,12 @@ Proof.
   pose targets := (epoch_height |` [ fset vote_target_height vote | vote in st])%fset;
                     change {fset nat} in (type of targets).
   pose highest_target := highest targets.
-  destruct (Hheight (highest_target.+2)) as [new_finalized Hpath].
-  inversion Hpath;subst. rename h2 into new_final_parent.
+  destruct (Hheight (highest_target.+2)) as [new_final_child Hpath].
+  inversion Hpath;subst. rename h2 into new_finalized.
 
-  pose new_votes1 := [fset (v,just_max,new_final_parent,just_max_h,highest_target.+1)
+  pose new_votes1 := [fset (v,just_max,new_finalized,just_max_h,highest_target.+1)
                      | v in good_quorum]%fset; change {fset Vote} in (type of new_votes1).
-  pose new_votes2 := [fset (v,new_final_parent,new_finalized,highest_target.+1,highest_target.+2)
+  pose new_votes2 := [fset (v,new_finalized,new_final_child,highest_target.+1,highest_target.+2)
                      | v in good_quorum]%fset; change {fset Vote} in (type of new_votes2).
 
   exists (st `|` new_votes1 `|` new_votes2)%fset.
@@ -494,7 +496,7 @@ Proof.
   contradict Hstarts. clear.
   rewrite ltnn. trivial.
 
-  * exists new_finalized. exists new_final_parent. exists (highest_target.+1).
+  * exists new_finalized. exists new_final_child. exists (highest_target.+1).
     split.
 
     apply (@justified_link _ just_max just_max_h).
@@ -512,6 +514,11 @@ Proof.
     apply/orP. right. unfold new_votes1.
     apply/imfsetP. exists v.
       assumption. reflexivity.
+
+    split.
+    assert (epoch_height <= highest_target).
+    apply highest_ub.
+    rewrite in_fsetU. apply/orP. left. apply fset11. by auto with arith.
 
     split. assumption.
 
