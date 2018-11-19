@@ -2,22 +2,16 @@ Casper Proofs
 =============
 
 Models and proofs of the Casper blockchain finality system in Coq.
-
 The major theorems currently proven are Accountable Safety and
 Plausible Liveness.
-These proofs are written to depend only loosely on the details of
-a blockchain model.
-Models of various levels of detail are used to instantiate the proofs,
-first to demonstrate that the assumptions about the blockchain are
-reasonable, and then to more closely approximate a deployment of
-Casper.
-The proofs do not yet cover dynamic validator sets.
-
+These proofs are written to depend only loosely on the details
+of an underlying blockchain, and are instantiated with models
+at various levels of detail.
 We also have a detailed model of the data structures and node
 behavior in the Beacon Chain protocol.
 
 A more detailed explanation of the models and proofs can be found in the
-technical report: [](http://github.com/palmskog/casper-coq-report/)
+technical report [here](http://github.com/palmskog/casper-coq-report/).
 
 Project Layout
 --------------
