@@ -16,7 +16,7 @@ technical report [here](http://github.com/palmskog/casper-coq-report/).
 Project Layout
 --------------
 
-Casper proofs:
+### Casper proofs
 
 These files contain the major theorems about Casper.
 These are proven over an abstract view of block structure and
@@ -26,7 +26,7 @@ of various levels of detail without needing to modify these proofs.
 - [CasperOneMessage.v](Core/CasperOneMessage.v): abstract model of Casper, including proof of accountable safety, based on Isabelle/HOL proof by Hirai
 - [PlausibleLiveness.v](Core/PlausibleLiveness.v): abstract model of Casper, including proof of plausible liveness
 
-Validator and Blockchain models:
+### Validator and Blockchain models
 
 These files give two different models meeting the abstract assumptions on validator sets.
 
@@ -47,12 +47,12 @@ the models above.
 - [ValidatorBlockforest.v](Core/ValidatorBlockforest.v): instantiation of all assumptions in abstract safety model for block trees
 - [TransitionSystemSpec.v](Core/TransitionSystemSpec.v): simple transition system with validator-attested blocks with instantiated accountable safety
 
-Beacon Chain Model:
+### Beacon Chain Model
 
 - [Node.v](Core/Node.v): Coq representations of Beacon chain data structures
 - [Protocol.v](Core/Protocol.v): Coq representation of Beacon chain state updates
 
-Utility files:
+### Utility files
 
 - [StrongInductionLtn.v](Core/StrongInductionLtn.v): some strong induction principles on natural numbers, adapted from work by Tej Chajed
 - [ssrAC.v](Core/ssrAC.v): rewriting tactics modulo associativity and commutativity, by Cyril Cohen
