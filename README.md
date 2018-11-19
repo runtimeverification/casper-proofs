@@ -27,7 +27,7 @@ validator sets, and can be instantiated with concrete definitions
 of various levels of detail without needing to modify these proofs.
 
 - [AccountableSafety.v](Core/AccountableSafety.v): Proof of Accountable Safety, based on an Isabelle/HOL [proof](https://github.com/palmskog/pos) by Yoichi Hirai
-- [PlausibleLiveness.v](Core/PlausibleLiveness.v): Proof of plausible liveness
+- [PlausibleLiveness.v](Core/PlausibleLiveness.v): Proof of Plausible Liveness
 
 ### Validator and Blockchain models
 
