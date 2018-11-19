@@ -15,7 +15,7 @@ A more detailed explanation of the models and proofs can be found in the
 technical report:
 
 <img src="resources/pdf-icon.png" alt="PDF" width="2%" />
-*[Verification of Casper in the Coq Proof Assistant](http://github.com/palmskog/casper-coq-report/)*
+*[Verification of Casper in the Coq Proof Assistant](report/report.pdf)*
 
 Project Layout
 --------------
