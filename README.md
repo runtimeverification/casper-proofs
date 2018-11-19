@@ -16,15 +16,15 @@ technical report [here](http://github.com/palmskog/casper-coq-report/).
 Project Layout
 --------------
 
-### Casper proofs
+### Casper abstract model and proofs
 
 These files contain the major theorems about Casper.
 These are proven over an abstract view of block structure and
 validator sets, and can be instantiated with concrete definitions
 of various levels of detail without needing to modify these proofs.
 
-- [AccountableSafety.v](Core/AccountableSafety.v): abstract model of Casper, including proof of accountable safety, based on Isabelle/HOL proof by Hirai
-- [PlausibleLiveness.v](Core/PlausibleLiveness.v): abstract model of Casper, including proof of plausible liveness
+- [AccountableSafety.v](Core/AccountableSafety.v): Proof of accountable safety, based on an Isabelle/HOL [proof](https://github.com/palmskog/pos) by Yoichi Hirai
+- [PlausibleLiveness.v](Core/PlausibleLiveness.v): Proof of plausible liveness
 
 ### Validator and Blockchain models
 
