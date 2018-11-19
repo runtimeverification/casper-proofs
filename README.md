@@ -83,4 +83,4 @@ Then, run `make` in the project root directory to check all definitions and proo
 
 Getting Help
 ------------
-For inquiries or to report problems, feel free to report github issues or to contact us directly.
+Feel free to report GitHub issues or to contact us at: contact@runtimeverification.com
