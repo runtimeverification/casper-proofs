@@ -3,7 +3,7 @@ Require Import all_ssreflect.
 From fcsl
 Require Import pred prelude ordtype pcm finmap unionmap heap.
 From Casper
-Require Import CasperOneMessage ValidatorQuorum ValidatorDepositQuorum Blockforest ValidatorBlockforest.
+Require Import AccountableSafety ValidatorQuorum ValidatorDepositQuorum Blockforest ValidatorBlockforest.
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
