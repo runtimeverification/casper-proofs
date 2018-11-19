@@ -17,7 +17,7 @@ Section Liveness.
 
 (*
 The background definitions of the block and validator structure
-are based off of those from CasperOneMessage.v
+are based off of those from AccountableSafety.v
  *)
 Variable Validator : finType.
 Variable Hash : finType.
@@ -48,7 +48,7 @@ Hypothesis quorum_1_upclosed:
 (* Each vote names source and target nodes by giving hash and height,
    and is signed by a particular validator.
 
-   This definition is different from votes in CasperOneMessage.v,
+   This definition is different from votes in AccountableSafety.v,
    this is taken directly from the way votes are expressed in the
    Casper paper.
  *)
@@ -58,7 +58,7 @@ Definition Vote := (Validator * Hash * Hash * nat * nat)%type.
  *)
 Definition State := {fset Vote}.
 (* A boolean vote_msg predicate is then a definition rather than
-   a field of State as in CasperOneMessage.v *)
+   a field of State as in AccountableSafety.v *)
 Definition vote_msg (st:State) v s t (s_h t_h:nat) : bool
   := (v,s,t,s_h,t_h) \in st.
 

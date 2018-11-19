@@ -1,7 +1,8 @@
 Casper Proofs
 =============
 
-Models and proofs of the Casper blockchain finality system in Coq.
+This project provides models and proofs of the [Casper](https://github.com/ethereum/casper)
+blockchain finality system in Coq.
 The major theorems currently proven are Accountable Safety and
 Plausible Liveness.
 These proofs are written to depend only loosely on the details
@@ -11,7 +12,10 @@ We also have a detailed model of the data structures and node
 behavior in the Beacon Chain protocol.
 
 A more detailed explanation of the models and proofs can be found in the
-technical report [here](http://github.com/palmskog/casper-coq-report/).
+technical report:
+
+<img src="resources/pdf-icon.png" alt="PDF" width="2%" />
+*[Verification of Casper in the Coq Proof Assistant](http://github.com/palmskog/casper-coq-report/)*
 
 Project Layout
 --------------
@@ -19,16 +23,16 @@ Project Layout
 ### Casper abstract model and proofs
 
 These files contain the major theorems about Casper.
-These are proven over an abstract view of block structure and
+The theorems are proven over an abstract view of block structure and
 validator sets, and can be instantiated with concrete definitions
 of various levels of detail without needing to modify these proofs.
 
-- [AccountableSafety.v](Core/AccountableSafety.v): Proof of accountable safety, based on an Isabelle/HOL [proof](https://github.com/palmskog/pos) by Yoichi Hirai
+- [AccountableSafety.v](Core/AccountableSafety.v): Proof of Accountable Safety, based on an Isabelle/HOL [proof](https://github.com/palmskog/pos) by Yoichi Hirai
 - [PlausibleLiveness.v](Core/PlausibleLiveness.v): Proof of plausible liveness
 
 ### Validator and Blockchain models
 
-These files give two different models meeting the abstract assumptions on validator sets.
+These files give two different models meeting the abstract assumptions on validator sets:
 
 - [ValidatorQuorum.v](Core/ValidatorQuorum.v): A simplified model defining
 "2/3 weight" sets and "1/3 weight" sets by counting all validators with equal weight.
@@ -37,12 +41,12 @@ giving each validator a deposit and defining sets by fraction of total deposits.
 Block models:
 
 This file defines a more detailed blockchain model,
-where checkpoint blocks may include a set of votes.
+where checkpoint blocks may include a set of votes:
 
 - [Blockforest.v](Core/Blockforest.v): definitions and utility lemmas related to block trees and blockchains
 
 These files instantiate the Accoutable Safety theorem against some of
-the models above.
+the models above:
 
 - [ValidatorBlockforest.v](Core/ValidatorBlockforest.v): instantiation of all assumptions in abstract safety model for block trees
 - [TransitionSystemSpec.v](Core/TransitionSystemSpec.v): simple transition system with validator-attested blocks with instantiated accountable safety
