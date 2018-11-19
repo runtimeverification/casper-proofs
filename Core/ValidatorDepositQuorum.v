@@ -7,8 +7,12 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-(* Proof of validator set intersection assumption for Casper accountable safety
-   with 1/3 and 2/3 or more of all validators by deposit. *)
+(*
+  This module defines 2/3-weight and 1/3-weight validator sets by
+  fractions of total deposits, and shows that this meets the abstract
+  validator set assumptions used in the Accountable Safety and
+  Plausible Liveness proofs.
+ *)
 
 Lemma sum_rec4 :
  forall (K : nat -> nat -> nat -> nat -> Type),
@@ -43,7 +47,7 @@ Lemma sum_ind4 :
  K 0 0 0 0 ->
  (forall x1 x2 x3 x4 y1 y2 y3 y4,
      K x1 x2 x3 x4 -> K y1 y2 y3 y4 -> K (x1 + y1) (x2 + y2) (x3 + y3) (x4 + y4)) ->
- forall (I : Type) (r : seq I) (P : pred I) (F1 : I -> nat) 
+ forall (I : Type) (r : seq I) (P : pred I) (F1 : I -> nat)
    (F2 : I -> nat) (F3 : I -> nat) (F4 : I -> nat),
    (forall i : I, P i -> K (F1 i) (F2 i) (F3 i) (F4 i)) ->
    K (\sum_(i <- r | P i) F1 i) (\sum_(i <- r | P i) F2 i)
@@ -82,7 +86,7 @@ elim/big_ind3: _ => //=.
     by case; left.
   * move => Hn Hn'.
     move/setUP.
-    by case; right.  
+    by case; right.
 Qed.
 
 (* general proof without reference to 1/3 and 2/3 *)
@@ -101,7 +105,7 @@ move => n s.
 rewrite inE andb_idl // => Hn.
 by rewrite powersetE.
 Qed.
-      
+
 Variable x y z : nat.
 
 Local Notation bot := (((x * \sum_(t : T) (d t)) %/ y).+1).
@@ -143,7 +147,7 @@ case: ifP => //=; case: ifP => //=; case: ifP => //=; case: ifP => //=.
   set n := d i.
   move: n => n.
   rewrite addnA.
-  rewrite (ACl addn (1 * 3 * 0 * 2)) Hx.  
+  rewrite (ACl addn (1 * 3 * 0 * 2)) Hx.
   by rewrite (ACl addn (3 * 0 * (2 * 1))).
 - move/negP => Hq1 Hq2.
   by move/setIP => [H1 H2].
@@ -172,8 +176,8 @@ case: ifP => //=; case: ifP => //=; case: ifP => //=; case: ifP => //=.
 - by move => Hq2 Hq1; case/setIP.
 - by move => Hq2 Hq1 _; case/setUP; left.
 - by move => Hq2 _ _; case/setUP; right.
-Qed.  
-  
+Qed.
+
 Lemma sumU : forall (q1 q2 : {set T}),
     \sum_(t in (q1 :|: q2)) d t =
     \sum_(t in q1) (d t) + \sum_(t in q2) (d t) - \sum_(t in q1 :&: q2) (d t).
@@ -208,7 +212,7 @@ Lemma sum_all_gt_0_intersect' :
     \sum_(t in T) d t < \sum_(t in q1) d t + \sum_(t in q2) d t ->
     0 < \sum_(t in q1 :&: q2) (d t).
 Proof.
-move => q1 q2.  
+move => q1 q2.
 rewrite -(all_sum_or_all q1) all_sum_or_a.
 rewrite big_mkcond /=.
 set s1 := \sum_i _.
@@ -249,7 +253,7 @@ case: ifP => //=; case: ifP => //=; case: ifP => //=; case: ifP => //=.
 - move => _ _ _ _.
   rewrite 3!add0n ltn_add2l => Hlt'.
   apply: Hlt.
-  move: Hlt'.  
+  move: Hlt'.
   exact: add_ltn.
 - move/setIP => [H1 H2].
   move => _ _.
@@ -278,7 +282,7 @@ apply sum_all_gt_0_intersect' => //.
 move: Hlt.
 exact: add_ltn.
 Qed.
-  
+
 Lemma d_bot_top_intersection :
   forall q1 q2, q1 \in gdset top -> q2 \in gdset top ->
   exists q3, q3 \in gdset bot /\ q3 \subset q1 /\ q3 \subset q2.
@@ -306,11 +310,11 @@ case Hc: ([disjoint q1 & q2]).
   move/d_disjoint_leq: Hc => Hc Hn.
   move: Hc.
   rewrite leqNgt.
-  case/negP.  
+  case/negP.
   eapply leq_ltn_trans in Hn; eauto.
   by apply leq_addl.
 have Hlt'' := sum_all_gt_0_intersect Hlt.
-move: Hlt.  
+move: Hlt.
 have Hltt: \sum_(t in q1) (d t) + \sum_(t in q2) (d t) - \sum_(t in q1 :&: q2) (d t) <
   \sum_(t in q1) (d t) + \sum_(t in q2) (d t).
   move: Hlt' Hlt''.

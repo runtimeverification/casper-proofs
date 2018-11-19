@@ -8,11 +8,20 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-Record NodeState := 
+(*
+  This module instantiates the accountable safety theorem using
+  the deposit-based validator quorums from
+  ValidatorDepositQuorum.v
+  and using the blocks from
+  Blockforest.v,
+  and considering only the votes recorded as block attestations.
+ *)
+
+Record NodeState :=
  Node {
    blocks : Blockforest;
  }.
-  
+
 Definition NodeInit : NodeState :=
   Node (#GenesisBlock \\-> GenesisBlock).
 
@@ -26,7 +35,7 @@ Definition procInp (st : NodeState) (inp : Input) :=
  end.
 
 Definition Coh (ns : NodeState) :=
-  [/\ valid (blocks ns),     
+  [/\ valid (blocks ns),
      validH (blocks ns) &
      has_init_block (blocks ns)
   ].

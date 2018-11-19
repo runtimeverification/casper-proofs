@@ -9,6 +9,12 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
+(*
+  This module defines the execution of the
+  Beacon Chain protocol, using the data structures from
+  Node.v
+ *)
+
 Definition StateMap := union_map NodeId_ordType (@State [ordType of Hash]).
 
 Definition initState' s ps : StateMap := foldr (fun (a : [finType of NodeId_ordType]) m => (a \\-> Init a (ps a)) \+ m) Unit s.

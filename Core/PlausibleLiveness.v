@@ -8,8 +8,9 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-(*
-This file contains the proof of plausible liveness.
+(* This module proves the Plausible Liveness theorem for Casper
+   from an abstract model of the blockchain and validator sets.
+   Assumes a static set of validators.
  *)
 
 Section Liveness.

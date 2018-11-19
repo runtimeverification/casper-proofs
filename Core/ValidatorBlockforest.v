@@ -9,6 +9,16 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
+(*
+  This module instantiates the accountable safety theorem
+  for the deposit-based validator quorums from
+  ValidatorDepositQuorum.v
+  and the block structure form
+  Blockforest.v
+  but using a separate collection of votes rather than
+  relying on the votes recorded in the blocks.
+ *)
+
 Section ValBlock.
 
 Variable Validator : finType.

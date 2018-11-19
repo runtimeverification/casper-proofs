@@ -10,7 +10,8 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-(* Abstract model of Casper for proving accountable safety. 
+(* This module proves the Accountable Safety theorem for Casper
+   from an abstract model of the blockchain and validator sets.
    Assumes a static set of validators.
    Based on CasperOneMessage.thy by Yiochi Hirai.
 *)

@@ -5,9 +5,17 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-(* Proof of validator set intersection assumption for Casper accountable safety
-   with 1/3 and 2/3 or more of all validators by set cardinality
-   (effectively assumes all validators have a deposit of 1). *)
+(*
+  This module defines a simplified model of validator quorums
+  where a 1/3 and 2/3 set is measured simply by the number of validators.
+  This example shows that the abstract assumption on validator sets
+  that were used for the Accoutable Safety and Plausible Liveness
+  proofs are reasonable.
+
+  See ValidatorDepositQuorum.v for a model which
+  weights validators by deposit.
+ *)
+
 
 Section Thirds.
 

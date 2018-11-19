@@ -7,6 +7,12 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
+(*
+  This module defines a block model of intermediate detail,
+  where blocks contain some data,
+  including validator attestations
+ *)
+
 (* ------ *)
 (* BLOCKS *)
 (* ------ *)
@@ -42,10 +48,10 @@ Definition Attestation_eqMixin {Hash : ordType} :=
  EqMixin (@eq_attestationP Hash).
 Canonical Attestation_eqType {Hash : ordType} :=
  Eval hnf in EqType (@Attestation Hash) (@Attestation_eqMixin Hash).
-  
+
 Record Block {Hash : ordType} :=
   mkB {
-    parent_hash : Hash;      
+    parent_hash : Hash;
     block_view : nat;
     attestations : seq (@Attestation Hash);
   }.
@@ -66,14 +72,14 @@ case H3: (bv == bv'); [move/eqP: H3=>?; subst bv'| constructor 2];
   last by case=>?; subst bv';rewrite eqxx in H3.
 case H4: (att == att'); [move/eqP: H4=>?; subst att'| constructor 2];
   last by case=>?; subst att';rewrite eqxx in H4.
-by constructor. 
+by constructor.
 Qed.
 
 Definition Block_eqMixin {Hash : ordType} :=
  EqMixin (@eq_blockP Hash).
 Canonical Block_eqType {Hash : ordType} :=
  Eval hnf in EqType (@Block Hash) (@Block_eqMixin Hash).
-  
+
 (* ------ *)
 (* CHAINS *)
 (* ------ *)
@@ -92,20 +98,20 @@ Fixpoint sprefixb {T: eqType} (s1 s2 : seq T) :=
   if s2 is y :: s2' then
     if s1 is x :: s1' then (x == y) && (sprefixb s1' s2')
     else true
-  else false.         
+  else false.
 
 Lemma sprefixP {T: eqType} (bc1 bc2 : seq T):
   reflect [bc1 <<< bc2] (sprefixb bc1 bc2).
 Proof.
 elim: bc2 bc1=>//=[|b2 bc2 Hi/=]bc1.
 - case:bc1=>//=[|b1 bc1]; constructor 2=>//; apply: isp_mt.
-case: bc1=>//[|b1 bc1]/=; first by constructor 1; exists b2, bc2.  
+case: bc1=>//[|b1 bc1]/=; first by constructor 1; exists b2, bc2.
 case X: (b1 == b2)=>/=; last first.
 - constructor 2=>[[p]][bc']; rewrite cat_cons; case=>Z; subst b2.
   by rewrite eqxx in X.
 - move/eqP: X=>X; subst b2.
 case: Hi=>H; [constructor 1|constructor 2].
-- by case:H=>x[xs]->; exists x, xs; rewrite cat_cons.  
+- by case:H=>x[xs]->; exists x, xs; rewrite cat_cons.
 case=>x[xs]; rewrite cat_cons; case=>Z; subst bc2; apply: H.
 by exists x, xs.
 Qed.
@@ -146,7 +152,7 @@ Proof. by move=>[] x [] xs=>->; exists (x :: xs). Qed.
 Lemma bc_pre_spre {T :eqType} (bc bc' : seq T) :
   [bc <<= bc'] -> [bc <<< bc'] \/ bc == bc'.
 Proof.
-case; case; first by rewrite cats0=>->; right. 
+case; case; first by rewrite cats0=>->; right.
 by move=>x xs->; left; eexists x, xs.
 Qed.
 
@@ -170,12 +176,12 @@ Proof. by case: bc=>//b bc[x]. Qed.
 
 Lemma bc_sprefix_mt {T :eqType} (bc : seq T) : [bc <<< [::]] -> False.
 Proof. by case=>x [] xs; case: bc=>//b bc[x]. Qed.
- 
+
 Fixpoint prefixb {T: eqType} (s1 s2 : seq T) :=
   if s2 is y :: s2' then
     if s1 is x :: s1' then (x == y) && (prefixb s1' s2')
     else true
-  else s1 == [::].         
+  else s1 == [::].
 
 Lemma bc_prefixb_mt {T :eqType} (bc : seq T) : prefixb bc [::] -> bc == [::].
 Proof. by case: bc=>//b bc[x]. Qed.
@@ -187,13 +193,13 @@ elim: bc2 bc1=>//=[|b2 bc2 Hi/=]bc1.
 - case B: (prefixb bc1 [::]); [constructor 1|constructor 2].
   + by move/bc_prefixb_mt/eqP: B=>->; exists [::].
   by case: bc1 B=>//b bc1/=_[?].
-case: bc1=>//[|b1 bc1]; first by constructor 1; exists (b2::bc2). 
+case: bc1=>//[|b1 bc1]; first by constructor 1; exists (b2::bc2).
 case X: (b1 == b2)=>/=; rewrite X/=; last first.
 - constructor 2=>[[p]]; rewrite cat_cons; case=>Z; subst b2.
   by rewrite eqxx in X.
 - move/eqP: X=>X; subst b2.
 case: Hi=>H; [constructor 1|constructor 2].
-- by case:H=>x->; exists x; rewrite cat_cons.  
+- by case:H=>x->; exists x; rewrite cat_cons.
 case=>t; rewrite cat_cons; case=>Z; subst bc2; apply: H.
 by exists t.
 Qed.
@@ -226,7 +232,7 @@ case F: (fork bc1 bc2); [constructor 1 | constructor 2].
 - move/negP: F=>F; rewrite /fork_rel=>G; apply: F.
   case: G; case=>xs; case: xs=>[| x xs]; rewrite ?cats0=>->;
   do? [by rewrite eqxx ![_ || true]orbC].
-  + by apply/orP; left; apply/sprefixP; eexists _, _.  
+  + by apply/orP; left; apply/sprefixP; eexists _, _.
   by apply/orP; right; apply/orP; left; apply/sprefixP; eexists _, _.
 move=>G. move/negP: F=>F;apply: F. rewrite /fork_rel in G.
 case/orP.
@@ -234,12 +240,12 @@ case/orP.
   by left; eexists _.
   by rewrite orbC eq_sym -prb_equiv=>P21; apply: G; right; apply/prefixP.
 Qed.
-  
+
 Lemma bc_fork_neq {T: eqType} (bc bc' : seq T) :
   fork bc bc' -> bc != bc'.
 Proof.
 move=>H; apply/negbT/negP=>Z; move/eqP:Z=>Z; subst bc'.
-by case/orP: H; right; rewrite orbC eqxx. 
+by case/orP: H; right; rewrite orbC eqxx.
 Qed.
 
 Lemma bc_fork_nrefl {T: eqType} (bc : seq T) :

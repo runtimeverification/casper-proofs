@@ -7,6 +7,11 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
+(*
+  This module defines the data structures
+  for the Beacon Chain protocol
+ *)
+
 Parameter byte : ordType.
 Parameter Address : finType.
 
