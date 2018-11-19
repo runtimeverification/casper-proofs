@@ -23,7 +23,7 @@ These are proven over an abstract view of block structure and
 validator sets, and can be instantiated with concrete definitions
 of various levels of detail without needing to modify these proofs.
 
-- [CasperOneMessage.v](Core/CasperOneMessage.v): abstract model of Casper, including proof of accountable safety, based on Isabelle/HOL proof by Hirai
+- [AccountableSafety.v](Core/AccountableSafety.v): abstract model of Casper, including proof of accountable safety, based on Isabelle/HOL proof by Hirai
 - [PlausibleLiveness.v](Core/PlausibleLiveness.v): abstract model of Casper, including proof of plausible liveness
 
 ### Validator and Blockchain models

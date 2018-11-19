@@ -4,7 +4,7 @@
 Core/Blockforest.v
 Core/Node.v
 Core/Protocol.v
-Core/CasperOneMessage.v
+Core/AccountableSafety.v
 Core/PlausibleLiveness.v
 Core/ValidatorQuorum.v
 Core/ValidatorBlockforest.v
