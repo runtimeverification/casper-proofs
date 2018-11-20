@@ -313,7 +313,9 @@ have Hq: exists q, q \in quorum_2 /\ forall n, n \in q -> n \in q1 /\ n \in q2
 		(@quorums_property)
 		Reconstr.Empty.
 have Hq': exists q, q \in quorum_2 /\ forall n, n \in q -> vote_msg s n h1 v1 v2 /\ vote_msg s n c3 v3.+1 v3.
-  by Reconstr.ryelles6 Reconstr.Empty (@Coq.Init.Datatypes.is_true).
+  have [q [Hq0 Hq']] := Hq.
+  exists q; split => //.
+  by Reconstr.scrush.
 have Hn: forall n, (vote_msg s n h1 v1 v2 /\ vote_msg s n c3 v3.+1 v3) -> slashed_surround s n.
   move => n [Hvm Hvm'].
   by exists h1, c3, v1, v3.+1, v2, v3.
