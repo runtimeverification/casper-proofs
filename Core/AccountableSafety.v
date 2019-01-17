@@ -21,9 +21,9 @@ Section CasperOneMessage.
 Variable Validator : finType.  
 Variable Hash : finType.
 
-(* all sets containing "1/3" of all validators or more *)
-Variable quorum_1 : {set {set Validator}}.
 (* all sets containing "2/3" of all validators or more *)
+Variable quorum_1 : {set {set Validator}}.
+(* all sets containing "1/3" of all validators or more *)
 Variable quorum_2 : {set {set Validator}}.
 
 (* generalized assumption on validator sets containing fractions of all validators *)
