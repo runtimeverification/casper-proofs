@@ -123,7 +123,7 @@ apply: nth_ancestor_nth; eauto.
 exact: nth_ancestor_0.
 Qed.
 
-(* "1/3" or more of validators have voted for a justified link *)
+(* "2/3" or more of validators have voted for a justified link *)
 Definition justified_link s q parent pre new now :=
   q \in quorum_1 /\
   (forall n, n \in q -> vote_msg s n new now pre) /\
